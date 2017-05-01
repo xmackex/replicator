@@ -71,8 +71,8 @@ type scalein struct {
 // The ConsulClient interface is used to provide common method signatures for
 // interacting with the Consul API.
 type ConsulClient interface {
-	// ListConsulKV provides a recursed list of Consul KeyValues at the defined
-	// location and can accept an ACL Token if this is enabled on the Consul cluster
-	// being used.
-	ListConsulKV(*Config, NomadClient) ([]*JobScalingPolicy, error)
+	// GetJobScalingPolicies provides a list of Nomad jobs with a defined scaling
+	// policy document at a specified Consuk Key/Value Store location. Supports
+	// the use of an ACL token if required by the Consul cluster.
+	GetJobScalingPolicies(*Config, NomadClient) ([]*JobScalingPolicy, error)
 }

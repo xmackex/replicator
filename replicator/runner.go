@@ -137,7 +137,7 @@ func (r *Runner) jobScaling() {
 
 	// Pull the list of all currently running jobs which have an enabled scaling
 	// document.
-	resp, err := consulClient.ListConsulKV(r.config, nomadClient)
+	resp, err := consulClient.GetJobScalingPolicies(r.config, nomadClient)
 	if err != nil {
 		logging.Error("%v", err)
 	}

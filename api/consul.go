@@ -32,10 +32,10 @@ func NewConsulClient(addr string) (structs.ConsulClient, error) {
 	return &consulClient{consul: c}, nil
 }
 
-// ListConsulKV provides a recursed list of Consul KeyValues at the defined
-// location and can accept an ACL Token if this is enabled on the Consul cluster
-// being used.
-func (c *consulClient) ListConsulKV(config *structs.Config, nomadClient structs.NomadClient) ([]*structs.JobScalingPolicy, error) {
+// GetJobScalingPolicies provides a list of Nomad jobs with a defined scaling
+// policy document at a specified Consuk Key/Value Store location. Supports
+// the use of an ACL token if required by the Consul cluster.
+func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient structs.NomadClient) ([]*structs.JobScalingPolicy, error) {
 	var entries []*structs.JobScalingPolicy
 
 	// Setup the QueryOptions to include the aclToken if this has been set, if not
@@ -44,12 +44,6 @@ func (c *consulClient) ListConsulKV(config *structs.Config, nomadClient structs.
 	if config.JobScaling.ConsulToken != "" {
 		qop.Token = config.JobScaling.ConsulToken
 	}
-
-	// Collect the recursed results from Consul.
-	// resp, _, err := c.consul.KV().List(config.JobScaling.ConsulKeyLocation, qop)
-	// if err != nil {
-	// 	return entries, err
-	// }
 
 	kvClient := c.consul.KV()
 	resp, _, err := kvClient.List(config.JobScaling.ConsulKeyLocation, qop)
@@ -60,7 +54,7 @@ func (c *consulClient) ListConsulKV(config *structs.Config, nomadClient structs.
 	// Loop the returned list to gather information on each and every job that has
 	// a scaling document.
 	for _, job := range resp {
-		// The results Value is base64 encoded. It is decoded and marshelled into
+		// The results Value is base64 encoded. It is decoded and marshalled into
 		// the appropriate struct.
 		uEnc := base64.URLEncoding.EncodeToString([]byte(job.Value))
 		uDec, _ := base64.URLEncoding.DecodeString(uEnc)
@@ -72,6 +66,9 @@ func (c *consulClient) ListConsulKV(config *structs.Config, nomadClient structs.
 
 		// Check to see whether the scaling document is enabled and the job has
 		// running task groups before appending to the return.
+		// TODO (e.westfall): We should not exclude jobs with scaling disabled as
+		// this prevents users from running in dry-run mode to see what *would*
+		// have happened.
 		if s.Enabled && nomadClient.IsJobRunning(s.JobName) {
 
 			// Each scaling policy document is then appended to a list to form a full
