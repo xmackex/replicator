@@ -69,6 +69,8 @@ func (r *Runner) clusterScaling(done chan bool) {
 		return
 	}
 
+	// If a region has not been specified, attempt to dynamically determine what
+	// region we are running in.
 	if r.config.Region == "" {
 		if region, err := api.DescribeAWSRegion(); err == nil {
 			r.config.Region = region
