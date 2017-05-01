@@ -1,6 +1,8 @@
-# Replicator - Automated Cluster and Job Scaling For Nomad
+# Replicator
 
-Replicator is a daemon that provides automatic scaling of Nomad jobs and worker nodes.
+[![Build Status](https://travis-ci.org/elsevier-core-engineering/replicator.svg?branch=master)](https://travis-ci.org/elsevier-core-engineering/replicator) [![Join the chat at https://gitter.im/els-core-engineering/replicator/Lobby](https://badges.gitter.im/els-core-engineering/replicator/Lobby.svg)](https://gitter.im/els-core-engineering/replicator?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![GoDoc](https://godoc.org/github.com/elsevier-core-engineering/replicator?status.svg)](https://godoc.org/github.com/elsevier-core-engineering/replicator)
+
+Replicator is a daemon that provides automatic scaling of [Nomad](https://github.com/hashicorp/nomad) jobs and worker nodes.
 
 - Replicator stores job scaling policies in the Consul Key/Value Store. A job scaling policy allows scaling constraints to be defined per task-group.
 - Replicator supports automatic scaling of cluster worker nodes in an AWS autoscaling group.
@@ -18,7 +20,7 @@ A [puppet module](https://github.com/elsevier-core-engineering/puppet-replicator
 
 Replicator uses the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) for configuration files. By proxy, this means the configuration is also JSON compatible.
 
-You can specify the directory that Replicator will load configuration files from using the `-config` flag. Replicator processes configuration files in lexicographic order.
+You can specify a configuration file or a directory that contains configuration files using the `-config` flag. Replicator processes configuration files in lexicographic order.
 
 ```
 # This is the address of the Consul agent. By default, this is
@@ -31,7 +33,7 @@ You can specify the directory that Replicator will load configuration files from
 # clients can connect.
 consul     = "localhost:8500"
 
-# The address and port Replicator will use when making connections to the Nomad API. By default, this http://localhost:4646, which is the default bind and port for a local Noa
+# The address and port Replicator will use when making connections to the Nomad API. By default, this http://localhost:4646, which is the default bind and port for a local Nomad server.
 nomad      = "http://localhost:4646"
 
 # The AWS region in which the cluster is running. If no region is specified, Replicator attempts to dynamically determine the region.
@@ -113,6 +115,7 @@ Replicator uses JSON documents stored in the Consul Key/Value Store for job scal
  ]
 }
 ```
+
 ## Permissions
 
 The server node running the Replicator daemon will need access to certain AWS resources and actions. An example IAM policy is provided below:
