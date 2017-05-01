@@ -136,10 +136,11 @@ func (r *Runner) jobScaling() {
 	}
 
 	// Pull the list of all currently running jobs which have an enabled scaling
-	// document.
+	// document. Fail quickly if we can't retrieve this list.
 	resp, err := consulClient.GetJobScalingPolicies(r.config, nomadClient)
 	if err != nil {
-		logging.Error("%v", err)
+		logging.Error("failed to determine if any jobs have scaling policies enabled \n%v", err)
+		return
 	}
 
 	// EvaluateJobScaling identifies whether each of the Job.Groups requires a
