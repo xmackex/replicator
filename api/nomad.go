@@ -85,35 +85,39 @@ func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocatio
 		clusterCapacity = capacity.TotalCapacity.MemoryMB
 	}
 
-	logging.Debug("Node Count (Min: %v/Max: %v): %v , CPU: %v, Memory: %v", config.ClusterScaling.MinSize,
-		config.ClusterScaling.MaxSize, capacity.NodeCount, capacity.TotalCapacity.CPUMHz, capacity.TotalCapacity.MemoryMB)
-	logging.Debug("Scaling Metric: %v, Cluster Capacity: %v, Cluster Utilization: %v, Max Allowed: %v",
-		capacity.ScalingMetric, clusterCapacity, clusterUtilization, capacity.MaxAllowedUtilization)
+	logging.Debug("api/nomad: Cluster Node Count (Min: %v, Max: %v, Fault Tolerance: %v, Current: %v)",
+		config.ClusterScaling.MinSize, config.ClusterScaling.MaxSize, config.ClusterScaling.NodeFaultTolerance, capacity.NodeCount)
 
 	// If current utilization is less than max allowed, check to see if we can
 	// and should scale the cluster in.
 	if (clusterUtilization < capacity.MaxAllowedUtilization) || (capacity.ScalingMetric == ScalingMetricNone) {
 		capacity.ScalingDirection = ScalingDirectionIn
+
+		logging.Debug("api/nomad: Cluster Scaling (Metric: %v, Direction: %v, Capacity: %v, Utilization: %v, Max Allowed: %v)",
+			capacity.ScalingMetric, capacity.ScalingDirection, clusterCapacity, clusterUtilization, capacity.MaxAllowedUtilization)
+
 		if !c.CheckClusterScalingSafety(capacity, config, ScalingDirectionIn) {
-			logging.Debug("scaling operation (scale-in) fails to pass the safety check")
+			logging.Debug("api/nomad: cluster scaling operation (scale-in) fails to pass the safety check")
 			return
 		}
-		logging.Debug("scaling operation (scale-in) passes the safety check and will be permitted")
+		logging.Debug("api/nomad: cluster scaling operation (scale-in) passes the safety check and will be permitted")
 	}
 
 	// If current utilization is greater than max allowed, check to see if we can
 	// and should scale the cluster out.
 	if (clusterUtilization >= capacity.MaxAllowedUtilization) && (capacity.ScalingMetric != ScalingDirectionNone) {
 		capacity.ScalingDirection = ScalingDirectionOut
+
+		logging.Debug("api/nomad: Cluster Scaling (Metric: %v, Direction: %v, Capacity: %v, Utilization: %v, Max Allowed: %v)",
+			capacity.ScalingMetric, capacity.ScalingDirection, clusterCapacity, clusterUtilization, capacity.MaxAllowedUtilization)
+
 		if !c.CheckClusterScalingSafety(capacity, config, ScalingDirectionOut) {
-			logging.Debug("scaling operation (scale-out) fails to pass the safety check")
+			logging.Debug("api/nomad: cluster scaling operation (scale-out) fails to pass the safety check")
 			return
 		}
 
-		logging.Debug("scaling operation (scale-out) passes the safety check and will be permitted")
+		logging.Debug("api/nomad: cluster scaling operation (scale-out) passes the safety check and will be permitted")
 	}
-
-	logging.Debug("last Scaling (in api): %v", capacity.LastScalingEvent)
 
 	return true, nil
 }
@@ -132,7 +136,7 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterAllocat
 	if scaleDirection == ScalingDirectionIn {
 		// Determine if removing a node would violate safety thresholds or declared minimums
 		if (capacity.NodeCount <= 1) || ((capacity.NodeCount - 1) < config.ClusterScaling.MinSize) {
-			logging.Debug("scale-in operation would violate safety thresholds or declared minimums")
+			logging.Debug("api/nomad: cluster scale-in operation would violate safety thresholds or declared minimums")
 			return
 		}
 
@@ -144,14 +148,17 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterAllocat
 		// we will not permit the scale-in operation.
 		newClusterUtilization := percent.PercentOf(clusterUsedCapacity, newMaxAllowedUtilization)
 
+		logging.Debug("api/nomad: max allowed cluster utilization after simulated node removal: %v (percent utilized: %v)",
+			newMaxAllowedUtilization, newClusterUtilization)
+
 		// Evaluate utilization against new maximum allowed threshold and stop if a violation is present.
 		if (clusterUsedCapacity >= newMaxAllowedUtilization) || (newClusterUtilization >= scaleInCapacityThreshold) {
-			logging.Debug("scale-in operation would violate or is too close to the maximum allowed cluster utilization threshold")
+			logging.Debug("api/nomad: cluster scale-in operation would violate or is too close to the maximum allowed cluster utilization threshold")
 			return
 		}
 	} else if scaleDirection == ScalingDirectionOut {
 		if (capacity.NodeCount + 1) > config.ClusterScaling.MaxSize {
-			logging.Debug("scale-out operation would violate declared maximum threshold")
+			logging.Debug("api/nomad: cluster scale-out operation would violate declared maximum threshold")
 			return
 		}
 	}
@@ -159,7 +166,7 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterAllocat
 	// Determine if performing a scaling operation would violate the scaling cooldown period.
 	if err := CheckClusterScalingTimeThreshold(config.ClusterScaling.CoolDown,
 		config.ClusterScaling.AutoscalingGroup, NewAWSAsgService(config.Region)); err != nil {
-		logging.Debug("%v", err)
+		logging.Debug("api/nomad: %v", err)
 		return
 	}
 
@@ -258,7 +265,6 @@ func CalculateUsage(clusterInfo *structs.ClusterAllocation) {
 	for _, nodeUsage := range clusterInfo.NodeAllocations {
 		nodeUsage.UsedCapacity.CPUPercent = percent.PercentOf(nodeUsage.UsedCapacity.CPUMHz,
 			clusterInfo.UsedCapacity.CPUMHz)
-		logging.Debug("Node Used: %v (%v), Cluster Used: %v", nodeUsage.UsedCapacity.CPUMHz, nodeUsage.UsedCapacity.CPUPercent, clusterInfo.UsedCapacity.CPUMHz)
 		nodeUsage.UsedCapacity.DiskPercent = percent.PercentOf(nodeUsage.UsedCapacity.DiskMB,
 			clusterInfo.UsedCapacity.DiskMB)
 		nodeUsage.UsedCapacity.MemoryPercent = percent.PercentOf(nodeUsage.UsedCapacity.MemoryMB,
@@ -272,12 +278,12 @@ func (c *nomadClient) LeaderCheck() bool {
 
 	leader, err := c.nomad.Status().Leader()
 	if (err != nil) || (len(leader) == 0) {
-		logging.Error("replicator: failed to identify cluster leader")
+		logging.Error("api/nomad: failed to identify cluster leader")
 	}
 
 	self, err := c.nomad.Agent().Self()
 	if err != nil {
-		logging.Error("replicator: unable to retrieve local agent information")
+		logging.Error("api/nomad: unable to retrieve local agent information")
 	} else {
 
 		if helper.FindIP(leader) == self.Member.Addr {
@@ -369,7 +375,6 @@ func (c *nomadClient) MostUtilizedGroupResource(gsp *structs.GroupScalingPolicy)
 func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterAllocation) (nodeID, nodeIP string) {
 	var lowestAllocation float64
 
-	logging.Debug("Scaling Metric: %v", clusterInfo.ScalingMetric)
 	for _, nodeAlloc := range clusterInfo.NodeAllocations {
 		switch clusterInfo.ScalingMetric {
 		case ScalingMetricProcessor:
@@ -391,7 +396,7 @@ func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterAllocation)
 	// to the nodes IP address so  the AWS instance-id can be infered.
 	resp, _, err := c.nomad.Nodes().Info(nodeID, &nomad.QueryOptions{})
 	if err != nil {
-		logging.Error("unable to ascertain nomad node IP address: %v", err)
+		logging.Error("api/nomad: unable to determine nomad node IP address: %v", err)
 	}
 	nodeIP = resp.Attributes["unique.network.ip-address"]
 
@@ -413,7 +418,7 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 	if (err != nil) || (resp.Drain != true) {
 		return err
 	}
-	logging.Info("node %v has been placed in drain mode\n", nodeID)
+	logging.Info("api/nomad: node %v has been placed in drain mode\n", nodeID)
 
 	// Setup a ticker to poll the node allocations and report when all existing
 	// allocations have been migrated to other worker nodes.
@@ -423,7 +428,7 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 	for {
 		select {
 		case <-timeout:
-			logging.Info("timeout %v reached while waiting for existing allocations to be migrated from node %v",
+			logging.Error("api/nomad: timeout %v reached while waiting for existing allocations to be migrated from node %v",
 				timeout, nodeID)
 			return nil
 		case <-ticker.C:
@@ -444,11 +449,11 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 			}
 
 			if activeAllocations == 0 {
-				logging.Info("node %v has no active allocations", nodeID)
+				logging.Info("api/nomad: node %v has no active allocations", nodeID)
 				return nil
 			}
 
-			logging.Info("node %v has %v active allocations, pausing and will re-poll allocations", nodeID, activeAllocations)
+			logging.Info("api/nomad: node %v has %v active allocations, pausing and will re-poll allocations", nodeID, activeAllocations)
 		}
 	}
 }
@@ -463,7 +468,7 @@ func (c *nomadClient) JobScale(scalingDoc *structs.JobScalingPolicy) {
 	jobResp, _, err := c.nomad.Jobs().Info(scalingDoc.JobName, &nomad.QueryOptions{})
 
 	if err != nil {
-		logging.Info("unable to determine job info of %v", scalingDoc.JobName)
+		logging.Info("api/nomad: unable to determine job info of %v", scalingDoc.JobName)
 		return
 	}
 
@@ -477,12 +482,12 @@ func (c *nomadClient) JobScale(scalingDoc *structs.JobScalingPolicy) {
 			for i, taskGroup := range jobResp.TaskGroups {
 				if group.Scaling.ScaleDirection == "Out" && *taskGroup.Count >= group.Scaling.Max ||
 					group.Scaling.ScaleDirection == "In" && *taskGroup.Count <= group.Scaling.Min {
-					logging.Debug("scale %v not permitted due to constraints on job \"%v\" and group \"%v\"",
+					logging.Debug("api/nomad: scale %v not permitted due to constraints on job \"%v\" and group \"%v\"",
 						group.Scaling.ScaleDirection, *jobResp.ID, group.GroupName)
 					return
 				}
 
-				logging.Info("job scaling %v will now be actioned on job \"%v\" and group \"%v\"",
+				logging.Info("api/nomad: scaling action (%v) will now be initiated against job \"%v\" and group \"%v\"",
 					group.Scaling.ScaleDirection, scalingDoc.JobName, group.GroupName)
 				// Depending on the scaling direction decrement/incrament the count;
 				// currently replicator only supports addition/subtraction of 1.
@@ -510,7 +515,7 @@ func (c *nomadClient) JobScale(scalingDoc *structs.JobScalingPolicy) {
 		return
 	}
 
-	logging.Info("scaling action successfully taken against job \"%v\"", *jobResp.ID)
+	logging.Info("api/nomad: scaling action successfully taken against job \"%v\"", *jobResp.ID)
 	return
 }
 
@@ -519,7 +524,7 @@ func (c *nomadClient) JobScale(scalingDoc *structs.JobScalingPolicy) {
 func (c *nomadClient) GetTaskGroupResources(jobName string, groupPolicy *structs.GroupScalingPolicy) {
 	jobs, _, err := c.nomad.Jobs().Info(jobName, &nomad.QueryOptions{})
 	if err != nil {
-		logging.Error("failed to retrieve job details for job %v: %v\n", jobName, err)
+		logging.Error("api/nomad: failed to retrieve job details for job %v: %v\n", jobName, err)
 	}
 
 	for _, group := range jobs.TaskGroups {
@@ -540,7 +545,7 @@ func (c *nomadClient) EvaluateJobScaling(jobs []*structs.JobScalingPolicy) {
 
 			allocs, _, err := c.nomad.Jobs().Allocations(policy.JobName, false, &nomad.QueryOptions{})
 			if err != nil {
-				logging.Error("failed to retrieve allocations for job %v: %v\n", policy.JobName, err)
+				logging.Error("api/nomad: failed to retrieve allocations for job %v: %v\n", policy.JobName, err)
 			}
 
 			c.GetJobAllocations(allocs, gsp)
@@ -581,7 +586,7 @@ func (c *nomadClient) GetJobAllocations(allocs []*nomad.AllocationListStub, gsp 
 func (c *nomadClient) GetAllocationStats(allocation *nomad.Allocation, scalingPolicy *structs.GroupScalingPolicy) {
 	stats, err := c.nomad.Allocations().Stats(allocation, &nomad.QueryOptions{})
 	if err != nil {
-		logging.Error("failed to retrieve allocation statistics from client %v: %v\n", allocation.NodeID, err)
+		logging.Error("api/nomad: failed to retrieve allocation statistics from client %v: %v\n", allocation.NodeID, err)
 		return
 	}
 
@@ -611,14 +616,17 @@ func (c *nomadClient) IsJobRunning(jobID string) bool {
 // taking into consideration node fault-tolerance and scaling overhead.
 func MaxAllowedClusterUtilization(capacity *structs.ClusterAllocation, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {
 	var allocTotal, capacityTotal int
+	var internalScalingMetric string
 
 	// Use the cluster scaling metric when determining total cluster capacity
 	// and task group scaling overhead.
 	switch capacity.ScalingMetric {
 	case ScalingMetricMemory:
+		internalScalingMetric = ScalingMetricMemory
 		allocTotal = capacity.TaskAllocation.MemoryMB
 		capacityTotal = capacity.TotalCapacity.MemoryMB
 	default:
+		internalScalingMetric = ScalingMetricProcessor
 		allocTotal = capacity.TaskAllocation.CPUMHz
 		capacityTotal = capacity.TotalCapacity.CPUMHz
 	}
@@ -628,7 +636,12 @@ func MaxAllowedClusterUtilization(capacity *structs.ClusterAllocation, nodeFault
 		capacityTotal = capacityTotal - nodeAvgAlloc
 	}
 
-	logging.Debug("node average capacity: %v, scaling overhead: %v", nodeAvgAlloc, allocTotal)
+	logging.Debug("api/nomad: Cluster Capacity (CPU [MHz]: %v, Memory [MB]: %v)",
+		capacity.TotalCapacity.CPUMHz, capacity.TotalCapacity.MemoryMB)
+	logging.Debug("api/nomad: Cluster Utilization (Scaling Metric: %v, CPU [MHz]: %v, Memory [MB]: %v)",
+		capacity.ScalingMetric, capacity.UsedCapacity.CPUMHz, capacity.UsedCapacity.MemoryMB)
+	logging.Debug("api/nomad: Scaling Metric (Algorithm): %v, Average Node Capacity: %v, Job Scaling Overhead: %v",
+		internalScalingMetric, nodeAvgAlloc, allocTotal)
 
 	maxAllowedUtilization = ((capacityTotal - allocTotal) - (nodeAvgAlloc * nodeFaultTolerance))
 

@@ -64,7 +64,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 
 	// Determine if we are running on the leader node, halt if not.
 	if haveLeadership := nomadClient.LeaderCheck(); !haveLeadership {
-		logging.Debug("replicator is not running on the known leader, no cluster scaling actions will be taken")
+		logging.Debug("core/runner: replicator is not running on the known leader, no cluster scaling actions will be taken")
 		done <- true
 		return
 	}
@@ -80,7 +80,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 	clusterCapacity := &structs.ClusterAllocation{}
 
 	if scale, err := nomadClient.EvaluateClusterCapacity(clusterCapacity, r.config); err != nil || !scale {
-		logging.Debug("scaling operation not required or permitted")
+		logging.Debug("core/runner: scaling operation not required or permitted")
 	} else {
 		// If we reached this point we will be performing AWS interaction so we
 		// create an client connection.
@@ -88,13 +88,13 @@ func (r *Runner) clusterScaling(done chan bool) {
 
 		if clusterCapacity.ScalingDirection == api.ScalingDirectionOut {
 			if !scalingEnabled {
-				logging.Debug("cluster scaling disabled, not initiating scaling operation (scale-out)")
+				logging.Debug("core/runner: cluster scaling disabled, not initiating scaling operation (scale-out)")
 				done <- true
 				return
 			}
 
 			if err := api.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, asgSess); err != nil {
-				logging.Error("unable to successfully scale out cluster: %v", err)
+				logging.Error("core/runner: unable to successfully scale out cluster: %v", err)
 			}
 		}
 
@@ -102,16 +102,16 @@ func (r *Runner) clusterScaling(done chan bool) {
 			nodeID, nodeIP := nomadClient.LeastAllocatedNode(clusterCapacity)
 			if nodeIP != "" && nodeID != "" {
 				if !scalingEnabled {
-					logging.Debug("cluster scaling disabled, not initiating scaling operation (scale-in)")
+					logging.Debug("core/runner: cluster scaling disabled, not initiating scaling operation (scale-in)")
 					done <- true
 					return
 				}
 
 				if err := nomadClient.DrainNode(nodeID); err == nil {
-					logging.Info("terminating AWS instance %v", nodeIP)
+					logging.Info("core/runner: terminating AWS instance %v", nodeIP)
 					err := api.ScaleInCluster(r.config.ClusterScaling.AutoscalingGroup, nodeIP, asgSess)
 					if err != nil {
-						logging.Error("unable to successfully terminate AWS instance %v: %v", nodeID, err)
+						logging.Error("core/runner: unable to successfully terminate AWS instance %v: %v", nodeID, err)
 					}
 				}
 			}
@@ -133,7 +133,7 @@ func (r *Runner) jobScaling() {
 
 	// Determine if we are running on the leader node, halt if not.
 	if haveLeadership := nomadClient.LeaderCheck(); !haveLeadership {
-		logging.Debug("replicator is not running on the known leader, no job scaling actions will be taken")
+		logging.Debug("core/runner: replicator is not running on the known leader, no job scaling actions will be taken")
 		return
 	}
 
@@ -141,7 +141,7 @@ func (r *Runner) jobScaling() {
 	// document. Fail quickly if we can't retrieve this list.
 	resp, err := consulClient.GetJobScalingPolicies(r.config, nomadClient)
 	if err != nil {
-		logging.Error("failed to determine if any jobs have scaling policies enabled \n%v", err)
+		logging.Error("core/runner: failed to determine if any jobs have scaling policies enabled \n%v", err)
 		return
 	}
 
@@ -158,7 +158,7 @@ func (r *Runner) jobScaling() {
 
 		for _, group := range job.GroupScalingPolicies {
 			if group.Scaling.ScaleDirection == "Out" || group.Scaling.ScaleDirection == "In" {
-				logging.Debug("scale %v to be requested on job \"%v\" and group \"%v\"", group.Scaling.ScaleDirection, job.JobName, group.GroupName)
+				logging.Debug("core/runner: scale %v to be requested on job \"%v\" and group \"%v\"", group.Scaling.ScaleDirection, job.JobName, group.GroupName)
 				i++
 			}
 		}

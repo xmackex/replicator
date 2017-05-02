@@ -82,7 +82,7 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	logging.Debug("running version %v", version.Get())
+	logging.Debug("command/agent: running version %v", version.Get())
 	go runner.Start()
 
 	signalCh := make(chan os.Signal, 1)

@@ -27,13 +27,13 @@ func DefaultConfig() *structs.Config {
 	// Instantiate a new Consul client.
 	consulClient, err := api.NewConsulClient(LocalConsulAddress)
 	if err != nil {
-		logging.Error("failed to obtain consul connection: %v", err)
+		logging.Error("command/agent: failed to obtain consul connection: %v", err)
 	}
 
 	// Instantiate a new Nomad client.
 	nomadClient, err := api.NewNomadClient(LocalNomadAddress)
 	if err != nil {
-		logging.Error("failed to obtain nomad connection: %v", err)
+		logging.Error("command/agent: failed to obtain nomad connection: %v", err)
 	}
 
 	return &structs.Config{
@@ -121,14 +121,14 @@ func ParseConfig(path string) (*structs.Config, error) {
 	if consulClient, err := api.NewConsulClient(c.Consul); err == nil {
 		c.ConsulClient = consulClient
 	} else {
-		logging.Error("failed to establish a new consul client: %v", err)
+		logging.Error("command/agent: failed to establish a new consul client: %v", err)
 	}
 
 	// Instantiate a new Nomad client.
 	if nomadClient, err := api.NewNomadClient(c.Nomad); err == nil {
 		c.NomadClient = nomadClient
 	} else {
-		logging.Error("failed to establish a new nomad client: %v", err)
+		logging.Error("command/agent: failed to establish a new nomad client: %v", err)
 	}
 
 	return c, nil
