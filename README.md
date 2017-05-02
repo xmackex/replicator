@@ -22,7 +22,7 @@ Replicator supports a number of commands (CLI) which allow for the easy control 
 
 ### Command: agent
 
-The agent command is the main entry point into Replicator: it runs the agent that handles client or server functionality, including exposing interfaces for client consumption and running jobs. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments:
+The agent command is the main entry point into Replicator. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments:
 
 - -config=<path>: The path to either a single config file or a directory of config files to use for configuring the Replicator agent. Replicator processes configuration files in lexicographic order.
 
