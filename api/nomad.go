@@ -92,7 +92,7 @@ func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocatio
 
 	// If current utilization is less than max allowed, check to see if we can
 	// and should scale the cluster in.
-	if clusterUtilization < capacity.MaxAllowedUtilization {
+	if (clusterUtilization < capacity.MaxAllowedUtilization) || (capacity.ScalingMetric == ScalingMetricNone) {
 		capacity.ScalingDirection = ScalingDirectionIn
 		if !c.CheckClusterScalingSafety(capacity, config, ScalingDirectionIn) {
 			logging.Debug("scaling operation (scale-in) fails to pass the safety check")
@@ -103,7 +103,7 @@ func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocatio
 
 	// If current utilization is greater than max allowed, check to see if we can
 	// and should scale the cluster out.
-	if clusterUtilization >= capacity.MaxAllowedUtilization {
+	if (clusterUtilization >= capacity.MaxAllowedUtilization) && (capacity.ScalingMetric != ScalingDirectionNone) {
 		capacity.ScalingDirection = ScalingDirectionOut
 		if !c.CheckClusterScalingSafety(capacity, config, ScalingDirectionOut) {
 			logging.Debug("scaling operation (scale-out) fails to pass the safety check")
