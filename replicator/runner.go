@@ -69,6 +69,8 @@ func (r *Runner) clusterScaling(done chan bool) {
 		return
 	}
 
+	// If a region has not been specified, attempt to dynamically determine what
+	// region we are running in.
 	if r.config.Region == "" {
 		if region, err := api.DescribeAWSRegion(); err == nil {
 			r.config.Region = region
@@ -136,10 +138,11 @@ func (r *Runner) jobScaling() {
 	}
 
 	// Pull the list of all currently running jobs which have an enabled scaling
-	// document.
-	resp, err := consulClient.ListConsulKV(r.config, nomadClient)
+	// document. Fail quickly if we can't retrieve this list.
+	resp, err := consulClient.GetJobScalingPolicies(r.config, nomadClient)
 	if err != nil {
-		logging.Error("%v", err)
+		logging.Error("failed to determine if any jobs have scaling policies enabled \n%v", err)
+		return
 	}
 
 	// EvaluateJobScaling identifies whether each of the Job.Groups requires a
