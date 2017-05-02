@@ -178,6 +178,12 @@
 			"revisionTime": "2017-03-15T18:41:46Z"
 		},
 		{
+			"checksumSHA1": "Isa9x3nvIJ12hvgdvUUBty+yplU=",
+			"path": "github.com/bgentry/speakeasy",
+			"revision": "675b82c74c0ed12283ee81ba8a534c8982c07b85",
+			"revisionTime": "2016-10-13T10:26:35Z"
+		},
+		{
 			"checksumSHA1": "PiT6aErOEKTly8QgUreblRbCxrY=",
 			"path": "github.com/dariubs/percent",
 			"revision": "6a210960ed74f0c94ad2c45fb5ba2a49b7fd7b1c",
@@ -431,6 +437,18 @@
 			"path": "github.com/jmespath/go-jmespath",
 			"revision": "2b26ad567f305510849d93c5d2025a8b561f2367",
 			"revisionTime": "2017-03-15T18:41:46Z"
+		},
+		{
+			"checksumSHA1": "xZuhljnmBysJPta/lMyYmJdujCg=",
+			"path": "github.com/mattn/go-isatty",
+			"revision": "30a891c33c7cde7b02a981314b4228ec99380cca",
+			"revisionTime": "2016-11-23T14:36:37Z"
+		},
+		{
+			"checksumSHA1": "6zsRRzJoi5zxQMp6iV/2EraRxPA=",
+			"path": "github.com/mitchellh/cli",
+			"revision": "16bda1254c1d199d9f10a4b90060eda75221a006",
+			"revisionTime": "2017-02-01T16:57:07Z"
 		},
 		{
 			"checksumSHA1": "HQtYvnSHa3OG2tSNMljW8vMvKm4=",

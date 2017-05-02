@@ -1,4 +1,4 @@
-package config
+package agent
 
 import (
 	"fmt"
@@ -23,8 +23,6 @@ const (
 
 // DefaultConfig returns a default configuration struct with sane defaults.
 func DefaultConfig() *structs.Config {
-	// var consulClient structs.ConsulClient
-	// var nomadClient structs.NomadClient
 
 	// Instantiate a new Consul client.
 	consulClient, err := api.NewConsulClient(LocalConsulAddress)
@@ -39,8 +37,8 @@ func DefaultConfig() *structs.Config {
 	}
 
 	return &structs.Config{
-		Consul:   "localhost:8500",
-		Nomad:    "http://localhost:4646",
+		Consul:   LocalConsulAddress,
+		Nomad:    LocalNomadAddress,
 		LogLevel: "INFO",
 		Enforce:  true,
 
