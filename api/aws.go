@@ -78,7 +78,7 @@ func ScaleOutCluster(asgName string, svc *autoscaling.AutoScaling) error {
 		TerminationPolicies:  terminationPolicies,
 	}
 
-	logging.Info("cluster scaling (scale-out) will now be initiated")
+	logging.Info("api/aws: cluster scaling (scale-out) will now be initiated")
 
 	// Currently it is assumed that no error received from the API means that the
 	// increase in ASG size has been successful, or at least will be. This may
@@ -93,21 +93,21 @@ func ScaleOutCluster(asgName string, svc *autoscaling.AutoScaling) error {
 	ticker := time.NewTicker(time.Millisecond * 500)
 	timeout := time.Tick(time.Minute * 3)
 
-	logging.Info("cluster scaling operation (scale-out) will now be verified, this may take a few minutes...")
+	logging.Info("api/aws: cluster scaling operation (scale-out) will now be verified, this may take a few minutes...")
 
 	for {
 		select {
 		case <-timeout:
-			logging.Info("timeout %v reached while waiting for autoscaling group %v",
+			logging.Info("api/aws: timeout %v reached while waiting for autoscaling group %v",
 				timeout, asgName)
 			return nil
 		case <-ticker.C:
 			asg, err := DescribeScalingGroup(asgName, svc)
 			if err != nil {
-				logging.Error("an error occurred while attempting to check autoscaling group: %v", err)
+				logging.Error("api/aws: an error occurred while attempting to check autoscaling group: %v", err)
 			} else {
 				if len(asg.AutoScalingGroups[0].Instances) == int(newDesiredCapacity) {
-					logging.Info("cluster scaling operation (scale-out) has been successfully verified")
+					logging.Info("api/aws: cluster scaling operation (scale-out) has been successfully verified")
 					return nil
 				}
 			}
@@ -294,7 +294,7 @@ func translateIptoID(ip, region string) (id string) {
 	resp, err := svc.DescribeInstances(params)
 
 	if err != nil {
-		logging.Error("unable to convert nomad instance IP to AWS ID: %v", err)
+		logging.Error("api/aws: unable to convert nomad instance IP to AWS ID: %v", err)
 		return
 	}
 
