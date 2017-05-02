@@ -18,8 +18,8 @@ const (
 	FlagSetDefault              = FlagSetClient
 )
 
-// Meta contains the meta-options and functionality that nearly every
-// Nomad command inherits.
+// Meta contains the meta-options and functionality that
+// Replicator commands can inherit.
 type Meta struct {
 	UI cli.Ui
 }
