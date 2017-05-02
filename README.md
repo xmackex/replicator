@@ -16,6 +16,24 @@ At present, cluster autoscaling is only supported on AWS but future support for 
 
 A [puppet module](https://github.com/elsevier-core-engineering/puppet-replicator) capable of automatically installing and configuring Replicator is also available.
 
+## Commands
+
+Replicator supports a number of commands (CLI) which allow for the easy control and manipulation of the replicator binary.
+
+### Command: agent
+
+The agent command is the main entry point into Replicator: it runs the agent that handles client or server functionality, including exposing interfaces for client consumption and running jobs. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments:
+
+- -config=<path>: The path to either a single config file or a directory of config files to use for configuring the Replicator agent. Replicator processes configuration files in lexicographic order.
+
+### Command: init
+
+The init command creates an example job scaling document in the current directory. This document can then be manipulated to meet your requirements, or be used to test replicator against the [Nomad init](https://www.nomadproject.io/docs/commands/init.html) example job.
+
+### Command: version
+
+The version command displays build information about the running binary, including the release version.
+
 ## Configuration File Syntax
 
 Replicator uses the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) for configuration files. By proxy, this means the configuration is also JSON compatible.

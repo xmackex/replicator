@@ -3,7 +3,7 @@ Description=Replicator
 Documentation=https://github.com/elsevier-core-engineering/replicator
 
 [Service]
-ExecStart=/usr/local/bin/replicator -config=/etc/replicator.d/
+ExecStart=/usr/local/bin/replicator agent -config=/etc/replicator.d/
 SuccessExitStatus=13
 ExecReload=/bin/kill -HUP $MAINPID
 
