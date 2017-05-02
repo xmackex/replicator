@@ -265,7 +265,6 @@ func CalculateUsage(clusterInfo *structs.ClusterAllocation) {
 	for _, nodeUsage := range clusterInfo.NodeAllocations {
 		nodeUsage.UsedCapacity.CPUPercent = percent.PercentOf(nodeUsage.UsedCapacity.CPUMHz,
 			clusterInfo.UsedCapacity.CPUMHz)
-		logging.Debug("Node Used: %v (%v), Cluster Used: %v", nodeUsage.UsedCapacity.CPUMHz, nodeUsage.UsedCapacity.CPUPercent, clusterInfo.UsedCapacity.CPUMHz)
 		nodeUsage.UsedCapacity.DiskPercent = percent.PercentOf(nodeUsage.UsedCapacity.DiskMB,
 			clusterInfo.UsedCapacity.DiskMB)
 		nodeUsage.UsedCapacity.MemoryPercent = percent.PercentOf(nodeUsage.UsedCapacity.MemoryMB,
