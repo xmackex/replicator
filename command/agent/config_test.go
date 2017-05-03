@@ -5,7 +5,7 @@ package agent
 // 	"strings"
 // 	"testing"
 //
-// 	"github.com/elsevier-core-engineering/replicator/api"
+// 	"github.com/elsevier-core-engineering/replicator/client"
 // 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 // 	"github.com/hashicorp/consul-template/test"
 // )
@@ -14,7 +14,7 @@ package agent
 // 	// TODO (e.westfall): Can we call ParseConfig in here to pickup the client
 // 	// instantiation?
 // 	config := DefaultConfig()
-// 	consulClient, _ := api.NewConsulClient("localhost:8500")
+// 	consulClient, _ := client.NewConsulClient("localhost:8500")
 // 	config.ConsulClient = consulClient
 //
 // 	expected := &structs.Config{
@@ -59,7 +59,7 @@ package agent
 // 		t.Fatal(err)
 // 	}
 //
-// 	consulClient, _ := api.NewConsulClient("consul.tiorap.systems:8500")
+// 	consulClient, _ := client.NewConsulClient("consul.tiorap.systems:8500")
 //
 // 	expected := &structs.Config{
 // 		Consul:   "consul.tiorap.systems:8500",

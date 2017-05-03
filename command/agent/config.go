@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/elsevier-core-engineering/replicator/api"
+	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 
@@ -25,13 +25,13 @@ const (
 func DefaultConfig() *structs.Config {
 
 	// Instantiate a new Consul client.
-	consulClient, err := api.NewConsulClient(LocalConsulAddress)
+	consulClient, err := client.NewConsulClient(LocalConsulAddress)
 	if err != nil {
 		logging.Error("command/agent: failed to obtain consul connection: %v", err)
 	}
 
 	// Instantiate a new Nomad client.
-	nomadClient, err := api.NewNomadClient(LocalNomadAddress)
+	nomadClient, err := client.NewNomadClient(LocalNomadAddress)
 	if err != nil {
 		logging.Error("command/agent: failed to obtain nomad connection: %v", err)
 	}
@@ -119,14 +119,14 @@ func ParseConfig(path string) (*structs.Config, error) {
 	c = d
 
 	// Instantiate a new Consul client.
-	if consulClient, err := api.NewConsulClient(c.Consul); err == nil {
+	if consulClient, err := client.NewConsulClient(c.Consul); err == nil {
 		c.ConsulClient = consulClient
 	} else {
 		logging.Error("command/agent: failed to establish a new consul client: %v", err)
 	}
 
 	// Instantiate a new Nomad client.
-	if nomadClient, err := api.NewNomadClient(c.Nomad); err == nil {
+	if nomadClient, err := client.NewNomadClient(c.Nomad); err == nil {
 		c.NomadClient = nomadClient
 	} else {
 		logging.Error("command/agent: failed to establish a new nomad client: %v", err)

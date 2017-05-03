@@ -3,7 +3,7 @@ package replicator
 import (
 	"time"
 
-	"github.com/elsevier-core-engineering/replicator/api"
+	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
@@ -72,7 +72,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 	// If a region has not been specified, attempt to dynamically determine what
 	// region we are running in.
 	if r.config.Region == "" {
-		if region, err := api.DescribeAWSRegion(); err == nil {
+		if region, err := client.DescribeAWSRegion(); err == nil {
 			r.config.Region = region
 		}
 	}
@@ -84,21 +84,21 @@ func (r *Runner) clusterScaling(done chan bool) {
 	} else {
 		// If we reached this point we will be performing AWS interaction so we
 		// create an client connection.
-		asgSess := api.NewAWSAsgService(r.config.Region)
+		asgSess := client.NewAWSAsgService(r.config.Region)
 
-		if clusterCapacity.ScalingDirection == api.ScalingDirectionOut {
+		if clusterCapacity.ScalingDirection == client.ScalingDirectionOut {
 			if !scalingEnabled {
 				logging.Debug("core/runner: cluster scaling disabled, not initiating scaling operation (scale-out)")
 				done <- true
 				return
 			}
 
-			if err := api.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, asgSess); err != nil {
+			if err := client.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, asgSess); err != nil {
 				logging.Error("core/runner: unable to successfully scale out cluster: %v", err)
 			}
 		}
 
-		if clusterCapacity.ScalingDirection == api.ScalingDirectionIn {
+		if clusterCapacity.ScalingDirection == client.ScalingDirectionIn {
 			nodeID, nodeIP := nomadClient.LeastAllocatedNode(clusterCapacity)
 			if nodeIP != "" && nodeID != "" {
 				if !scalingEnabled {
@@ -109,7 +109,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 
 				if err := nomadClient.DrainNode(nodeID); err == nil {
 					logging.Info("core/runner: terminating AWS instance %v", nodeIP)
-					err := api.ScaleInCluster(r.config.ClusterScaling.AutoscalingGroup, nodeIP, asgSess)
+					err := client.ScaleInCluster(r.config.ClusterScaling.AutoscalingGroup, nodeIP, asgSess)
 					if err != nil {
 						logging.Error("core/runner: unable to successfully terminate AWS instance %v: %v", nodeID, err)
 					}
