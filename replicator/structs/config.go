@@ -18,6 +18,10 @@ type Config struct {
 	// actioned, or whether the application runs in report only mode.
 	Enforce bool `mapstructure:"enforce"`
 
+	// ScalingInterval is the duration in seconds between Replicator runs and thus
+	// scaling requirement checks.
+	ScalingInterval int `mapstructure:"scaling_interval"`
+
 	// Region represents the AWS region the cluster resides in.
 	Region string `mapstructure:"aws_region"`
 
@@ -118,6 +122,9 @@ func (c *Config) Merge(o *Config) {
 	}
 	if o.WasSet("enforce") {
 		c.Enforce = o.Enforce
+	}
+	if o.WasSet("scaling_interval") {
+		c.ScalingInterval = o.ScalingInterval
 	}
 	if o.WasSet("cluster_scaling") {
 		if o.WasSet("cluster_scaling.enabled") {

@@ -37,10 +37,11 @@ func DefaultConfig() *structs.Config {
 	}
 
 	return &structs.Config{
-		Consul:   LocalConsulAddress,
-		Nomad:    LocalNomadAddress,
-		LogLevel: "INFO",
-		Enforce:  true,
+		Consul:          LocalConsulAddress,
+		Nomad:           LocalNomadAddress,
+		LogLevel:        "INFO",
+		Enforce:         true,
+		ScalingInterval: 10,
 
 		ClusterScaling: &structs.ClusterScaling{
 			MaxSize:            10,

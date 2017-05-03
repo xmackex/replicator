@@ -60,6 +60,9 @@ aws_region = "us-east-1"
 # The log level the daemon should use.
 log_level  = "info"
 
+# The time period in seconds between replicator check runs.
+scaling_interval = 10
+
 # This denotes the start of the configuration section for cluster autoscaling.
 cluster_scaling {
   # Indicates whether the daemon should perform scaling actions. If disabled, the actions that would have been taken will be reported in the logs but skipped.
@@ -180,10 +183,6 @@ Replicator will dynamically scale-in the worker pool when:
 
 Replicator will dynamically scale-out the worker pool when:
 - Resource utilization exceeds or closely approaches the capacity required to run all current jobs while sustaining the configured node fault-tolerance. When calculating required capacity, Replicator includes scaling overhead required to increase the count of all running jobs by one.
-
-### How often does Replicator evaluate scaling requirements?
-
-Replicator evaluates cluster capacity and scaling requirements every 10 seconds. At present, this is not configurable but there are plans to add this to the list of configurable options.
 
 ### When does Replicator perform scaling actions against running jobs?
 
