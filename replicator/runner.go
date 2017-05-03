@@ -159,7 +159,7 @@ func (r *Runner) jobScaling() {
 		for _, group := range job.GroupScalingPolicies {
 			if group.Scaling.ScaleDirection == client.ScalingDirectionOut || group.Scaling.ScaleDirection == client.ScalingDirectionIn {
 				if job.Enabled {
-					logging.Debug("core/runner: scaling for job \"%v\" has been enabled; a scaling operation (%v) will be requested for group \"%v\"",
+					logging.Debug("core/runner: scaling for job \"%v\" is enabled; a scaling operation (%v) will be requested for group \"%v\"",
 						job.JobName, group.Scaling.ScaleDirection, group.GroupName)
 					i++
 				} else {
