@@ -137,7 +137,7 @@ func (r *Runner) jobScaling() {
 		return
 	}
 
-	// Pull the list of all currently running jobs which have an enabled scaling
+	// Pull the list of all currently running jobs which have a defined scaling
 	// document. Fail quickly if we can't retrieve this list.
 	resp, err := consulClient.GetJobScalingPolicies(r.config, nomadClient)
 	if err != nil {
@@ -157,9 +157,15 @@ func (r *Runner) jobScaling() {
 		i := 0
 
 		for _, group := range job.GroupScalingPolicies {
-			if group.Scaling.ScaleDirection == "Out" || group.Scaling.ScaleDirection == "In" {
-				logging.Debug("core/runner: scale %v to be requested on job \"%v\" and group \"%v\"", group.Scaling.ScaleDirection, job.JobName, group.GroupName)
-				i++
+			if group.Scaling.ScaleDirection == client.ScalingDirectionOut || group.Scaling.ScaleDirection == client.ScalingDirectionIn {
+				if job.Enabled {
+					logging.Debug("core/runner: scaling for job \"%v\" is enabled; a scaling operation (%v) will be requested for group \"%v\"",
+						job.JobName, group.Scaling.ScaleDirection, group.GroupName)
+					i++
+				} else {
+					logging.Debug("core/runner: scaling for job \"%v\" has been disabled; a scaling operation (%v) would have been requested for group \"%v\"",
+						job.JobName, group.Scaling.ScaleDirection, group.GroupName)
+				}
 			}
 		}
 
