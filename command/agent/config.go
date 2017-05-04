@@ -46,7 +46,7 @@ func DefaultConfig() *structs.Config {
 		ClusterScaling: &structs.ClusterScaling{
 			MaxSize:            10,
 			MinSize:            5,
-			CoolDown:           300,
+			CoolDown:           600,
 			NodeFaultTolerance: 1,
 		},
 
