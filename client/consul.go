@@ -64,11 +64,8 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 		// Trim the Key and its trailing slash to find the job name.
 		s.JobName = strings.TrimPrefix(job.Key, config.JobScaling.ConsulKeyLocation+"/")
 
-		// Check to see whether the scaling document is enabled and the job has
-		// running task groups before appending to the return.
-		// TODO (e.westfall): We should not exclude jobs with scaling disabled as
-		// this prevents users from running in dry-run mode to see what *would*
-		// have happened.
+		// Check to see whether the job has running task groups before appending
+		// to the return.
 		if nomadClient.IsJobRunning(s.JobName) {
 			// Each scaling policy document is then appended to a list to form a full
 			// view of all scaling documents available to the cluster.
