@@ -52,6 +52,12 @@ func NewNomadClient(addr string) (structs.NomadClient, error) {
 func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocation, config *structs.Config) (scalingRequired bool, err error) {
 	var clusterUtilization, clusterCapacity int
 
+	// If there are no healthy cluster nodes, short-circuit the scaling evaluation.
+	if capacity.NodeCount <= 0 {
+		logging.Debug("client/nomad: no healthy nodes detected, halting cluster scaling evaluation")
+		return
+	}
+
 	// Determine total cluster capacity.
 	if err = c.ClusterAllocationCapacity(capacity); err != nil {
 		return
@@ -70,7 +76,7 @@ func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocatio
 	// Determine most-utilized resource across cluster to identify scaling metric.
 	c.MostUtilizedResource(capacity)
 
-	// Determine the maximum allowed utilization of the cluster most-utilized cluster resource.
+	// Determine the maximum allowed utilization of the most-utilized cluster resource.
 	// This value is calculated after considering job scaling overhead and node fault-tolerance.
 	capacity.MaxAllowedUtilization =
 		MaxAllowedClusterUtilization(capacity, config.ClusterScaling.NodeFaultTolerance, false)
