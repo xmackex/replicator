@@ -52,14 +52,14 @@ func NewNomadClient(addr string) (structs.NomadClient, error) {
 func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocation, config *structs.Config) (scalingRequired bool, err error) {
 	var clusterUtilization, clusterCapacity int
 
-	// If there are no healthy cluster nodes, short-circuit the scaling evaluation.
-	if capacity.NodeCount <= 0 {
-		logging.Debug("client/nomad: no healthy nodes detected, halting cluster scaling evaluation")
+	// Determine total cluster capacity.
+	if err = c.ClusterAllocationCapacity(capacity); err != nil {
 		return
 	}
 
-	// Determine total cluster capacity.
-	if err = c.ClusterAllocationCapacity(capacity); err != nil {
+	// If there are no healthy cluster nodes, short-circuit the scaling evaluation.
+	if capacity.NodeCount <= 0 {
+		logging.Debug("client/nomad: no healthy nodes detected, halting cluster scaling evaluation")
 		return
 	}
 
