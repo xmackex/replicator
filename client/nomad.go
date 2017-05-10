@@ -49,7 +49,7 @@ func NewNomadClient(addr string) (structs.NomadClient, error) {
 }
 
 // EvaluateClusterCapacity determines if a cluster scaling operation is required.
-func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocation, config *structs.Config) (scalingRequired bool, err error) {
+func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterStatus, config *structs.Config) (scalingRequired bool, err error) {
 	var clusterUtilization, clusterCapacity int
 
 	// Determine total cluster capacity.
@@ -129,7 +129,7 @@ func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterAllocatio
 }
 
 // CheckClusterScalingSafety determines if a cluster scaling operation can be safely executed.
-func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterAllocation, config *structs.Config, scaleDirection string) (safe bool) {
+func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterStatus, config *structs.Config, scaleDirection string) (safe bool) {
 	var clusterUsedCapacity int
 
 	switch capacity.ScalingMetric {
@@ -181,7 +181,7 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterAllocat
 
 // ClusterAllocationCapacity calculates the total cluster capacity and determines the
 // number of available worker nodes.
-func (c *nomadClient) ClusterAllocationCapacity(capacity *structs.ClusterAllocation) (err error) {
+func (c *nomadClient) ClusterAllocationCapacity(capacity *structs.ClusterStatus) (err error) {
 	// Retrieve a list of all worker nodes within the cluster.
 	nodes, _, err := c.nomad.Nodes().List(&nomad.QueryOptions{})
 	if err != nil {
@@ -211,7 +211,7 @@ func (c *nomadClient) ClusterAllocationCapacity(capacity *structs.ClusterAllocat
 
 // ClusterAssignedAllocation calculates the total consumed resources across the cluster
 // and the amount of resources consumed by each worker node.
-func (c *nomadClient) ClusterAssignedAllocation(clusterInfo *structs.ClusterAllocation) (err error) {
+func (c *nomadClient) ClusterAssignedAllocation(clusterInfo *structs.ClusterStatus) (err error) {
 	for _, node := range clusterInfo.NodeList {
 		allocations, _, err := c.nomad.Nodes().Allocations(node, &nomad.QueryOptions{})
 		if err != nil {
@@ -252,7 +252,7 @@ func (c *nomadClient) ClusterAssignedAllocation(clusterInfo *structs.ClusterAllo
 
 // CalculateUsage determines the percentage of overall cluster resources consumed and
 // calculates the amount of those resources consumed by each worker node.
-func CalculateUsage(clusterInfo *structs.ClusterAllocation) {
+func CalculateUsage(clusterInfo *structs.ClusterStatus) {
 	// For each allocation resource, calculate the percentage of overall cluster capacity
 	// consumed.
 	clusterInfo.UsedCapacity.CPUPercent = percent.PercentOf(
@@ -304,7 +304,7 @@ func (c *nomadClient) LeaderCheck() bool {
 // of all running jobs across the cluster. This is used to practively ensure the cluster
 // has sufficient available capacity to scale each task by +1 if an increase in capacity
 // is required.
-func (c *nomadClient) TaskAllocationTotals(capacityUsed *structs.ClusterAllocation) error {
+func (c *nomadClient) TaskAllocationTotals(capacityUsed *structs.ClusterStatus) error {
 	// TODO (e.westfall): Allow behavior to be configured; restrict this check to only jobs with a
 	// scaling policy present.
 
@@ -341,7 +341,7 @@ func (c *nomadClient) TaskAllocationTotals(capacityUsed *structs.ClusterAllocati
 //
 // If all resources are completely unutilized, the scaling metric will be set to `None`
 // and the daemon will take no actions.
-func (c *nomadClient) MostUtilizedResource(alloc *structs.ClusterAllocation) {
+func (c *nomadClient) MostUtilizedResource(alloc *structs.ClusterStatus) {
 	// Determine the resource that is consuming the greatest percentage of its overall cluster
 	// capacity.
 	max := (helper.Max(alloc.UsedCapacity.CPUPercent, alloc.UsedCapacity.MemoryPercent,
@@ -378,7 +378,7 @@ func (c *nomadClient) MostUtilizedGroupResource(gsp *structs.GroupScalingPolicy)
 // resource identified as the most-utilized resource across the cluster. Since Nomad follows
 // a bin-packing approach, when we need to remove a worker node in response to a scale-in
 // activity, we want to identify the least-allocated node and target it for removal.
-func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterAllocation) (nodeID, nodeIP string) {
+func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterStatus) (nodeID, nodeIP string) {
 	var lowestAllocation float64
 
 	for _, nodeAlloc := range clusterInfo.NodeAllocations {
@@ -587,6 +587,59 @@ func (c *nomadClient) GetJobAllocations(allocs []*nomad.AllocationListStub, gsp 
 	}
 }
 
+// VerifyNodeHealth evaluates whether a specified worker node is a healthy
+// member of the Nomad cluster.
+func (c *nomadClient) VerifyNodeHealth(nodeIP string) (healthy bool) {
+	// Setup a ticker to poll the health status of the specified worker node
+	// and retry up to a specified timeout.
+	ticker := time.NewTicker(time.Second * 10)
+	timeout := time.Tick(time.Minute * 5)
+
+	logging.Debug("client/nomad: verifying health of node %v", nodeIP)
+
+	for {
+		select {
+		case <-timeout:
+			logging.Error("client/nomad: timeout reached while verifying the "+
+				"health of worker node %v", nodeIP)
+			return
+		case <-ticker.C:
+			// Retrieve a list of all worker nodes within the cluster.
+			nodes, _, err := c.nomad.Nodes().List(&nomad.QueryOptions{})
+			if err != nil {
+				return
+			}
+
+			// Iterate over nodes and evaluate health status.
+			for _, node := range nodes {
+				// Skip the node if it is not in a healthy state.
+				if node.Status != "ready" {
+					continue
+				}
+
+				// Retrieve detailed information about the worker node.
+				resp, _, err := c.nomad.Nodes().Info(node.ID, &nomad.QueryOptions{})
+				if err != nil {
+					logging.Error("client/nomad: an error occurred while attempting to "+
+						"retrieve details about node %v: %v", node.ID, err)
+				}
+
+				// If the healthy worker node matches the specified worker node,
+				// set the response to healthy and exit.
+				if resp.Attributes["unique.network.ip-address"] == nodeIP {
+					logging.Info("client/nomad: successfully verified the health of "+
+						"node %v", nodeIP)
+					healthy = true
+					return
+				}
+			}
+
+			logging.Debug("client/nomad: unable to verify the health of node %v, "+
+				"pausing and will re-evaluate node health.", nodeIP)
+		}
+	}
+}
+
 // GetAllocationStats discovers the resources consumed by a particular Nomad
 // allocation.
 func (c *nomadClient) GetAllocationStats(allocation *nomad.Allocation, scalingPolicy *structs.GroupScalingPolicy) {
@@ -620,7 +673,7 @@ func (c *nomadClient) IsJobRunning(jobID string) bool {
 
 // MaxAllowedClusterUtilization calculates the maximum allowed cluster utilization after
 // taking into consideration node fault-tolerance and scaling overhead.
-func MaxAllowedClusterUtilization(capacity *structs.ClusterAllocation, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {
+func MaxAllowedClusterUtilization(capacity *structs.ClusterStatus, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {
 	var allocTotal, capacityTotal int
 	var internalScalingMetric string
 
