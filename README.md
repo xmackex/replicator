@@ -22,9 +22,39 @@ Replicator supports a number of commands (CLI) which allow for the easy control 
 
 ### Command: agent
 
-The agent command is the main entry point into Replicator. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments:
+The agent command is the main entry point into Replicator. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments and the configuration parameters passed via CLI flags will always take precedent over parameters specified in configuration files.
 
-- -config=<path>: The path to either a single config file or a directory of config files to use for configuring the Replicator agent. Replicator processes configuration files in lexicographic order.
+- **-config=<path>** The path to either a single config file or a directory of config files to use for configuring the Replicator agent. Replicator processes configuration files in lexicographic order.
+
+- **-consul=<address:path>** This is the address of the Consul agent. By default, this is localhost:8500, which is the default bind and port for a local Consul agent. It is not recommended that you communicate directly with a Consul server, and instead communicate with the local Consul agent. There are many reasons for this, most importantly the Consul agent is able to multiplex connections to the Consul server and reduce the number of open HTTP connections. Additionally, it provides a "well-known" IP address for which clients can connect.
+
+- **-nomad=<address:path>** The address and port Replicator will use when making connections to the Nomad API. By default, this http://localhost:4646, which is the default bind and port for a local Nomad server.
+
+- **-log-level=<level>** Specify the verbosity level of Replicator's logs. The default is INFO.
+
+- **-scaling-interval=<num>** The time period in seconds between Replicator check runs. The default is 10.
+
+- **-aws-region=<region>** The AWS region in which the cluster is running. If no region is specified, Replicator attempts to dynamically determine the region.
+
+- **-cluster-scaling-enabled** Indicates whether the daemon should perform cluster scaling actions. If disabled, the actions that would have been taken will be reported in the logs but skipped.
+
+- **-cluster-max-size=<num>** Indicates the maximum number of worker nodes allowed in the cluster. The default is 10.
+
+- **-cluster-min-size=<num>** Indicates the minimum number of worker nodes allowed in the cluster. The default is 5.
+
+- **-cluster-scaling-cool-down=<num>** The number of seconds Replicator will wait between triggering cluster scaling actions. The default is 600.
+
+- **-cluster-node-fault-tolerance=<num>** The number of worker nodes the cluster can tolerate losing while still maintaining sufficient operation capacity. This is used by the scaling algorithm when calculating allowed capacity consumption. The default is 1.
+
+- **-cluster-autoscaling-group=<name>** The name of the AWS autoscaling group that contains the worker nodes. This should be a separate ASG from the one containing the server nodes.
+
+- **-job-scaling-enabled** Indicates whether the daemon should perform job scaling actions. If disabled, the actions that would have been taken will be reported in the logs but skipped.
+
+- **-consul-token=<token>** The Consul ACL token to use when communicating with an ACL protected Consul cluster.
+
+- **-consul-key-location=<key>** The Consul Key/Value Store location where Replicator will look for job scaling policies. By default, this is replicator/config/jobs.
+
+- **-statsd-address=<address:port>** Specifies the address of a StatsD server to forward metrics to and should include the port.
 
 ### Command: init
 
@@ -91,6 +121,9 @@ job_scaling {
 
   # The Consul ACL token to use when communicating with an ACL protected Consul cluster.
   consul_token        = "278F9E37-8322-4EDC-AFDC-748D116B3DCE"
+
+  # Indicates whether the daemon should perform scaling actions. If disabled, the actions that would have been taken will be reported in the logs but skipped.
+  enabled             = true
 }
 ```
 

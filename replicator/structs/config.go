@@ -14,10 +14,6 @@ type Config struct {
 	// LogLevel is the level at which the application should log from.
 	LogLevel string `mapstructure:"log_level"`
 
-	// Enforce is the boolean falg which dicates whether or not scaling events are
-	// actioned, or whether the application runs in report only mode.
-	Enforce bool `mapstructure:"enforce"`
-
 	// ScalingInterval is the duration in seconds between Replicator runs and thus
 	// scaling requirement checks.
 	ScalingInterval int `mapstructure:"scaling_interval"`
@@ -35,9 +31,6 @@ type Config struct {
 
 	// Telemetry is the configuration struct that controls the telemetry settings.
 	Telemetry *Telemetry `mapstructure:"telemetry"`
-
-	// setKeys is the list of config keys that were overridden by the user.
-	SetKeys map[string]struct{}
 
 	// ConsulClient provides a client to interact with the Consul API.
 	ConsulClient ConsulClient
@@ -96,70 +89,114 @@ type Telemetry struct {
 	StatsdAddress string `mapstructure:"statsd_address"`
 }
 
-// WasSet determines if the given key was set by the user or uses the default
-// values.
-func (c *Config) WasSet(key string) bool {
-	if _, ok := c.SetKeys[key]; ok {
-		return true
+// Merge merges two configurations.
+func (c *Config) Merge(b *Config) *Config {
+	config := *c
+
+	if b.Nomad != "" {
+		config.Nomad = b.Nomad
 	}
-	return false
+
+	if b.Consul != "" {
+		config.Consul = b.Consul
+	}
+
+	if b.LogLevel != "" {
+		config.LogLevel = b.LogLevel
+	}
+
+	if b.ScalingInterval > 0 {
+		config.ScalingInterval = b.ScalingInterval
+	}
+
+	if b.Region != "" {
+		config.Region = b.Region
+	}
+
+	// Apply the ClusterScaling config
+	if config.ClusterScaling == nil && b.ClusterScaling != nil {
+		clusterScaling := *b.ClusterScaling
+		config.ClusterScaling = &clusterScaling
+	} else if b.ClusterScaling != nil {
+		config.ClusterScaling = config.ClusterScaling.Merge(b.ClusterScaling)
+	}
+
+	// Apply the JobScaling config
+	if config.JobScaling == nil && b.JobScaling != nil {
+		jobScaling := *b.JobScaling
+		config.JobScaling = &jobScaling
+	} else if b.JobScaling != nil {
+		config.JobScaling = config.JobScaling.Merge(b.JobScaling)
+	}
+
+	// Apply the Telemetry config
+	if config.Telemetry == nil && b.Telemetry != nil {
+		telemetry := *b.Telemetry
+		config.Telemetry = &telemetry
+	} else if b.Telemetry != nil {
+		config.Telemetry = config.Telemetry.Merge(b.Telemetry)
+	}
+
+	return &config
 }
 
-// Merge takes the user override parameters and merges these into the default
-// config parameters. User overrides will always take priority.
-func (c *Config) Merge(o *Config) {
-	if o.WasSet("consul") {
-		c.Consul = o.Consul
+// Merge is used to merge two ClusterScaling configurations together.
+func (c *ClusterScaling) Merge(b *ClusterScaling) *ClusterScaling {
+	config := *c
+
+	if b.Enabled {
+		config.Enabled = b.Enabled
 	}
-	if o.WasSet("nomad") {
-		c.Nomad = o.Nomad
+
+	if b.MaxSize != 0 {
+		config.MaxSize = b.MaxSize
 	}
-	if o.WasSet("log_level") {
-		c.LogLevel = o.LogLevel
+
+	if b.MinSize != 0 {
+		config.MinSize = b.MinSize
 	}
-	if o.WasSet("aws_region") {
-		c.Region = o.Region
+
+	if b.CoolDown != 0 {
+		config.CoolDown = b.CoolDown
 	}
-	if o.WasSet("enforce") {
-		c.Enforce = o.Enforce
+
+	if b.NodeFaultTolerance != 0 {
+		config.NodeFaultTolerance = b.NodeFaultTolerance
 	}
-	if o.WasSet("scaling_interval") {
-		c.ScalingInterval = o.ScalingInterval
+
+	if b.AutoscalingGroup != "" {
+		config.AutoscalingGroup = b.AutoscalingGroup
 	}
-	if o.WasSet("cluster_scaling") {
-		if o.WasSet("cluster_scaling.enabled") {
-			c.ClusterScaling.Enabled = o.ClusterScaling.Enabled
-		}
-		if o.WasSet("cluster_scaling.autoscaling_group") {
-			c.ClusterScaling.AutoscalingGroup = o.ClusterScaling.AutoscalingGroup
-		}
-		if o.WasSet("cluster_scaling.max_size") {
-			c.ClusterScaling.MaxSize = o.ClusterScaling.MaxSize
-		}
-		if o.WasSet("cluster_scaling.min_size") {
-			c.ClusterScaling.MinSize = o.ClusterScaling.MinSize
-		}
-		if o.WasSet("cluster_scaling.cool_down") {
-			c.ClusterScaling.CoolDown = o.ClusterScaling.CoolDown
-		}
-		if o.WasSet("cluster_scaling.node_fault_tolerance") {
-			c.ClusterScaling.NodeFaultTolerance = o.ClusterScaling.NodeFaultTolerance
-		}
+
+	return &config
+}
+
+// Merge is used to merge two JobScaling configurations together.
+func (j *JobScaling) Merge(b *JobScaling) *JobScaling {
+	config := *j
+
+	if b.Enabled {
+		config.Enabled = b.Enabled
 	}
-	if o.WasSet("job_scaling") {
-		if o.WasSet("job_scaling.enabled") {
-			c.JobScaling.Enabled = o.JobScaling.Enabled
-		}
-		if o.WasSet("job_scaling.consul_token") {
-			c.JobScaling.ConsulToken = o.JobScaling.ConsulToken
-		}
-		if o.WasSet("job_scaling.consul_key_location") {
-			c.JobScaling.ConsulKeyLocation = o.JobScaling.ConsulKeyLocation
-		}
+
+	if b.ConsulToken != "" {
+		config.ConsulToken = b.ConsulToken
 	}
-	if o.WasSet("telemetry") {
-		if o.WasSet("telemetry.statsd_address") {
-			c.Telemetry.StatsdAddress = o.Telemetry.StatsdAddress
-		}
+
+	if b.ConsulKeyLocation != "" {
+		config.ConsulKeyLocation = b.ConsulKeyLocation
 	}
+
+	return &config
+}
+
+// Merge is used to merge two Telemetry configurations together.
+func (t *Telemetry) Merge(b *Telemetry) *Telemetry {
+	config := *t
+
+	if t.StatsdAddress != "" {
+		config.StatsdAddress = b.StatsdAddress
+	}
+
+	return &config
 }
