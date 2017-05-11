@@ -37,13 +37,14 @@ func (c *InitCommand) Synopsis() string {
 // Run triggers the init command to write the example.json file out to the
 // current directory.
 func (c *InitCommand) Run(args []string) int {
-	// Check for misuse
+
+	// The command should be used with 0 extra flags.
 	if len(args) != 0 {
 		c.UI.Error(c.Help())
 		return 1
 	}
 
-	// Check if the file already exists
+	// Check if the file already exists.
 	_, err := os.Stat(DefaultInitName)
 	if err != nil && !os.IsNotExist(err) {
 		c.UI.Error(fmt.Sprintf("Failed to stat '%s': %v", DefaultInitName, err))
@@ -54,7 +55,8 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Write out the example
+	// Write the example file to the relative local directory where Replicator
+	// was invoked from.
 	err = ioutil.WriteFile(DefaultInitName, []byte(defaultScalingDocument), 0660)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to write '%s': %v", DefaultInitName, err))

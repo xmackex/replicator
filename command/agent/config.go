@@ -2,17 +2,15 @@ package agent
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
-
-	conf "github.com/hashicorp/consul-template/config"
-	"github.com/hashicorp/hcl"
-	"github.com/mitchellh/mapstructure"
 )
 
 // Define default local addresses for Consul and Nomad
@@ -40,7 +38,6 @@ func DefaultConfig() *structs.Config {
 		Consul:          LocalConsulAddress,
 		Nomad:           LocalNomadAddress,
 		LogLevel:        "INFO",
-		Enforce:         true,
 		ScalingInterval: 10,
 
 		ClusterScaling: &structs.ClusterScaling{
@@ -60,175 +57,101 @@ func DefaultConfig() *structs.Config {
 	}
 }
 
-// ParseConfig reads the configuration file at the given path and returns a new
-// Config struct with the data populated. The returned data is a merge of the
-// user specified parameters and defaults with the user provided params always
-// taking precident.
-func ParseConfig(path string) (*structs.Config, error) {
-
-	// Read the configuration file
-	contents, err := ioutil.ReadFile(path)
+// LoadConfig loads the configuration at the given path whether the specified
+// path is an individual file or a directory of numerous configuration files.
+func LoadConfig(path string) (*structs.Config, error) {
+	fi, err := os.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("error reading config at %q: %s", path, err)
-	}
-
-	var shadow interface{}
-	if err := hcl.Decode(&shadow, string(contents)); err != nil {
-		return nil, fmt.Errorf("error decoding config at %q: %s", path, err)
-	}
-
-	parsed, ok := shadow.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("error converting config at %q", path)
-	}
-	flattenKeys(parsed, []string{"cluster_scaling"})
-	flattenKeys(parsed, []string{"job_scaling"})
-	flattenKeys(parsed, []string{"telemetry"})
-
-	c := new(structs.Config)
-
-	// Using mapstrcuture we populate the user defined population feilds.
-	metadata := new(mapstructure.Metadata)
-	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			conf.StringToWaitDurationHookFunc(),
-			mapstructure.StringToSliceHookFunc(","),
-			mapstructure.StringToTimeDurationHookFunc(),
-		),
-		ErrorUnused: true,
-		Metadata:    metadata,
-		Result:      c,
-	})
-	if err := decoder.Decode(parsed); err != nil {
 		return nil, err
 	}
 
-	if c.SetKeys == nil {
-		c.SetKeys = make(map[string]struct{})
-	}
-	for _, key := range metadata.Keys {
-		if _, ok := c.SetKeys[key]; !ok {
-			c.SetKeys[key] = struct{}{}
-		}
+	if fi.IsDir() {
+		return LoadConfigDir(path)
 	}
 
-	// Merge the user provided configuration parameters into the default
-	// configuration to result in a full configuration set.
-	d := DefaultConfig()
-	d.Merge(c)
-	c = d
-
-	// Instantiate a new Consul client.
-	if consulClient, err := client.NewConsulClient(c.Consul); err == nil {
-		c.ConsulClient = consulClient
-	} else {
-		logging.Error("command/agent: failed to establish a new consul client: %v", err)
-	}
-
-	// Instantiate a new Nomad client.
-	if nomadClient, err := client.NewNomadClient(c.Nomad); err == nil {
-		c.NomadClient = nomadClient
-	} else {
-		logging.Error("command/agent: failed to establish a new nomad client: %v", err)
-	}
-
-	return c, nil
-}
-
-// FromPath iterates and merges all configuration files in a given directory
-// returning the resulting merged config based on lexical ordering for all
-// files found. If the passed object is a file this is read and merged into the
-// default config.
-func FromPath(path string) (*structs.Config, error) {
-
-	// Ensure the given filepath exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, fmt.Errorf("the config file/folder %s is missing", path)
-	}
-
-	// Check if a file was given or a path to a directory
-	stat, err := os.Stat(path)
+	cleaned := filepath.Clean(path)
+	config, err := ParseConfigFile(cleaned)
 	if err != nil {
-		return nil, fmt.Errorf("unable to stat the config file %s", err)
+		return nil, fmt.Errorf("Error loading %s: %s", cleaned, err)
 	}
 
-	// Recursively parse directories, single load files
-	if stat.Mode().IsDir() {
-
-		_, err := ioutil.ReadDir(path)
-		if err != nil {
-			return nil, fmt.Errorf("error listing config directory %s", err)
-		}
-
-		// Create a blank config to merge off of
-		config := DefaultConfig()
-
-		err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			// Do nothing for directories
-			if info.IsDir() {
-				return nil
-			}
-
-			// Parse and merge the config
-			newConfig, err := ParseConfig(path)
-
-			if err != nil {
-				return err
-			}
-			newConfig.Merge(config)
-			config = newConfig
-
-			return nil
-		})
-
-		if err != nil {
-			return nil, fmt.Errorf("config: walk error: %s", err)
-		}
-
-		return config, nil
-	} else if stat.Mode().IsRegular() {
-		return ParseConfig(path)
-	}
-
-	return nil, fmt.Errorf("unknown config filetype %q", stat.Mode().String())
+	return config, nil
 }
 
-// flattenKeys is a function that takes a map[string]interface{} and recursively
-// flattens any keys that are a []map[string]interface{} where the key is in the
-// given list of keys.
-func flattenKeys(m map[string]interface{}, keys []string) {
-	keyMap := make(map[string]struct{})
-	for _, key := range keys {
-		keyMap[key] = struct{}{}
+// LoadConfigDir loads all the configurations in the given directory
+// in lexicographic order.
+func LoadConfigDir(dir string) (*structs.Config, error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !fi.IsDir() {
+		return nil, fmt.Errorf(
+			"configuration path must be a directory: %s", dir)
 	}
 
-	var flatten func(map[string]interface{})
-	flatten = func(m map[string]interface{}) {
-		for k, v := range m {
-			if _, ok := keyMap[k]; !ok {
+	var files []string
+	err = nil
+	for err != io.EOF {
+		var fis []os.FileInfo
+		fis, err = f.Readdir(128)
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+
+		for _, fi := range fis {
+
+			// We do not wish tot navigate directories.
+			if fi.IsDir() {
 				continue
 			}
 
-			switch typed := v.(type) {
-			case []map[string]interface{}:
-				if len(typed) > 0 {
-					last := typed[len(typed)-1]
-					flatten(last)
-					m[k] = last
-				} else {
-					m[k] = nil
-				}
-			case map[string]interface{}:
-				flatten(typed)
-				m[k] = typed
-			default:
-				m[k] = v
+			// Replicator can only parse HCL, and therefore json files, and so we
+			// ignore all other file extensions.
+			name := fi.Name()
+			skip := true
+			if strings.HasSuffix(name, ".hcl") {
+				skip = false
+			} else if strings.HasSuffix(name, ".json") {
+				skip = false
 			}
+			if skip {
+				continue
+			}
+
+			path := filepath.Join(dir, name)
+			files = append(files, path)
 		}
 	}
-	flatten(m)
+
+	// If there are no files, there is no need to continue and therefore we exit
+	// quickly.
+	if len(files) == 0 {
+		return &structs.Config{}, nil
+	}
+
+	sort.Strings(files)
+
+	var result *structs.Config
+
+	for _, f := range files {
+		config, err := ParseConfigFile(f)
+		if err != nil {
+			return nil, fmt.Errorf("Error loading %s: %s", f, err)
+		}
+
+		if result == nil {
+			result = config
+		} else {
+			result = result.Merge(config)
+		}
+	}
+
+	return result, nil
 }
