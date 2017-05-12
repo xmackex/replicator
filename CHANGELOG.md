@@ -5,6 +5,7 @@ IMPROVEMENTS:
 * Allow Dry Run Operations Against Job Scaling Documents. [GH-53]
 * Add the `scaling_interval config` parameter to replicator agent. [GH-49]
 * Increase Default Cluster Scaling Cooldown Period to 600s. [GH-56]
+* Addition of CLI flags for all configuration parameters. [GH-61]
 
 BUG FIXES:
 
