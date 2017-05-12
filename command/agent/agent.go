@@ -95,6 +95,7 @@ func (c *Command) Run(args []string) int {
 func (c *Command) parseFlags() *structs.Config {
 
 	var configPath string
+	var dev bool
 
 	// An empty new config is setup here to allow us to fill this with any passed
 	// cli flags for later merging.
@@ -108,6 +109,7 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.Usage = func() { c.UI.Error(c.Help()) }
 
 	flags.StringVar(&configPath, "config", "", "")
+	flags.BoolVar(&dev, "dev", false, "")
 
 	// Top level configuration flags
 	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
@@ -136,9 +138,15 @@ func (c *Command) parseFlags() *structs.Config {
 		return nil
 	}
 
-	// Load the default configuration which will be the basis for merging with
-	// the supplied configuration file(s)
-	config := DefaultConfig()
+	// Depending on the flags provided (if any) we load a default configuration
+	// which will be the basis for all merging.
+	var config *structs.Config
+
+	if dev {
+		config = DevConfig()
+	} else {
+		config = DefaultConfig()
+	}
 
 	if configPath != "" {
 		current, err := LoadConfig(configPath)

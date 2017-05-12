@@ -57,6 +57,46 @@ func DefaultConfig() *structs.Config {
 	}
 }
 
+// DevConfig returns a configuration struct with sane defaults for development
+// and testing purposes.
+func DevConfig() *structs.Config {
+
+	// Instantiate a new Consul client.
+	consulClient, err := client.NewConsulClient(LocalConsulAddress)
+	if err != nil {
+		logging.Error("command/agent: failed to obtain consul connection: %v", err)
+	}
+
+	// Instantiate a new Nomad client.
+	nomadClient, err := client.NewNomadClient(LocalNomadAddress)
+	if err != nil {
+		logging.Error("command/agent: failed to obtain nomad connection: %v", err)
+	}
+
+	return &structs.Config{
+		Consul:          LocalConsulAddress,
+		Nomad:           LocalNomadAddress,
+		LogLevel:        "DEBUG",
+		ScalingInterval: 10,
+
+		ClusterScaling: &structs.ClusterScaling{
+			Enabled:            false,
+			MaxSize:            1,
+			MinSize:            1,
+			CoolDown:           0,
+			NodeFaultTolerance: 0,
+		},
+
+		JobScaling: &structs.JobScaling{
+			ConsulKeyLocation: "replicator/config/jobs",
+		},
+
+		Telemetry:    &structs.Telemetry{},
+		ConsulClient: consulClient,
+		NomadClient:  nomadClient,
+	}
+}
+
 // LoadConfig loads the configuration at the given path whether the specified
 // path is an individual file or a directory of numerous configuration files.
 func LoadConfig(path string) (*structs.Config, error) {
