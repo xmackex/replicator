@@ -101,7 +101,7 @@ type Notification struct {
 	// notifications for easy human identification.
 	ClusterIdentifier string `mapstructure:"cluster_identifier"`
 
-	// PagerDuty is the
+	// PagerDutyServiceKey is the PD integration key for the Events API v1.
 	PagerDutyServiceKey string `mapstructure:"pagerduty_service_key"`
 }
 
