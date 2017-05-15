@@ -58,6 +58,12 @@ The agent command is the main entry point into Replicator. A subset of the avail
 
 - **-statsd-address=`<address:port>`** Specifies the address of a StatsD server to forward metrics to and should include the port.
 
+- **-cluster-identifier=`<name>`** A human readable cluster name to allow operators to quickly identify which cluster is alerting.
+
+- **-cluster-scaling-uid=`<uid>`** The cluster UID is an identifier which represents a run book entry which allows operators and support to quickly work through resolution steps.
+
+- **-pagerduty-service-key=`<key>`** The PagerDuty integration key which has been setup to allow replicator to send events.
+
 ### Command: init
 
 The init command creates an example job scaling document in the current directory. This document can then be manipulated to meet your requirements, or be used to test replicator against the [Nomad init](https://www.nomadproject.io/docs/commands/init.html) example job.

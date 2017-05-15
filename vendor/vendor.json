@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "PG30dtT9CbNdJGSdhzKG3fxpPnw=",
+			"path": "github.com/PagerDuty/go-pagerduty",
+			"revision": "75111a5661c69cbd8df4d091f96571cc005b6655",
+			"revisionTime": "2017-04-11T21:52:37Z"
+		},
+		{
 			"checksumSHA1": "LboRNz/w5Ggg89VepvE003CJIT8=",
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "abc6f20dabf4b10195f233ad21ea6c5ba33acae0",
@@ -202,6 +208,12 @@
 			"path": "github.com/go-ini/ini",
 			"revision": "2b26ad567f305510849d93c5d2025a8b561f2367",
 			"revisionTime": "2017-03-15T18:41:46Z"
+		},
+		{
+			"checksumSHA1": "p3IB18uJRs4dL2K5yx24MrLYE9A=",
+			"path": "github.com/google/go-querystring/query",
+			"revision": "53e6ce116135b80d037921a7fdd5138cf32d7a8a",
+			"revisionTime": "2017-01-11T10:11:55Z"
 		},
 		{
 			"checksumSHA1": "gxHWof95u236wR9FvgaWcjfdfy0=",

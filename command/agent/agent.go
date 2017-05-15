@@ -103,6 +103,7 @@ func (c *Command) parseFlags() *structs.Config {
 		ClusterScaling: &structs.ClusterScaling{},
 		JobScaling:     &structs.JobScaling{},
 		Telemetry:      &structs.Telemetry{},
+		Notification:   &structs.Notification{},
 	}
 
 	flags := c.Meta.FlagSet("agent", command.FlagSetClient)
@@ -133,6 +134,11 @@ func (c *Command) parseFlags() *structs.Config {
 
 	// Telemetry configuration flags
 	flags.StringVar(&cliConfig.Telemetry.StatsdAddress, "statsd-address", "", "")
+
+	// Notification configuration flags
+	flags.StringVar(&cliConfig.Notification.ClusterScalingUID, "cluster-scaling-uid", "", "")
+	flags.StringVar(&cliConfig.Notification.ClusterIdentifier, "cluster-identifier", "", "")
+	flags.StringVar(&cliConfig.Notification.PagerDutyServiceKey, "pagerduty-service-key", "", "")
 
 	if err := flags.Parse(c.args); err != nil {
 		return nil
@@ -175,6 +181,10 @@ func (c *Command) Help() string {
 
   General Options:
 
+    -aws-region=<region>
+      The AWS region in which the cluster is running. If no region is
+      specified, Replicator attempts to dynamically determine the region.
+
     -config=<path>
       The path to either a single config file or a directory of config
       files to use for configuring the Replicator agent. Replicator
@@ -190,27 +200,30 @@ func (c *Command) Help() string {
       server and reduce the number of open HTTP connections. Additionally,
       it provides a "well-known" IP address for which clients can connect.
 
-    -nomad=<address:port>
-      The address and port Replicator will use when making connections
-      to the Nomad API. By default, this http://localhost:4646, which
-      is the default bind and port for a local Nomad server.
+    -dev
+      Start the Replicator agent in development mode. This runs the
+      Replicator agent with a configuration which is ideal for development
+      or local testing.
 
     -log-level=<level>
       Specify the verbosity level of Replicator's logs. The default is
       INFO.
 
+    -nomad=<address:port>
+      The address and port Replicator will use when making connections
+      to the Nomad API. By default, this http://localhost:4646, which
+      is the default bind and port for a local Nomad server.
+
     -scaling-interval=<num>
       The time period in seconds between Replicator check runs. The
       default is 10.
 
-    -aws-region=<region>
-      The AWS region in which the cluster is running. If no region is
-      specified, Replicator attempts to dynamically determine the region.
+  Cluster Scaling Options:
 
-    -cluster-scaling-enabled
-      Indicates whether the daemon should perform scaling actions. If
-      disabled, the actions that would have been taken will be reported
-      in the logs but skipped.
+    -cluster-autoscaling-group=<name>
+      The name of the AWS autoscaling group that contains the worker
+      nodes. This should be a separate ASG from the one containing
+      the server nodes.
 
     -cluster-max-size=<num>
       Indicates the maximum number of worker nodes allowed in the cluster.
@@ -220,38 +233,57 @@ func (c *Command) Help() string {
       Indicates the minimum number of worker nodes allowed in the cluster.
       The default is 5.
 
-    -cluster-scaling-cool-down=<num>
-      The number of seconds Replicator will wait between triggering
-      cluster scaling actions. The default is 600.
-
     -cluster-node-fault-tolerance=<num>
       The number of worker nodes the cluster can tolerate losing while
       still maintaining sufficient operation capacity. This is used by
       the scaling algorithm when calculating allowed capacity consumption.
       The default is 1.
 
-    -cluster-autoscaling-group=<name>
-      The name of the AWS autoscaling group that contains the worker
-      nodes. This should be a separate ASG from the one containing
-      the server nodes.
+    -cluster-scaling-cool-down=<num>
+      The number of seconds Replicator will wait between triggering
+      cluster scaling actions. The default is 600.
 
-    -job-scaling-enabled
+    -cluster-scaling-enabled
       Indicates whether the daemon should perform scaling actions. If
       disabled, the actions that would have been taken will be reported
       in the logs but skipped.
 
-    -consul-token=<token>
-      The Consul ACL token to use when communicating with an ACL
-      protected Consul cluster.
+  Job Scaling Options:
 
     -consul-key-location=<key>
       The Consul Key/Value Store location where Replicator will look
       for job scaling policies. By default, this is
       replicator/config/jobs.
 
+    -consul-token=<token>
+      The Consul ACL token to use when communicating with an ACL
+      protected Consul cluster.
+
+    -job-scaling-enabled
+      Indicates whether the daemon should perform scaling actions. If
+      disabled, the actions that would have been taken will be reported
+      in the logs but skipped.
+
+  Telemetry Options:
+
     -statsd-address=<address:port>
       Specifies the address of a statsd server to forward metrics
       to and should include the port.
+
+  Notifications Options:
+
+    -cluster-identifier=<name>
+      A human readable cluster name to allow operators to quickly identify
+      which cluster is alerting.
+
+    -cluster-scaling-uid=<uid>
+      The cluster UID is an identifier which represents a runbook entry
+      which allows operators and support to quickly work through
+      resolution steps.
+
+    -pagerduty-service-key=<key>
+      The PagerDuty integration key which has been setup to allow
+      replicator to send events.
 
 `
 	return strings.TrimSpace(helpText)
