@@ -151,6 +151,21 @@ telemetry {
   # include the port.
   statsd_address = "10.10.12.10:8125"
 }
+
+# This denotes the start of the configuration section for notifications.
+notification {
+  # A human readable cluster name to allow operators to quickly identify which
+  # cluster is alerting.
+  cluster_scaling_uid   = "els1"
+
+  # The cluster UID is an identifier which represents a run book entry which
+  # allows operators and support to quickly work through resolution steps.
+  cluster_identifier    = "core-prod"
+
+  # The PagerDuty integration key which has been setup to allow replicator to
+  # send events.
+  pagerduty_service_key = "xxxxxxxx"
+}
 ```
 
 ## Job Scaling Policy Syntax

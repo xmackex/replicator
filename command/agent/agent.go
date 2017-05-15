@@ -277,7 +277,7 @@ func (c *Command) Help() string {
       which cluster is alerting.
 
     -cluster-scaling-uid=<uid>
-      The cluster UID is an identifier which represents a runbook entry
+      The cluster UID is an identifier which represents a run book entry
       which allows operators and support to quickly work through
       resolution steps.
 
