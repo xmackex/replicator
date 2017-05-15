@@ -52,6 +52,7 @@ func DefaultConfig() *structs.Config {
 		},
 
 		Telemetry:    &structs.Telemetry{},
+		Notification: &structs.Notification{},
 		ConsulClient: consulClient,
 		NomadClient:  nomadClient,
 	}
@@ -92,6 +93,7 @@ func DevConfig() *structs.Config {
 		},
 
 		Telemetry:    &structs.Telemetry{},
+		Notification: &structs.Notification{},
 		ConsulClient: consulClient,
 		NomadClient:  nomadClient,
 	}

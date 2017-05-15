@@ -32,6 +32,9 @@ type Config struct {
 	// Telemetry is the configuration struct that controls the telemetry settings.
 	Telemetry *Telemetry `mapstructure:"telemetry"`
 
+	// Notification
+	Notification *Notification `mapstructure:"notification"`
+
 	// ConsulClient provides a client to interact with the Consul API.
 	ConsulClient ConsulClient
 
@@ -89,6 +92,19 @@ type Telemetry struct {
 	StatsdAddress string `mapstructure:"statsd_address"`
 }
 
+// Notification is the control struct for Replicator notifications.
+type Notification struct {
+	// ClusterScalingUID is the UID to assosiate to the cluster scaling alert.
+	ClusterScalingUID string `mapstructure:"cluster_scaling_uid"`
+
+	// ClusterIdentifier is a friendly name which is used when sending
+	// notifications for easy human identification.
+	ClusterIdentifier string `mapstructure:"cluster_identifier"`
+
+	// PagerDutyServiceKey is the PD integration key for the Events API v1.
+	PagerDutyServiceKey string `mapstructure:"pagerduty_service_key"`
+}
+
 // Merge merges two configurations.
 func (c *Config) Merge(b *Config) *Config {
 	config := *c
@@ -135,6 +151,14 @@ func (c *Config) Merge(b *Config) *Config {
 		config.Telemetry = &telemetry
 	} else if b.Telemetry != nil {
 		config.Telemetry = config.Telemetry.Merge(b.Telemetry)
+	}
+
+	// Apply the Notification config
+	if config.Notification == nil && b.Notification != nil {
+		notification := *b.Notification
+		config.Notification = &notification
+	} else if b.Notification != nil {
+		config.Notification = config.Notification.Merge(b.Notification)
 	}
 
 	return &config
@@ -194,8 +218,27 @@ func (j *JobScaling) Merge(b *JobScaling) *JobScaling {
 func (t *Telemetry) Merge(b *Telemetry) *Telemetry {
 	config := *t
 
-	if t.StatsdAddress != "" {
+	if b.StatsdAddress != "" {
 		config.StatsdAddress = b.StatsdAddress
+	}
+
+	return &config
+}
+
+// Merge is used to merge two Notification configurations together.
+func (n *Notification) Merge(b *Notification) *Notification {
+	config := *n
+
+	if b.ClusterIdentifier != "" {
+		config.ClusterIdentifier = b.ClusterIdentifier
+	}
+
+	if b.ClusterScalingUID != "" {
+		config.ClusterScalingUID = b.ClusterScalingUID
+	}
+
+	if b.PagerDutyServiceKey != "" {
+		config.PagerDutyServiceKey = b.PagerDutyServiceKey
 	}
 
 	return &config

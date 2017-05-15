@@ -78,6 +78,7 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 		"cluster_scaling",
 		"job_scaling",
 		"telemetry",
+		"notification",
 	}
 	if err := checkHCLKeys(list, valid); err != nil {
 		return multierror.Prefix(err, "config:")
@@ -93,6 +94,7 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 	delete(m, "cluster_scaling")
 	delete(m, "job_scaling")
 	delete(m, "telemetry")
+	delete(m, "notification")
 
 	if err := mapstructure.WeakDecode(m, result); err != nil {
 		return err
@@ -115,6 +117,12 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 	if o := list.Filter("telemetry"); len(o.Items) > 0 {
 		if err := parseTelemetry(&result.Telemetry, o); err != nil {
 			return multierror.Prefix(err, "telemetry ->")
+		}
+	}
+
+	if o := list.Filter("notification"); len(o.Items) > 0 {
+		if err := parseNotification(&result.Notification, o); err != nil {
+			return multierror.Prefix(err, "notification ->")
 		}
 	}
 
@@ -212,6 +220,37 @@ func parseTelemetry(result **structs.Telemetry, list *ast.ObjectList) error {
 		return err
 	}
 	*result = &telemetry
+	return nil
+}
+
+func parseNotification(result **structs.Notification, list *ast.ObjectList) error {
+	list = list.Elem()
+	if len(list.Items) > 1 {
+		return fmt.Errorf("only one 'Notification' block allowed")
+	}
+
+	listVal := list.Items[0].Val
+
+	// Check for invalid keys
+	valid := []string{
+		"cluster_scaling_uid",
+		"cluster_identifier",
+		"pagerduty_service_key",
+	}
+	if err := checkHCLKeys(listVal, valid); err != nil {
+		return err
+	}
+
+	var m map[string]interface{}
+	if err := hcl.DecodeObject(&m, listVal); err != nil {
+		return err
+	}
+
+	var notification structs.Notification
+	if err := mapstructure.WeakDecode(m, &notification); err != nil {
+		return err
+	}
+	*result = &notification
 	return nil
 }
 
