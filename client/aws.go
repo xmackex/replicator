@@ -93,21 +93,25 @@ func ScaleOutCluster(asgName string, svc *autoscaling.AutoScaling) error {
 	ticker := time.NewTicker(time.Millisecond * 500)
 	timeout := time.Tick(time.Minute * 3)
 
-	logging.Info("client/aws: cluster scaling operation (scale-out) will now be verified, this may take a few minutes...")
+	logging.Info("client/aws: attempting to verify the autoscaling group " +
+		"operation has completed successfully")
 
 	for {
 		select {
 		case <-timeout:
-			logging.Info("client/aws: timeout %v reached while waiting for autoscaling group %v",
-				timeout, asgName)
+			logging.Info("client/aws: timeout reached while waiting for the "+
+				"autoscaling group operation to complete successfully %v", asgName)
 			return nil
 		case <-ticker.C:
 			asg, err := DescribeScalingGroup(asgName, svc)
 			if err != nil {
-				logging.Error("client/aws: an error occurred while attempting to check autoscaling group: %v", err)
+				logging.Error("client/aws: an error occurred while attempting to "+
+					"verify the autoscaling group operation completed successfully: %v",
+					err)
 			} else {
 				if len(asg.AutoScalingGroups[0].Instances) == int(newDesiredCapacity) {
-					logging.Info("client/aws: cluster scaling operation (scale-out) has been successfully verified")
+					logging.Info("client/aws: verified the autoscaling operation has " +
+						"completed successfully")
 					return nil
 				}
 			}
@@ -119,7 +123,7 @@ func ScaleOutCluster(asgName string, svc *autoscaling.AutoScaling) error {
 // to target an instance to remove from the ASG.
 func ScaleInCluster(asgName, instanceIP string, svc *autoscaling.AutoScaling) error {
 
-	instanceID := translateIptoID(instanceIP, *svc.Config.Region)
+	instanceID := TranslateIptoID(instanceIP, *svc.Config.Region)
 
 	// Setup the Input parameters ready for the AWS API call and then trigger the
 	// call which will remove the identified instance from the ASG and decrement
@@ -150,7 +154,7 @@ func ScaleInCluster(asgName, instanceIP string, svc *autoscaling.AutoScaling) er
 	}
 
 	// The instance must now be terminated using the AWS EC2 API.
-	err = terminateInstance(instanceID, *svc.Config.Region)
+	err = TerminateInstance(instanceID, *svc.Config.Region)
 
 	if err != nil {
 		return fmt.Errorf("an error occured terminating instance %v", instanceID)
@@ -210,6 +214,108 @@ L:
 	return nil
 }
 
+type mostRecentInstance struct {
+	InstanceID       string
+	InstanceIP       string
+	LaunchTime       time.Time
+	MostRecentLaunch time.Time
+}
+
+// GetMostRecentInstance identifies the most recently launched instance in a
+// specified autoscaling group.
+func GetMostRecentInstance(autoscalingGroup, region string) (node string, err error) {
+	// Setup struct to track most recent instance information
+	instanceTracking := &mostRecentInstance{}
+
+	// Calculate instance launch threshold.
+	launchThreshold := time.Now().Add(-90 * time.Second)
+
+	// Setup a ticker to poll the health status of the specified worker node
+	// and retry up to a specified timeout.
+	ticker := time.NewTicker(time.Second * 10)
+	timeout := time.Tick(time.Minute * 5)
+
+	// Setup AWS EC2 API Session
+	sess := session.Must(session.NewSession())
+	svc := ec2.New(sess, &aws.Config{Region: aws.String(region)})
+
+	// Setup query parameters to find instances that are associated with the
+	// specified autoscaling group and are in a running or pending state.
+	params := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String("tag:aws:autoscaling:groupName"),
+				Values: []*string{
+					aws.String(autoscalingGroup),
+				},
+			},
+			{
+				Name: aws.String("instance-state-name"),
+				Values: []*string{
+					aws.String("running"),
+					aws.String("pending"),
+				},
+			},
+		},
+	}
+
+	logging.Info("client/aws: determining most recently launched worker node")
+
+	for {
+		select {
+		case <-timeout:
+			err = fmt.Errorf("client/aws: timeout reached while attempting to " +
+				"determine the most recently launched node.")
+			logging.Error("%v", err)
+			return
+		case <-ticker.C:
+			// Query the AWS API for worker nodes.
+			resp, err := svc.DescribeInstances(params)
+			if err != nil {
+				logging.Error("client/aws: an error occurred while attempting to "+
+					"query instances: %v", err)
+				continue
+			}
+
+			// If our query returns no instances, raise an error.
+			if len(resp.Reservations) == 0 {
+				logging.Error("client/aws: failed to retrieve a list of EC2 instances "+
+					"in autoscaling group %v", autoscalingGroup)
+				continue
+			}
+
+			// Iterate over and determine the most recent instance.
+			for _, res := range resp.Reservations {
+				for _, instance := range res.Instances {
+					logging.Debug("client/aws: discovered worker node %v which was "+
+						"launched on %v", *instance.InstanceId, instance.LaunchTime)
+
+					if instance.LaunchTime.After(instanceTracking.MostRecentLaunch) {
+						instanceTracking.MostRecentLaunch = *instance.LaunchTime
+						instanceTracking.InstanceIP = *instance.PrivateIpAddress
+						instanceTracking.InstanceID = *instance.InstanceId
+					}
+				}
+			}
+
+			// If the most recent node was launched within the last 90 seconds,
+			// we've found what we were looking for otherwise, pause and recheck.
+			if instanceTracking.MostRecentLaunch.After(launchThreshold) {
+				logging.Debug("client/aws: instance %v is the newest worker node",
+					instanceTracking.InstanceID)
+				return instanceTracking.InstanceIP, nil
+			}
+
+			logging.Debug("client/aws: instance %v is the most recent worker "+
+				"node discovered but its launch time %v is not within the last 90 "+
+				"seconds. Pausing and will recheck nodes.",
+				instanceTracking.InstanceID, instanceTracking.MostRecentLaunch)
+
+		}
+
+	}
+}
+
 // checkClusterScalingResult is used to poll the scaling activity and check for
 // a successful completion.
 func checkClusterScalingResult(activityID *string, svc *autoscaling.AutoScaling) error {
@@ -250,8 +356,8 @@ func checkClusterScalingResult(activityID *string, svc *autoscaling.AutoScaling)
 	}
 }
 
-// terminateInstance will terminate the supplied EC2 instance.
-func terminateInstance(instanceID, region string) error {
+// TerminateInstance will terminate the supplied EC2 instance.
+func TerminateInstance(instanceID, region string) error {
 
 	// Setup the session and the EC2 service link to use for this operation.
 	sess := session.Must(session.NewSession())
@@ -276,7 +382,8 @@ func terminateInstance(instanceID, region string) error {
 	return nil
 }
 
-func translateIptoID(ip, region string) (id string) {
+// TranslateIptoID translates the IP address of a node to the EC2 instance ID.
+func TranslateIptoID(ip, region string) (id string) {
 	sess := session.Must(session.NewSession())
 	svc := ec2.New(sess, &aws.Config{Region: aws.String(region)})
 

@@ -77,7 +77,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 		}
 	}
 
-	clusterCapacity := &structs.ClusterAllocation{}
+	clusterCapacity := &structs.ClusterStatus{}
 
 	if scale, err := nomadClient.EvaluateClusterCapacity(clusterCapacity, r.config); err != nil || !scale {
 		logging.Debug("core/runner: scaling operation not required or permitted")
@@ -87,14 +87,91 @@ func (r *Runner) clusterScaling(done chan bool) {
 		asgSess := client.NewAWSAsgService(r.config.Region)
 
 		if clusterCapacity.ScalingDirection == client.ScalingDirectionOut {
+			// If cluster scaling has been disabled, report but do not initiate a
+			// scaling operation.
 			if !scalingEnabled {
-				logging.Debug("core/runner: cluster scaling disabled, not initiating scaling operation (scale-out)")
+				logging.Debug("core/runner: cluster scaling disabled, not initiating " +
+					"scaling operation (scale-out)")
 				done <- true
 				return
 			}
 
+			// Attempt to increment the desired count of the autoscaling group. If
+			// this fails, log an error and stop further processing.
 			if err := client.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, asgSess); err != nil {
-				logging.Error("core/runner: unable to successfully scale out cluster: %v", err)
+				logging.Error("core/runner: unable to successfully initiate a "+
+					"scaling operation against autoscaling group %v: %v",
+					r.config.ClusterScaling.AutoscalingGroup, err)
+				done <- true
+				return
+			}
+
+			// Attempt to add a new node to the worker pool until we reach the
+			// retry threshold.
+			// TODO (e.westfall): Make the node failure retry threshold a config
+			// option. Waiting on this until after the merge to take advantage of
+			// config flag changes.
+			for clusterCapacity.NodeFailureCount <= 3 {
+				if clusterCapacity.NodeFailureCount > 0 {
+					logging.Info("core/runner: attempting to launch a new worker node, "+
+						"previous node failures: %v", clusterCapacity.NodeFailureCount)
+				}
+
+				// We've verified the autoscaling group operation completed successfully.
+				// Next we'll identify the most recently launched EC2 instance from the
+				// worker pool ASG.
+				newestNode, err := client.GetMostRecentInstance(
+					r.config.ClusterScaling.AutoscalingGroup,
+					r.config.Region,
+				)
+				if err != nil {
+					logging.Error("core/runner: Failed to identify the most recently "+
+						"launched instance: %v", err)
+					clusterCapacity.NodeFailureCount++
+					continue
+				}
+
+				// Attempt to verify the new worker node has completed bootstrapping and
+				// successfully joined the worker pool.
+				healthy := nomadClient.VerifyNodeHealth(newestNode)
+				if healthy {
+					// Reset node failure count once we have a verified healthy worker.
+					clusterCapacity.NodeFailureCount = 0
+					done <- true
+					return
+				}
+
+				clusterCapacity.NodeFailureCount++
+				logging.Error("core/runner: new node %v failed to successfully join "+
+					"the worker pool, incrementing node failure count to %v and "+
+					"terminating instance", newestNode, clusterCapacity.NodeFailureCount)
+
+				// If we've reached the retry threshold, disable cluster scaling and
+				// halt.
+				if disabled := r.disableClusterScaling(clusterCapacity); disabled {
+					done <- true
+					return
+				}
+
+				// Translate the IP address of the most recent instance to the EC2
+				// instance ID.
+				instanceID := client.TranslateIptoID(newestNode, r.config.Region)
+
+				// Attempt to clean up the most recent instance.
+				if err := client.TerminateInstance(instanceID, r.config.Region); err != nil {
+					logging.Error("core/runner: an error occurred while attempting "+
+						"to terminate instance %v: %v", instanceID, err)
+				}
+
+				// Pause after initiating termination of instance before retrying. This
+				// is a safety mechanism to deal with how slow the AWS autoscaling
+				// system is to respond to external facters such as an instance being
+				// terminated.
+				//
+				// TODO (e.westfall): Remove this after we place a ticker wait in
+				// the TerminateInstance() method to verify the instance has actually
+				// been terminated.
+				time.Sleep(45 * time.Second)
 			}
 		}
 
@@ -102,7 +179,8 @@ func (r *Runner) clusterScaling(done chan bool) {
 			nodeID, nodeIP := nomadClient.LeastAllocatedNode(clusterCapacity)
 			if nodeIP != "" && nodeID != "" {
 				if !scalingEnabled {
-					logging.Debug("core/runner: cluster scaling disabled, not initiating scaling operation (scale-in)")
+					logging.Debug("core/runner: cluster scaling disabled, not " +
+						"initiating scaling operation (scale-in)")
 					done <- true
 					return
 				}
@@ -118,6 +196,21 @@ func (r *Runner) clusterScaling(done chan bool) {
 		}
 	}
 	done <- true
+	return
+}
+
+func (r *Runner) disableClusterScaling(clusterStatus *structs.ClusterStatus) (disabled bool) {
+	// If we've reached the retry threshold, disable cluster scaling and
+	// halt.
+	if clusterStatus.NodeFailureCount == 3 {
+		disabled = true
+		r.config.ClusterScaling.Enabled = false
+
+		logging.Error("core/runner: attempts to add new nodes to the "+
+			"worker pool have failed %v times. Cluster scaling will be "+
+			"disabled.", 3)
+	}
+
 	return
 }
 

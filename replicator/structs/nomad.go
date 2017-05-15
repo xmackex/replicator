@@ -11,18 +11,18 @@ import (
 type NomadClient interface {
 	// ClusterAllocationCapacity determines the total cluster capacity and current
 	// number of worker nodes.
-	ClusterAllocationCapacity(*ClusterAllocation) error
+	ClusterAllocationCapacity(*ClusterStatus) error
 
 	// ClusterAssignedAllocation determines the consumed capacity across the
 	// cluster and tracks the resource consumption of each worker node.
-	ClusterAssignedAllocation(*ClusterAllocation) error
+	ClusterAssignedAllocation(*ClusterStatus) error
 
 	// DrainNode places a worker node in drain mode to stop future allocations and
 	// migrate existing allocations to other worker nodes.
 	DrainNode(string) error
 
 	// EvaluateClusterCapacity determines if a cluster scaling action is required.
-	EvaluateClusterCapacity(*ClusterAllocation, *Config) (bool, error)
+	EvaluateClusterCapacity(*ClusterStatus, *Config) (bool, error)
 
 	// EvaluateJobScaling compares the consumed resource percentages of a Job group
 	// against its scaling policy to determine whether a scaling event is required.
@@ -41,12 +41,12 @@ type NomadClient interface {
 
 	// LeaseAllocatedNode determines the worker node consuming the least amount of
 	// the cluster's mosted-utilized resource.
-	LeastAllocatedNode(*ClusterAllocation) (string, string)
+	LeastAllocatedNode(*ClusterStatus) (string, string)
 
 	// MostUtilizedResource calculates which resource is most-utilized across the
 	// cluster. The worst-case allocation resource is prioritized when making
 	// scaling decisions.
-	MostUtilizedResource(*ClusterAllocation)
+	MostUtilizedResource(*ClusterStatus)
 
 	// IsJobRunning checks to see whether the specified jobID has any currently
 	// task groups on the cluster.
@@ -59,15 +59,23 @@ type NomadClient interface {
 	// job and what amount of resources required if we increased the count of
 	// each job by one. This allows the cluster to proactively ensure it has
 	// sufficient capacity for scaling events and deal with potential node failures.
-	TaskAllocationTotals(*ClusterAllocation) error
+	TaskAllocationTotals(*ClusterStatus) error
+
+	// VerifyNodeHealth evaluates whether a specified worker node is a healthy
+	// member of the Nomad cluster.
+	VerifyNodeHealth(string) bool
 }
 
-// ClusterAllocation is the central object used to track cluster status and the data
+// ClusterStatus is the central object used to track cluster status and the data
 // required to make scaling decisions.
-type ClusterAllocation struct {
+type ClusterStatus struct {
 	// NodeCount is the number of worker nodes in a ready and non-draining state across
 	// the cluster.
 	NodeCount int
+
+	// NodeFailureCount tracks the number of worker nodes that have failed to
+	// successfully join the worker pool after a scale-out operation.
+	NodeFailureCount int
 
 	// ScalingMetric indicates the most-utilized allocation resource across the cluster.
 	// The most-utilized resource is prioritized when making scaling decisions like
