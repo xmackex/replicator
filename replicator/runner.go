@@ -174,16 +174,6 @@ func (r *Runner) clusterScaling(done chan bool) {
 					logging.Error("core/runner: an error occurred while attempting "+
 						"to terminate instance %v: %v", instanceID, err)
 				}
-
-				// Pause after initiating termination of instance before retrying. This
-				// is a safety mechanism to deal with how slow the AWS autoscaling
-				// system is to respond to external facters such as an instance being
-				// terminated.
-				//
-				// TODO (e.westfall): Remove this after we place a ticker wait in
-				// the TerminateInstance() method to verify the instance has actually
-				// been terminated.
-				time.Sleep(45 * time.Second)
 			}
 		}
 
