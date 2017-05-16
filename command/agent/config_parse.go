@@ -139,7 +139,7 @@ func parseClusterScaling(result **structs.ClusterScaling, list *ast.ObjectList) 
 
 	// Check for invalid keys
 	valid := []string{
-		"cluster_scaling_enabled",
+		"enabled",
 		"max_size",
 		"min_size",
 		"cool_down",
@@ -173,7 +173,7 @@ func parseJobScaling(result **structs.JobScaling, list *ast.ObjectList) error {
 
 	// Check for invalid keys
 	valid := []string{
-		"job_scaling_enabled",
+		"enabled",
 		"consul_token",
 		"consul_key_location",
 	}
