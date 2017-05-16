@@ -356,30 +356,62 @@ func checkClusterScalingResult(activityID *string, svc *autoscaling.AutoScaling)
 	}
 }
 
-// TerminateInstance will terminate the supplied EC2 instance.
+// TerminateInstance will terminate the supplied EC2 instance and confirm
+// successful termination by polling the instance state until the terminated
+// status is reached.
 func TerminateInstance(instanceID, region string) error {
 
 	// Setup the session and the EC2 service link to use for this operation.
 	sess := session.Must(session.NewSession())
 	svc := ec2.New(sess, &aws.Config{Region: aws.String(region)})
 
-	params := &ec2.TerminateInstancesInput{
+	tparams := &ec2.TerminateInstancesInput{
 		InstanceIds: []*string{
 			aws.String(instanceID),
 		},
 		DryRun: aws.Bool(false),
 	}
 
-	// We do not care about the response data, only if we recieve an error or not
-	// from the API which should be indication enough to ensure the instance is
-	// terminating.
-	_, err := svc.TerminateInstances(params)
-
-	if err != nil {
+	// Call the API to terminate the instance.
+	logging.Info("client/aws: terminating instance %s", instanceID)
+	if _, err := svc.TerminateInstances(tparams); err != nil {
 		return err
 	}
 
-	return nil
+	// Setup our timeout and ticker value. TODO: add a backoff for every call we
+	// make where the termination has not completed successfully.
+	ticker := time.NewTicker(time.Second * time.Duration(10))
+	timeOut := time.Tick(time.Minute * 3)
+
+	logging.Info("client/aws: confirming successful termination of %s", instanceID)
+
+	for {
+		select {
+		case <-timeOut:
+			return fmt.Errorf("timeout %v reached on checking instance %s termination", timeOut, instanceID)
+		case <-ticker.C:
+
+			// Setup the parameters to call the InstanceStatus endpoint so that we can
+			// discover the status of the terminating instance.
+			params := &ec2.DescribeInstanceStatusInput{
+				DryRun:              aws.Bool(false),
+				IncludeAllInstances: aws.Bool(true),
+				InstanceIds: []*string{
+					aws.String(instanceID),
+				},
+			}
+
+			resp, err := svc.DescribeInstanceStatus(params)
+			if err != nil {
+				return err
+			}
+
+			if *resp.InstanceStatuses[0].InstanceState.Name == "terminated" {
+				logging.Info("client/aws: successful termination of %s confirmed", instanceID)
+				return nil
+			}
+		}
+	}
 }
 
 // TranslateIptoID translates the IP address of a node to the EC2 instance ID.
