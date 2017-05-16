@@ -12,6 +12,8 @@ import (
 	"github.com/elsevier-core-engineering/replicator/logging"
 )
 
+const awsOperationSuccessful = "Successful"
+
 // DescribeAWSRegion uses the EC2 InstanceMetaData endpoint to discover the AWS
 // region in which the instance is running.
 func DescribeAWSRegion() (region string, err error) {
@@ -117,6 +119,39 @@ func ScaleOutCluster(asgName string, svc *autoscaling.AutoScaling) error {
 			}
 		}
 	}
+}
+
+// DetachInstance will detach a specified instance from a specified ASG and
+// decrements the desired count of the ASG.
+func DetachInstance(asgName, instanceID string, svc *autoscaling.AutoScaling) (err error) {
+	// Setup the request parameters for the DetachInstances API call.
+	params := &autoscaling.DetachInstancesInput{
+		AutoScalingGroupName:           aws.String(asgName),
+		ShouldDecrementDesiredCapacity: aws.Bool(true),
+		InstanceIds: []*string{
+			aws.String(instanceID),
+		},
+	}
+
+	logging.Info("client/aws: attempting to detach instance %v from "+
+		"autoscaling group %v", instanceID, asgName)
+
+	// Detach specified instance from the ASG. Note, this also strips the
+	// aws:autoscaling:groupName tag from the instance so it will be hidden
+	// from the GetMostRecentInstance method.
+	resp, err := svc.DetachInstances(params)
+	if err != nil {
+		return
+	}
+
+	// If the immediate API response does not indicate the detachment has
+	// completed successfully, call the checkClusterScalingResult() method which
+	// will poll the ASG until it can verify the status.
+	if *resp.Activities[0].StatusCode != awsOperationSuccessful {
+		err = checkClusterScalingResult(resp.Activities[0].ActivityId, svc)
+	}
+
+	return
 }
 
 // ScaleInCluster scales the cluster size by 1 by using the DetachInstances call
@@ -349,7 +384,7 @@ func checkClusterScalingResult(activityID *string, svc *autoscaling.AutoScaling)
 			if *resp.Activities[0].StatusCode == "Failed" || *resp.Activities[0].StatusCode == "Cancelled" {
 				return fmt.Errorf("scaling activity %v was unsuccessful ", activityID)
 			}
-			if *resp.Activities[0].StatusCode == "Successful" {
+			if *resp.Activities[0].StatusCode == awsOperationSuccessful {
 				return nil
 			}
 		}
