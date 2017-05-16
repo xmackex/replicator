@@ -146,16 +146,28 @@ func (r *Runner) clusterScaling(done chan bool) {
 					"the worker pool, incrementing node failure count to %v and "+
 					"terminating instance", newestNode, clusterCapacity.NodeFailureCount)
 
-				// If we've reached the retry threshold, disable cluster scaling and
-				// halt.
-				if disabled := r.disableClusterScaling(clusterCapacity); disabled {
-					done <- true
-					return
-				}
-
 				// Translate the IP address of the most recent instance to the EC2
 				// instance ID.
 				instanceID := client.TranslateIptoID(newestNode, r.config.Region)
+
+				// If we've reached the retry threshold, disable cluster scaling and
+				// halt.
+				if disabled := r.disableClusterScaling(clusterCapacity); disabled {
+					// Detach the last failed instance and decrement the desired count
+					// of the autoscaling group. This will leave the instance around
+					// for debugging purposes but allow us to cleanly resume cluster
+					// scaling without intervention.
+					err := client.DetachInstance(
+						r.config.ClusterScaling.AutoscalingGroup, instanceID, asgSess,
+					)
+					if err != nil {
+						logging.Error("core/runner: an error occurred while attempting "+
+							"to detach the failed instance from the ASG: %v", err)
+					}
+
+					done <- true
+					return
+				}
 
 				// Attempt to clean up the most recent instance.
 				if err := client.TerminateInstance(instanceID, r.config.Region); err != nil {
