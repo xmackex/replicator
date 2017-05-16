@@ -223,7 +223,6 @@ func (r *Runner) jobScaling() {
 	// Scaling a Cluster Jobs requires access to both Consul and Nomad therefore
 	// we setup the clients here.
 	consulClient := r.config.ConsulClient
-
 	nomadClient := r.config.NomadClient
 
 	// Determine if we are running on the leader node, halt if not.
@@ -253,13 +252,13 @@ func (r *Runner) jobScaling() {
 
 		for _, group := range job.GroupScalingPolicies {
 			if group.Scaling.ScaleDirection == client.ScalingDirectionOut || group.Scaling.ScaleDirection == client.ScalingDirectionIn {
-				if job.Enabled {
+				if job.Enabled && r.config.JobScaling.Enabled {
 					logging.Debug("core/runner: scaling for job \"%v\" is enabled; a scaling operation (%v) will be requested for group \"%v\"",
 						job.JobName, group.Scaling.ScaleDirection, group.GroupName)
 					i++
 				} else {
-					logging.Debug("core/runner: scaling for job \"%v\" has been disabled; a scaling operation (%v) would have been requested for group \"%v\"",
-						job.JobName, group.Scaling.ScaleDirection, group.GroupName)
+					logging.Debug("core/runner: job scaling has been disabled; a scaling operation (%v) would have been requested for \"%v\" and group \"%v\"",
+						group.Scaling.ScaleDirection, job.JobName, group.GroupName)
 				}
 			}
 		}
