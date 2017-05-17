@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -114,6 +115,7 @@ func ScaleOutCluster(asgName string, svc *autoscaling.AutoScaling) error {
 				if len(asg.AutoScalingGroups[0].Instances) == int(newDesiredCapacity) {
 					logging.Info("client/aws: verified the autoscaling operation has " +
 						"completed successfully")
+					metrics.IncrCounter([]string{"cluster", "aws", "scale_out"}, 1)
 					return nil
 				}
 			}
@@ -195,6 +197,7 @@ func ScaleInCluster(asgName, instanceIP string, svc *autoscaling.AutoScaling) er
 		return fmt.Errorf("an error occured terminating instance %v", instanceID)
 	}
 
+	metrics.IncrCounter([]string{"cluster", "aws", "scale_in"}, 1)
 	return nil
 }
 
@@ -443,6 +446,9 @@ func TerminateInstance(instanceID, region string) error {
 
 			if *resp.InstanceStatuses[0].InstanceState.Name == "terminated" {
 				logging.Info("client/aws: successful termination of %s confirmed", instanceID)
+
+				metrics.IncrCounter([]string{"cluster", "aws", "instance_terminations"}, 1)
+
 				return nil
 			}
 		}
