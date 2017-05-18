@@ -8,6 +8,7 @@ IMPROVEMENTS:
 * Addition of CLI flags for all configuration parameters. [GH-61]
 * Add support for `dev` CLI flag [GH-63]
 * AWS 'TerminateInstance' function now verifies instance terminated state. [GH-80]
+* Make use of telemetry configuration by sending key metrics. [GH-85]
 
 BUG FIXES:
 
