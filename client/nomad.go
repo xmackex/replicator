@@ -4,6 +4,7 @@ import (
 	"math"
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/dariubs/percent"
 	"github.com/elsevier-core-engineering/replicator/helper"
 	"github.com/elsevier-core-engineering/replicator/logging"
@@ -498,10 +499,12 @@ func (c *nomadClient) JobScale(scalingDoc *structs.JobScalingPolicy) {
 				// Depending on the scaling direction decrement/incrament the count;
 				// currently replicator only supports addition/subtraction of 1.
 				if *taskGroup.Name == group.GroupName && group.Scaling.ScaleDirection == "Out" {
+					metrics.IncrCounter([]string{"job", scalingDoc.JobName, group.GroupName, "scale_out"}, 1)
 					*jobResp.TaskGroups[i].Count++
 				}
 
 				if *taskGroup.Name == group.GroupName && group.Scaling.ScaleDirection == "In" {
+					metrics.IncrCounter([]string{"job", scalingDoc.JobName, group.GroupName, "scale_in"}, 1)
 					*jobResp.TaskGroups[i].Count--
 				}
 			}

@@ -3,6 +3,7 @@ package replicator
 import (
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
@@ -146,6 +147,8 @@ func (r *Runner) clusterScaling(done chan bool) {
 					"the worker pool, incrementing node failure count to %v and "+
 					"terminating instance", newestNode, clusterCapacity.NodeFailureCount)
 
+				metrics.IncrCounter([]string{"cluster", "scale_out_failed"}, 1)
+
 				// Translate the IP address of the most recent instance to the EC2
 				// instance ID.
 				instanceID := client.TranslateIptoID(newestNode, r.config.Region)
@@ -198,6 +201,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 		}
 	}
 	done <- true
+	metrics.IncrCounter([]string{"cluster", "scale_out_success"}, 1)
 	return
 }
 
