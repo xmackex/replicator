@@ -123,6 +123,7 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.Float64Var(&cliConfig.ClusterScaling.CoolDown, "cluster-scaling-cool-down", 0, "")
 	flags.IntVar(&cliConfig.ClusterScaling.NodeFaultTolerance, "cluster-node-fault-tolerance", 0, "")
 	flags.StringVar(&cliConfig.ClusterScaling.AutoscalingGroup, "cluster-autoscaling-group", "", "")
+	flags.IntVar(&cliConfig.ClusterScaling.RetryThreshold, "cluster-retry-threshold", 0, "")
 
 	// Job scaling configuration flags
 	flags.BoolVar(&cliConfig.JobScaling.Enabled, "job-scaling-enabled", false, "")
@@ -273,6 +274,12 @@ func (c *Command) Help() string {
       still maintaining sufficient operation capacity. This is used by
       the scaling algorithm when calculating allowed capacity consumption.
       The default is 1.
+
+    -cluster-retry-threshold=<num>
+      Replicator fully verifies cluster scale-out by confirming the node
+      joins the cluster. If it does not join after a certain period the
+      actioned is marked as failed. This retry is the number of times
+      Replicator will attempt to scale the cluster with new instances.
 
     -cluster-scaling-cool-down=<num>
       The number of seconds Replicator will wait between triggering

@@ -45,6 +45,7 @@ func DefaultConfig() *structs.Config {
 			MinSize:            5,
 			CoolDown:           600,
 			NodeFaultTolerance: 1,
+			RetryThreshold:     2,
 		},
 
 		JobScaling: &structs.JobScaling{
@@ -86,6 +87,7 @@ func DevConfig() *structs.Config {
 			MinSize:            1,
 			CoolDown:           0,
 			NodeFaultTolerance: 0,
+			RetryThreshold:     1,
 		},
 
 		JobScaling: &structs.JobScaling{
