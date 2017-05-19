@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul-template/test"
 )
 
-func TestConfig_LoadConfigFile(t *testing.T) {
+func TestConfigParse_LoadConfigFile(t *testing.T) {
 
 	configFile := test.CreateTempfile([]byte(`
     consul           = "consul.com:8500"
