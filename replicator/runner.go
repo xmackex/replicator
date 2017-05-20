@@ -140,8 +140,8 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 			// TODO (e.westfall): Make the node failure retry threshold a config
 			// option. Waiting on this until after the merge to take advantage of
 			// config flag changes.
-			for clusterCapacity.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
-				if clusterCapacity.NodeFailureCount > 0 {
+			for scalingState.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
+				if scalingState.NodeFailureCount > 0 {
 					logging.Info("core/runner: attempting to launch a new worker node, "+
 						"previous node failures: %v", scalingState.NodeFailureCount)
 				}
@@ -244,7 +244,7 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 func (r *Runner) disableClusterScaling(scalingState *structs.ScalingState) (disabled bool) {
 	// If we've reached the retry threshold, disable cluster scaling and
 	// halt.
-	if clusterStatus.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
+	if scalingState.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
 		disabled = true
 		r.config.ClusterScaling.Enabled = false
 
