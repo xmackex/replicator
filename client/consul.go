@@ -4,7 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"strings"
+	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	consul "github.com/hashicorp/consul/api"
 )
@@ -36,6 +38,9 @@ func NewConsulClient(addr string) (structs.ConsulClient, error) {
 // policy document at a specified Consuk Key/Value Store location. Supports
 // the use of an ACL token if required by the Consul cluster.
 func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient structs.NomadClient) ([]*structs.JobScalingPolicy, error) {
+
+	defer metrics.MeasureSince([]string{"job", "config_read"}, time.Now())
+
 	var entries []*structs.JobScalingPolicy
 
 	// Setup the QueryOptions to include the aclToken if this has been set, if not

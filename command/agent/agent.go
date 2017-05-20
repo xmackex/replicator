@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/elsevier-core-engineering/replicator/command"
@@ -35,14 +36,10 @@ func (c *Command) Run(args []string) int {
 	// Set the logging level for the logger.
 	logging.SetLevel(conf.LogLevel)
 
-	// Initialize telemetry if this was configured by the user.
-	if conf.Telemetry.StatsdAddress != "" {
-		sink, statsErr := metrics.NewStatsdSink(conf.Telemetry.StatsdAddress)
-		if statsErr != nil {
-			c.UI.Error(fmt.Sprintf("unable to setup telemetry correctly: %v", statsErr))
-			return 1
-		}
-		metrics.NewGlobal(metrics.DefaultConfig("replicator"), sink)
+	// Initialize the telemetry
+	if err := c.setupTelemetry(conf); err != nil {
+		c.UI.Error(fmt.Sprintf("Error initializing telemetry: %s", err))
+		return 1
 	}
 
 	// Create the initial runner with the merged configuration parameters.
@@ -126,6 +123,7 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.Float64Var(&cliConfig.ClusterScaling.CoolDown, "cluster-scaling-cool-down", 0, "")
 	flags.IntVar(&cliConfig.ClusterScaling.NodeFaultTolerance, "cluster-node-fault-tolerance", 0, "")
 	flags.StringVar(&cliConfig.ClusterScaling.AutoscalingGroup, "cluster-autoscaling-group", "", "")
+	flags.IntVar(&cliConfig.ClusterScaling.RetryThreshold, "cluster-retry-threshold", 0, "")
 
 	// Job scaling configuration flags
 	flags.BoolVar(&cliConfig.JobScaling.Enabled, "job-scaling-enabled", false, "")
@@ -167,6 +165,44 @@ func (c *Command) parseFlags() *structs.Config {
 	config = config.Merge(cliConfig)
 	return config
 
+}
+
+// setupTelemetry is used to setup Replicators telemetry.
+func (c *Command) setupTelemetry(config *structs.Config) error {
+
+	// Setup telemetry to aggregate on 10 second intervals for 1 minute.
+	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
+	metrics.DefaultInmemSignal(inm)
+
+	var telemetry *structs.Telemetry
+	if config.Telemetry == nil {
+		telemetry = &structs.Telemetry{}
+	} else {
+		telemetry = config.Telemetry
+	}
+
+	metricsConf := metrics.DefaultConfig("replicator")
+
+	var fanout metrics.FanoutSink
+
+	// Configure the statsd sink
+	if telemetry.StatsdAddress != "" {
+		sink, err := metrics.NewStatsdSink(telemetry.StatsdAddress)
+		if err != nil {
+			return err
+		}
+		fanout = append(fanout, sink)
+	}
+
+	// Initialize the global sink
+	if len(fanout) > 0 {
+		fanout = append(fanout, inm)
+		metrics.NewGlobal(metricsConf, fanout)
+	} else {
+		metricsConf.EnableHostname = false
+		metrics.NewGlobal(metricsConf, inm)
+	}
+	return nil
 }
 
 // Help provides the help information for the agent command.
@@ -238,6 +274,12 @@ func (c *Command) Help() string {
       still maintaining sufficient operation capacity. This is used by
       the scaling algorithm when calculating allowed capacity consumption.
       The default is 1.
+
+    -cluster-retry-threshold=<num>
+      Replicator fully verifies cluster scale-out by confirming the node
+      joins the cluster. If it does not join after a certain period the
+      actioned is marked as failed. This retry is the number of times
+      Replicator will attempt to scale the cluster with new instances.
 
     -cluster-scaling-cool-down=<num>
       The number of seconds Replicator will wait between triggering

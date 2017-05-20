@@ -1,166 +1,92 @@
 package agent
 
-// import (
-// 	"reflect"
-// 	"strings"
-// 	"testing"
-//
-// 	"github.com/elsevier-core-engineering/replicator/client"
-// 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
-// 	"github.com/hashicorp/consul-template/test"
-// )
+import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
+)
 
-// func TestParseConfig_correctDefaulValues(t *testing.T) {
-// 	// TODO (e.westfall): Can we call ParseConfig in here to pickup the client
-// 	// instantiation?
-// 	config := DefaultConfig()
-// 	consulClient, _ := client.NewConsulClient("localhost:8500")
-// 	config.ConsulClient = consulClient
-//
-// 	expected := &structs.Config{
-// 		Consul:   "localhost:8500",
-// 		Nomad:    "http://localhost:4646",
-// 		LogLevel: "INFO",
-// 		Enforce:  true,
-//
-// 		ClusterScaling: &structs.ClusterScaling{
-// 			MaxSize:            10,
-// 			MinSize:            5,
-// 			CoolDown:           600,
-// 			NodeFaultTolerance: 1,
-// 		},
-//
-// 		JobScaling: &structs.JobScaling{
-// 			ConsulKeyLocation: "replicator/config/jobs",
-// 		},
-//
-// 		Telemetry:    &structs.Telemetry{},
-// 		ConsulClient: consulClient,
-// 	}
-//
-// 	if !reflect.DeepEqual(config, expected) {
-// 		t.Fatalf("expected \n%#v\n\n, got \n\n%#v\n\n", expected, config)
-// 	}
-// }
+func TestConfig_ParseConfigFile(t *testing.T) {
+	// Fails if the file doesn't exist
+	if _, err := ParseConfigFile("/wosniak/jobs"); err == nil {
+		t.Fatalf("expected error, got nothing")
+	}
 
-// func TestParseConfig_correctNestedPartialOverride(t *testing.T) {
-// 	configFile := test.CreateTempfile([]byte(`
-//     consul  = "consul.tiorap.systems:8500"
-// 		nomad   = "nomad.tiorap.systems:4646"
-//
-//     cluster_scaling {
-//       max_size = 15
-//     }
-//   `), t)
-// 	defer test.DeleteTempfile(configFile, t)
-//
-// 	c, err := ParseConfig(configFile.Name())
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	consulClient, _ := client.NewConsulClient("consul.tiorap.systems:8500")
-//
-// 	expected := &structs.Config{
-// 		Consul:   "consul.tiorap.systems:8500",
-// 		Nomad:    "nomad.tiorap.systems:4646",
-// 		LogLevel: "INFO",
-// 		Enforce:  true,
-//
-// 		ClusterScaling: &structs.ClusterScaling{
-// 			MaxSize:            15,
-// 			MinSize:            5,
-// 			CoolDown:           300,
-// 			NodeFaultTolerance: 1,
-// 		},
-//
-// 		JobScaling: &structs.JobScaling{
-// 			ConsulKeyLocation: "replicator/config/jobs",
-// 		},
-//
-// 		Telemetry:    &structs.Telemetry{},
-// 		ConsulClient: consulClient,
-// 	}
-// 	if !reflect.DeepEqual(c, expected) {
-// 		t.Fatalf("expected \n%#v\n\n, got \n\n%#v\n\n", expected, c)
-// 	}
-// }
+	fh, err := ioutil.TempFile("", "replcaitor")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(fh.Name())
 
-// func TestParseConfig_correctFullOverride(t *testing.T) {
-// 	configFile := test.CreateTempfile([]byte(`
-//     consul    = "consul.tiorap.systems:8500"
-//     nomad     = "nomad.tiorap.systems:4646"
-//     log_level = "DEBUG"
-//     enforce   = false
-//
-//     cluster_scaling {
-//       max_size             = 1000
-//       min_size             = 100
-// 			cool_down            = 100
-// 			node_fault_tolerance = 50
-//     }
-//
-//     job_scaling {
-//       consul_key_location = "tiorap/replicator/config"
-//       consul_token        = "supersecrettokenthingy"
-//     }
-//
-//     telemetry {
-//       statsd_address = "statsd.tiorap.systems:8125"
-//     }
-//
-//   `), t)
-// 	defer test.DeleteTempfile(configFile, t)
-//
-// 	c, err := ParseConfig(configFile.Name())
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-//
-// 	expected := &structs.Config{
-// 		Consul:   "consul.tiorap.systems:8500",
-// 		Nomad:    "nomad.tiorap.systems:4646",
-// 		LogLevel: "DEBUG",
-// 		Enforce:  false,
-//
-// 		ClusterScaling: &structs.ClusterScaling{
-// 			MaxSize:            1000,
-// 			MinSize:            100,
-// 			CoolDown:           100,
-// 			NodeFaultTolerance: 50,
-// 		},
-//
-// 		JobScaling: &structs.JobScaling{
-// 			ConsulKeyLocation: "tiorap/replicator/config",
-// 			ConsulToken:       "supersecrettokenthingy",
-// 		},
-//
-// 		Telemetry: &structs.Telemetry{
-// 			StatsdAddress: "statsd.tiorap.systems:8125",
-// 		},
-// 	}
-//
-// 	if !reflect.DeepEqual(c, expected) {
-// 		t.Fatalf("expected \n%#v\n\n, got \n\n%#v\n\n", expected, c)
-// 	}
-// }
+	// Invalid content returns error
+	if _, err := fh.WriteString("throwingcoins"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := ParseConfigFile(fh.Name()); err == nil {
+		t.Fatalf("expected load error, got nothing")
+	}
 
-// func TestParseConfig_hclSyntaxIssue(t *testing.T) {
-// 	configFile := test.CreateTempfile([]byte(`
-//     consul  = "consul.tiorap.systems:8500"
-//     nomad   = "nomad.tiorap.systems:4646"
-//
-//     cluster_scaling {
-//       max_size = 15
-//
-//   `), t)
-// 	defer test.DeleteTempfile(configFile, t)
-//
-// 	expected := "error decoding config at"
-//
-// 	_, err := ParseConfig(configFile.Name())
-//
-// 	if !strings.Contains(err.Error(), expected) {
-// 		t.Fatalf("expected %q to include %q", err.Error(), expected)
-// 	}
-// }
+	// Valid content parses successfully
+	if err := fh.Truncate(0); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := fh.Seek(0, 0); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := fh.WriteString(`{"aws_region":"us-east-1"}`); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	config, err := ParseConfigFile(fh.Name())
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.Region != "us-east-1" {
+		t.Fatalf("bad aws region: %q", config.Region)
+	}
+}
+
+func TestConfig_LoadConfigDir(t *testing.T) {
+
+	// Fails if the dir doesn't exist.
+	if _, err := LoadConfigDir("/wosniak/jobs"); err == nil {
+		t.Fatalf("expected error, got nothig")
+	}
+
+	dir, err := ioutil.TempDir("", "replicator")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Returns empty config on empty dir
+	config, err := LoadConfig(dir)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config == nil {
+		t.Fatalf("should not be nil")
+	}
+
+	file1 := filepath.Join(dir, "replicator.hcl")
+	err = ioutil.WriteFile(file1, []byte(`{"aws_region":"us-east-1"}`), 0600)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	file2 := filepath.Join(dir, "replicator_1.hcl")
+	err = ioutil.WriteFile(file2, []byte(`{"scaling_interval":1}`), 0600)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Works if configs are valid
+	config, err = LoadConfigDir(dir)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.Region != "us-east-1" || config.ScalingInterval != 1 {
+		t.Fatalf("bad: %#v", config)
+	}
+}

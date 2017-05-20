@@ -67,6 +67,10 @@ type ClusterScaling struct {
 
 	// AutoscalingGroup is the name of the ASG assigned to the Nomad worker nodes.
 	AutoscalingGroup string `mapstructure:"autoscaling_group"`
+
+	// RetryPeriod is the number of times Replicator will retry scale-out when
+	// new nodes do not join the worker pool and reach the join timeout.
+	RetryThreshold int `mapstructure:"retry_threshold"`
 }
 
 // JobScaling is the configuration struct for the Nomad job scaling activities.
@@ -190,6 +194,10 @@ func (c *ClusterScaling) Merge(b *ClusterScaling) *ClusterScaling {
 
 	if b.AutoscalingGroup != "" {
 		config.AutoscalingGroup = b.AutoscalingGroup
+	}
+
+	if b.RetryThreshold != 0 {
+		config.RetryThreshold = b.RetryThreshold
 	}
 
 	return &config

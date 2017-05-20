@@ -3,6 +3,7 @@ package replicator
 import (
 	"time"
 
+	metrics "github.com/armon/go-metrics"
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
@@ -139,8 +140,8 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 			// TODO (e.westfall): Make the node failure retry threshold a config
 			// option. Waiting on this until after the merge to take advantage of
 			// config flag changes.
-			for scalingState.NodeFailureCount <= 3 {
-				if scalingState.NodeFailureCount > 0 {
+			for clusterCapacity.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
+				if clusterCapacity.NodeFailureCount > 0 {
 					logging.Info("core/runner: attempting to launch a new worker node, "+
 						"previous node failures: %v", scalingState.NodeFailureCount)
 				}
@@ -177,6 +178,8 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 				logging.Error("core/runner: new node %v failed to successfully join "+
 					"the worker pool, incrementing node failure count to %v and "+
 					"terminating instance", newestNode, scalingState.NodeFailureCount)
+
+				metrics.IncrCounter([]string{"cluster", "scale_out_failed"}, 1)
 
 				// Translate the IP address of the most recent instance to the EC2
 				// instance ID.
@@ -234,19 +237,20 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 		}
 	}
 	done <- true
+	metrics.IncrCounter([]string{"cluster", "scale_out_success"}, 1)
 	return
 }
 
 func (r *Runner) disableClusterScaling(scalingState *structs.ScalingState) (disabled bool) {
 	// If we've reached the retry threshold, disable cluster scaling and
 	// halt.
-	if scalingState.NodeFailureCount == 3 {
+	if clusterStatus.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
 		disabled = true
 		r.config.ClusterScaling.Enabled = false
 
 		logging.Error("core/runner: attempts to add new nodes to the "+
 			"worker pool have failed %v times. Cluster scaling will be "+
-			"disabled.", 3)
+			"disabled.", r.config.ClusterScaling.RetryThreshold)
 	}
 
 	return
