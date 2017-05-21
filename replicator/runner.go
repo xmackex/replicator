@@ -137,9 +137,6 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 
 			// Attempt to add a new node to the worker pool until we reach the
 			// retry threshold.
-			// TODO (e.westfall): Make the node failure retry threshold a config
-			// option. Waiting on this until after the merge to take advantage of
-			// config flag changes.
 			for scalingState.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
 				if scalingState.NodeFailureCount > 0 {
 					logging.Info("core/runner: attempting to launch a new worker node, "+
