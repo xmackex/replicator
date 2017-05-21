@@ -201,57 +201,6 @@ func ScaleInCluster(asgName, instanceIP string, svc *autoscaling.AutoScaling) er
 	return nil
 }
 
-// CheckClusterScalingTimeThreshold checks the last cluster scaling event time
-// and compares against the cooldown period to determine whether or not a
-// cluster scaling event can happen.
-func CheckClusterScalingTimeThreshold(cooldown float64, asgName string, svc *autoscaling.AutoScaling) error {
-
-	// Only supply the ASG name as we want to see all the recent scaling activity
-	// to be able to make the correct descision.
-	params := &autoscaling.DescribeScalingActivitiesInput{
-		AutoScalingGroupName: aws.String(asgName),
-	}
-
-	// The last scaling activity to happen is determined irregardless of whether
-	// or not it was successful; it was still a scaling event. Times from AWS are
-	// based on UTC, and so the current time does the same.
-	timeThreshold := time.Now().UTC().Add(-time.Second * time.Duration(cooldown))
-
-	ticker := time.NewTicker(time.Second * time.Duration(10))
-	timeOut := time.Tick(time.Minute * 3)
-	var lastActivity time.Time
-
-L:
-	for {
-		select {
-		case <-timeOut:
-			return fmt.Errorf("timeout %v reached on checking scaling activity threshold", timeOut)
-		case <-ticker.C:
-
-			// Make a call to the AWS API every tick to ensure we get the latest Info
-			// about the scaling activity status.
-			resp, err := svc.DescribeScalingActivities(params)
-			if err != nil {
-				return err
-			}
-
-			// If a scaling activity is in progess, the endtime will not be available
-			// yet.
-			if *resp.Activities[0].Progress == 100 {
-				lastActivity = *resp.Activities[0].EndTime
-				break L
-			}
-		}
-	}
-	// Compare the two dates to see if the current time minus the cooldown is
-	// before the last scaling activity. If it was before, this indicates the
-	// cooldown has not been met.
-	if !lastActivity.Before(timeThreshold) {
-		return fmt.Errorf("cluster scaling cooldown not yet reached")
-	}
-	return nil
-}
-
 type mostRecentInstance struct {
 	InstanceID       string
 	InstanceIP       string

@@ -33,6 +33,9 @@ func NewRunner(config *structs.Config) (*Runner, error) {
 func (r *Runner) Start() {
 	ticker := time.NewTicker(time.Second * time.Duration(r.config.ScalingInterval))
 
+	// Initialize the state tracking object for scaling operations.
+	scalingState := &structs.ScalingState{}
+
 	defer ticker.Stop()
 
 	for {
@@ -40,7 +43,7 @@ func (r *Runner) Start() {
 		case <-ticker.C:
 
 			clusterChan := make(chan bool)
-			go r.clusterScaling(clusterChan)
+			go r.clusterScaling(clusterChan, scalingState)
 			<-clusterChan
 
 			r.jobScaling()
@@ -59,13 +62,15 @@ func (r *Runner) Stop() {
 // clusterScaling is the main entry point into the cluster scaling functionality
 // and ties numerous functions together to create an asynchronus function which
 // can be called from the runner.
-func (r *Runner) clusterScaling(done chan bool) {
+func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingState) {
 	nomadClient := r.config.NomadClient
 	scalingEnabled := r.config.ClusterScaling.Enabled
 
-	// Determine if we are running on the leader node, halt if not.
+	// Determine if we are running on the leader node, halt scaling
+	// evaluation if not.
 	if haveLeadership := nomadClient.LeaderCheck(); !haveLeadership {
-		logging.Debug("core/runner: replicator is not running on the known leader, no cluster scaling actions will be taken")
+		logging.Debug("core/runner: replicator is not running on the known leader," +
+			"no cluster scaling actions will be taken")
 		done <- true
 		return
 	}
@@ -78,7 +83,8 @@ func (r *Runner) clusterScaling(done chan bool) {
 		}
 	}
 
-	clusterCapacity := &structs.ClusterStatus{}
+	// Initialize a new disposable cluster capacity object.
+	clusterCapacity := &structs.ClusterCapacity{}
 
 	if scale, err := nomadClient.EvaluateClusterCapacity(clusterCapacity, r.config); err != nil || !scale {
 		logging.Debug("core/runner: scaling operation not required or permitted")
@@ -87,12 +93,34 @@ func (r *Runner) clusterScaling(done chan bool) {
 		// create an client connection.
 		asgSess := client.NewAWSAsgService(r.config.Region)
 
+		// Calculate the scaling cooldown threshold.
+		if !scalingState.LastScalingEvent.IsZero() {
+			cooldown := scalingState.LastScalingEvent.Add(
+				time.Duration(r.config.ClusterScaling.CoolDown) * time.Second)
+
+			if time.Now().Before(cooldown) {
+				logging.Info("core/runner: cluster scaling cooldown threshold has "+
+					"not been reached: %v, scaling operations will not be permitted",
+					cooldown)
+
+				done <- true
+				return
+			}
+
+			logging.Debug("core/runner: cluster scaling cooldown threshold %v has "+
+				"been reached, scaling operations will be permitted", cooldown)
+		} else {
+			logging.Info("core/runner: no previous scaling operations have " +
+				"occurred, scaling operations will be permitted.")
+		}
+
 		if clusterCapacity.ScalingDirection == client.ScalingDirectionOut {
 			// If cluster scaling has been disabled, report but do not initiate a
 			// scaling operation.
 			if !scalingEnabled {
 				logging.Debug("core/runner: cluster scaling disabled, not initiating " +
 					"scaling operation (scale-out)")
+
 				done <- true
 				return
 			}
@@ -109,10 +137,10 @@ func (r *Runner) clusterScaling(done chan bool) {
 
 			// Attempt to add a new node to the worker pool until we reach the
 			// retry threshold.
-			for clusterCapacity.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
-				if clusterCapacity.NodeFailureCount > 0 {
+			for scalingState.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
+				if scalingState.NodeFailureCount > 0 {
 					logging.Info("core/runner: attempting to launch a new worker node, "+
-						"previous node failures: %v", clusterCapacity.NodeFailureCount)
+						"previous node failures: %v", scalingState.NodeFailureCount)
 				}
 
 				// We've verified the autoscaling group operation completed successfully.
@@ -125,7 +153,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 				if err != nil {
 					logging.Error("core/runner: Failed to identify the most recently "+
 						"launched instance: %v", err)
-					clusterCapacity.NodeFailureCount++
+					scalingState.NodeFailureCount++
 					continue
 				}
 
@@ -134,15 +162,19 @@ func (r *Runner) clusterScaling(done chan bool) {
 				healthy := nomadClient.VerifyNodeHealth(newestNode)
 				if healthy {
 					// Reset node failure count once we have a verified healthy worker.
-					clusterCapacity.NodeFailureCount = 0
+					scalingState.NodeFailureCount = 0
+
+					// Update the last scaling event timestamp.
+					scalingState.LastScalingEvent = time.Now()
+
 					done <- true
 					return
 				}
 
-				clusterCapacity.NodeFailureCount++
+				scalingState.NodeFailureCount++
 				logging.Error("core/runner: new node %v failed to successfully join "+
 					"the worker pool, incrementing node failure count to %v and "+
-					"terminating instance", newestNode, clusterCapacity.NodeFailureCount)
+					"terminating instance", newestNode, scalingState.NodeFailureCount)
 
 				metrics.IncrCounter([]string{"cluster", "scale_out_failed"}, 1)
 
@@ -152,7 +184,7 @@ func (r *Runner) clusterScaling(done chan bool) {
 
 				// If we've reached the retry threshold, disable cluster scaling and
 				// halt.
-				if disabled := r.disableClusterScaling(clusterCapacity); disabled {
+				if disabled := r.disableClusterScaling(scalingState); disabled {
 					// Detach the last failed instance and decrement the desired count
 					// of the autoscaling group. This will leave the instance around
 					// for debugging purposes but allow us to cleanly resume cluster
@@ -191,7 +223,11 @@ func (r *Runner) clusterScaling(done chan bool) {
 					logging.Info("core/runner: terminating AWS instance %v", nodeIP)
 					err := client.ScaleInCluster(r.config.ClusterScaling.AutoscalingGroup, nodeIP, asgSess)
 					if err != nil {
-						logging.Error("core/runner: unable to successfully terminate AWS instance %v: %v", nodeID, err)
+						logging.Error("core/runner: unable to successfully terminate AWS "+
+							"instance %v: %v", nodeID, err)
+					} else {
+						// Update the last scaling event timestamp.
+						scalingState.LastScalingEvent = time.Now()
 					}
 				}
 			}
@@ -202,10 +238,10 @@ func (r *Runner) clusterScaling(done chan bool) {
 	return
 }
 
-func (r *Runner) disableClusterScaling(clusterStatus *structs.ClusterStatus) (disabled bool) {
+func (r *Runner) disableClusterScaling(scalingState *structs.ScalingState) (disabled bool) {
 	// If we've reached the retry threshold, disable cluster scaling and
 	// halt.
-	if clusterStatus.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
+	if scalingState.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
 		disabled = true
 		r.config.ClusterScaling.Enabled = false
 

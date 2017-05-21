@@ -50,7 +50,7 @@ func NewNomadClient(addr string) (structs.NomadClient, error) {
 }
 
 // EvaluateClusterCapacity determines if a cluster scaling operation is required.
-func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterStatus, config *structs.Config) (scalingRequired bool, err error) {
+func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterCapacity, config *structs.Config) (scalingRequired bool, err error) {
 	var clusterUtilization, clusterCapacity int
 
 	// Determine total cluster capacity.
@@ -130,7 +130,7 @@ func (c *nomadClient) EvaluateClusterCapacity(capacity *structs.ClusterStatus, c
 }
 
 // CheckClusterScalingSafety determines if a cluster scaling operation can be safely executed.
-func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterStatus, config *structs.Config, scaleDirection string) (safe bool) {
+func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterCapacity, config *structs.Config, scaleDirection string) (safe bool) {
 	var clusterUsedCapacity int
 
 	switch capacity.ScalingMetric {
@@ -170,19 +170,12 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterStatus,
 		}
 	}
 
-	// Determine if performing a scaling operation would violate the scaling cooldown period.
-	if err := CheckClusterScalingTimeThreshold(config.ClusterScaling.CoolDown,
-		config.ClusterScaling.AutoscalingGroup, NewAWSAsgService(config.Region)); err != nil {
-		logging.Debug("client/nomad: %v", err)
-		return
-	}
-
 	return true
 }
 
 // ClusterAllocationCapacity calculates the total cluster capacity and determines the
 // number of available worker nodes.
-func (c *nomadClient) ClusterAllocationCapacity(capacity *structs.ClusterStatus) (err error) {
+func (c *nomadClient) ClusterAllocationCapacity(capacity *structs.ClusterCapacity) (err error) {
 	// Retrieve a list of all worker nodes within the cluster.
 	nodes, _, err := c.nomad.Nodes().List(&nomad.QueryOptions{})
 	if err != nil {
@@ -212,7 +205,7 @@ func (c *nomadClient) ClusterAllocationCapacity(capacity *structs.ClusterStatus)
 
 // ClusterAssignedAllocation calculates the total consumed resources across the cluster
 // and the amount of resources consumed by each worker node.
-func (c *nomadClient) ClusterAssignedAllocation(clusterInfo *structs.ClusterStatus) (err error) {
+func (c *nomadClient) ClusterAssignedAllocation(clusterInfo *structs.ClusterCapacity) (err error) {
 	for _, node := range clusterInfo.NodeList {
 		allocations, _, err := c.nomad.Nodes().Allocations(node, &nomad.QueryOptions{})
 		if err != nil {
@@ -253,7 +246,7 @@ func (c *nomadClient) ClusterAssignedAllocation(clusterInfo *structs.ClusterStat
 
 // CalculateUsage determines the percentage of overall cluster resources consumed and
 // calculates the amount of those resources consumed by each worker node.
-func CalculateUsage(clusterInfo *structs.ClusterStatus) {
+func CalculateUsage(clusterInfo *structs.ClusterCapacity) {
 	// For each allocation resource, calculate the percentage of overall cluster capacity
 	// consumed.
 	clusterInfo.UsedCapacity.CPUPercent = percent.PercentOf(
@@ -305,7 +298,7 @@ func (c *nomadClient) LeaderCheck() bool {
 // of all running jobs across the cluster. This is used to practively ensure the cluster
 // has sufficient available capacity to scale each task by +1 if an increase in capacity
 // is required.
-func (c *nomadClient) TaskAllocationTotals(capacityUsed *structs.ClusterStatus) error {
+func (c *nomadClient) TaskAllocationTotals(capacityUsed *structs.ClusterCapacity) error {
 	// TODO (e.westfall): Allow behavior to be configured; restrict this check to only jobs with a
 	// scaling policy present.
 
@@ -342,7 +335,7 @@ func (c *nomadClient) TaskAllocationTotals(capacityUsed *structs.ClusterStatus) 
 //
 // If all resources are completely unutilized, the scaling metric will be set to `None`
 // and the daemon will take no actions.
-func (c *nomadClient) MostUtilizedResource(alloc *structs.ClusterStatus) {
+func (c *nomadClient) MostUtilizedResource(alloc *structs.ClusterCapacity) {
 	// Determine the resource that is consuming the greatest percentage of its overall cluster
 	// capacity.
 	max := (helper.Max(alloc.UsedCapacity.CPUPercent, alloc.UsedCapacity.MemoryPercent,
@@ -379,7 +372,7 @@ func (c *nomadClient) MostUtilizedGroupResource(gsp *structs.GroupScalingPolicy)
 // resource identified as the most-utilized resource across the cluster. Since Nomad follows
 // a bin-packing approach, when we need to remove a worker node in response to a scale-in
 // activity, we want to identify the least-allocated node and target it for removal.
-func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterStatus) (nodeID, nodeIP string) {
+func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterCapacity) (nodeID, nodeIP string) {
 	var lowestAllocation float64
 
 	for _, nodeAlloc := range clusterInfo.NodeAllocations {
@@ -676,7 +669,7 @@ func (c *nomadClient) IsJobRunning(jobID string) bool {
 
 // MaxAllowedClusterUtilization calculates the maximum allowed cluster utilization after
 // taking into consideration node fault-tolerance and scaling overhead.
-func MaxAllowedClusterUtilization(capacity *structs.ClusterStatus, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {
+func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {
 	var allocTotal, capacityTotal int
 	var internalScalingMetric string
 
