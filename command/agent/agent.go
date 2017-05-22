@@ -112,6 +112,8 @@ func (c *Command) parseFlags() *structs.Config {
 	// Top level configuration flags
 	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
 	flags.StringVar(&cliConfig.Consul, "consul", "", "")
+	flags.StringVar(&cliConfig.ConsulToken, "consul-token", "", "")
+	flags.StringVar(&cliConfig.ConsulKeyLocation, "consul-key-location", "", "")
 	flags.StringVar(&cliConfig.LogLevel, "log-level", "", "")
 	flags.IntVar(&cliConfig.ScalingInterval, "scaling-interval", 0, "")
 	flags.StringVar(&cliConfig.Region, "aws-region", "", "")
@@ -127,8 +129,6 @@ func (c *Command) parseFlags() *structs.Config {
 
 	// Job scaling configuration flags
 	flags.BoolVar(&cliConfig.JobScaling.Enabled, "job-scaling-enabled", false, "")
-	flags.StringVar(&cliConfig.JobScaling.ConsulToken, "consul-token", "", "")
-	flags.StringVar(&cliConfig.JobScaling.ConsulKeyLocation, "consul-key-location", "", "")
 
 	// Telemetry configuration flags
 	flags.StringVar(&cliConfig.Telemetry.StatsdAddress, "statsd-address", "", "")

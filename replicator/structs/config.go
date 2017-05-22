@@ -7,6 +7,14 @@ type Config struct {
 	// (may be an IP address or FQDN) with port.
 	Consul string `mapstructure:"consul"`
 
+	// ConsulKeyLocation is the Consul key location where scaling policies are
+	// defined.
+	ConsulKeyLocation string `mapstructure:"consul_key_location"`
+
+	// ConsulToken is the Consul ACL token used to access KeyValues from a
+	// secure Consul installation.
+	ConsulToken string `mapstructure:"consul_token"`
+
 	// Nomad is the location of the Nomad instance or cluster endpoint to query
 	// (may be an IP address or FQDN) with port.
 	Nomad string `mapstructure:"nomad"`
@@ -77,14 +85,6 @@ type ClusterScaling struct {
 type JobScaling struct {
 	// Enabled indicates whether job scaling actions are permitted.
 	Enabled bool `mapstructure:"enabled"`
-
-	// ConsulToken is the Consul ACL token used to access KeyValues from a
-	// secure Consul installation.
-	ConsulToken string `mapstructure:"consul_token"`
-
-	// ConsulKeyLocation is the Consul key location where scaling policies are
-	// defined.
-	ConsulKeyLocation string `mapstructure:"consul_key_location"`
 }
 
 // Telemetry is the struct that control the telemetry configuration. If a value
@@ -119,6 +119,14 @@ func (c *Config) Merge(b *Config) *Config {
 
 	if b.Consul != "" {
 		config.Consul = b.Consul
+	}
+
+	if b.ConsulToken != "" {
+		config.ConsulToken = b.ConsulToken
+	}
+
+	if b.ConsulKeyLocation != "" {
+		config.ConsulKeyLocation = b.ConsulKeyLocation
 	}
 
 	if b.LogLevel != "" {
@@ -209,14 +217,6 @@ func (j *JobScaling) Merge(b *JobScaling) *JobScaling {
 
 	if b.Enabled {
 		config.Enabled = b.Enabled
-	}
-
-	if b.ConsulToken != "" {
-		config.ConsulToken = b.ConsulToken
-	}
-
-	if b.ConsulKeyLocation != "" {
-		config.ConsulKeyLocation = b.ConsulKeyLocation
 	}
 
 	return &config
