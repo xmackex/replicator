@@ -11,11 +11,13 @@ import (
 func TestConfigParse_LoadConfigFile(t *testing.T) {
 
 	configFile := test.CreateTempfile([]byte(`
-    consul           = "consul.com:8500"
-    nomad            = "http://nomad.com:4646"
-    log_level        = "info"
-    scaling_interval = 1
-    aws_region       = "us-east-1"
+    consul                 = "consul.com:8500"
+		consul_key_location    = "wosniak/jobs"
+		consul_token           = "thisisafaketoken"
+    nomad                  = "http://nomad.com:4646"
+    log_level              = "info"
+    scaling_interval       = 1
+    aws_region             = "us-east-1"
 
     cluster_scaling {
       enabled              = true
@@ -28,8 +30,6 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 
     job_scaling {
       enabled             = true
-      consul_key_location = "wosniak/jobs"
-      consul_token        = "thisisafaketoken"
     }
 
     telemetry {
@@ -51,11 +51,13 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 	}
 
 	expected := &structs.Config{
-		Consul:          "consul.com:8500",
-		Nomad:           "http://nomad.com:4646",
-		LogLevel:        "info",
-		ScalingInterval: 1,
-		Region:          "us-east-1",
+		Consul:            "consul.com:8500",
+		ConsulKeyLocation: "wosniak/jobs",
+		ConsulToken:       "thisisafaketoken",
+		Nomad:             "http://nomad.com:4646",
+		LogLevel:          "info",
+		ScalingInterval:   1,
+		Region:            "us-east-1",
 
 		ClusterScaling: &structs.ClusterScaling{
 			Enabled:            true,
@@ -67,9 +69,7 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 		},
 
 		JobScaling: &structs.JobScaling{
-			Enabled:           true,
-			ConsulKeyLocation: "wosniak/jobs",
-			ConsulToken:       "thisisafaketoken",
+			Enabled: true,
 		},
 
 		Telemetry: &structs.Telemetry{

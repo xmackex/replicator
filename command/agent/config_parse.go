@@ -71,6 +71,8 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 	valid := []string{
 		"nomad",
 		"consul",
+		"consul_key_location",
+		"consul_token",
 		"log_level",
 		"log_level",
 		"scaling_interval",
@@ -175,8 +177,6 @@ func parseJobScaling(result **structs.JobScaling, list *ast.ObjectList) error {
 	// Check for invalid keys
 	valid := []string{
 		"enabled",
-		"consul_token",
-		"consul_key_location",
 	}
 	if err := checkHCLKeys(listVal, valid); err != nil {
 		return err
