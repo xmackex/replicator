@@ -2,17 +2,29 @@
 
 IMPROVEMENTS:
 
+* Scaling cooldown threshold is calculated and tracked internally rather than
+externally referencing the worker pool autoscaling group. [GH-91]
+* Failed worker nodes are detached after maximum retry interval is reached for
+troubleshooting. [GH-76]
+* Add support for event notifications via PagerDuty [GH-66]
+* New nodes are verified to have successfully joined the worker pool after a
+cluster scaling operation is initiated. Replicator will retry until a healthy
+node is launched or the maximum retry threshold is reached. [GH-62]
 * Allow Dry Run Operations Against Job Scaling Documents. [GH-53]
 * Add the `scaling_interval config` parameter to replicator agent. [GH-49]
 * Increase Default Cluster Scaling Cooldown Period to 600s. [GH-56]
 * Addition of CLI flags for all configuration parameters. [GH-61]
 * Add support for `dev` CLI flag [GH-63]
-* AWS 'TerminateInstance' function now verifies instance terminated state. [GH-80]
+* AWS `TerminateInstance` function now verifies instance has successfully
+transitioned to a terminated state. [GH-80]
 * Make use of telemetry configuration by sending key metrics. [GH-85]
 
 BUG FIXES:
 
-* Prevent Divide By Zero Panic When Replicator Detects No Healthy Worker Nodes. [GH-55]
+* The global job scaling enabled flag is now evaluated before allowing job
+scaling operations. [GH-81]
+* Prevent Divide By Zero Panic When Replicator Detects No Healthy Worker
+Nodes. [GH-55]
 
 ## 0.0.1 (02 May 2017)
 
