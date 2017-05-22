@@ -110,13 +110,13 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.BoolVar(&dev, "dev", false, "")
 
 	// Top level configuration flags
-	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
-	flags.StringVar(&cliConfig.Consul, "consul", "", "")
-	flags.StringVar(&cliConfig.ConsulToken, "consul-token", "", "")
-	flags.StringVar(&cliConfig.ConsulKeyLocation, "consul-key-location", "", "")
-	flags.StringVar(&cliConfig.LogLevel, "log-level", "", "")
-	flags.IntVar(&cliConfig.ScalingInterval, "scaling-interval", 0, "")
 	flags.StringVar(&cliConfig.Region, "aws-region", "", "")
+	flags.StringVar(&cliConfig.Consul, "consul", "", "")
+	flags.StringVar(&cliConfig.ConsulKeyLocation, "consul-key-location", "", "")
+	flags.StringVar(&cliConfig.ConsulToken, "consul-token", "", "")
+	flags.StringVar(&cliConfig.LogLevel, "log-level", "", "")
+	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
+	flags.IntVar(&cliConfig.ScalingInterval, "scaling-interval", 0, "")
 
 	// Cluster scaling configuration flags
 	flags.BoolVar(&cliConfig.ClusterScaling.Enabled, "cluster-scaling-enabled", false, "")
@@ -236,6 +236,15 @@ func (c *Command) Help() string {
       server and reduce the number of open HTTP connections. Additionally,
       it provides a "well-known" IP address for which clients can connect.
 
+    -consul-key-location=<key>
+      The Consul Key/Value Store location where Replicator will look
+      for persistent configuration and job scaling policies. By default,
+			this is replicator/config/jobs.
+
+    -consul-token=<token>
+      The Consul ACL token to use when communicating with an ACL
+      protected Consul cluster.
+
     -dev
       Start the Replicator agent in development mode. This runs the
       Replicator agent with a configuration which is ideal for development
@@ -291,15 +300,6 @@ func (c *Command) Help() string {
       in the logs but skipped.
 
   Job Scaling Options:
-
-    -consul-key-location=<key>
-      The Consul Key/Value Store location where Replicator will look
-      for job scaling policies. By default, this is
-      replicator/config/jobs.
-
-    -consul-token=<token>
-      The Consul ACL token to use when communicating with an ACL
-      protected Consul cluster.
 
     -job-scaling-enabled
       Indicates whether the daemon should perform scaling actions. If
