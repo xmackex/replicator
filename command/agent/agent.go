@@ -239,7 +239,7 @@ func (c *Command) Help() string {
     -consul-key-location=<key>
       The Consul Key/Value Store location where Replicator will look
       for persistent configuration and job scaling policies. By default,
-			this is replicator/config/jobs.
+      this is replicator/config/jobs.
 
     -consul-token=<token>
       The Consul ACL token to use when communicating with an ACL
