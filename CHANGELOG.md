@@ -2,6 +2,9 @@
 
 IMPROVEMENTS:
 
+* Replicator now supports persistent storage of state tracking information in
+Consul Key/Value stores. This allows the daemon to restart and gracefully
+resume where it left off and supports graceful leadership changes. [GH-92]
 * Scaling cooldown threshold is calculated and tracked internally rather than
 externally referencing the worker pool autoscaling group. [GH-91]
 * Failed worker nodes are detached after maximum retry interval is reached for
