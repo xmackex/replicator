@@ -63,7 +63,15 @@ func (r *Runner) Stop() {
 // and ties numerous functions together to create an asynchronus function which
 // can be called from the runner.
 func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingState) {
+	// Initialize clients for Nomad and Consul.
 	nomadClient := r.config.NomadClient
+	consulClient := r.config.ConsulClient
+
+	// Attempt to load state tracking information from the distributed key/value
+	// store and reset permitted flag.
+	scalingState = consulClient.LoadState(r.config, scalingState)
+
+	// Retrieve value of cluster scaling enabled flag.
 	scalingEnabled := r.config.ClusterScaling.Enabled
 
 	// Determine if we are running on the leader node, halt scaling
@@ -118,8 +126,8 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 			// If cluster scaling has been disabled, report but do not initiate a
 			// scaling operation.
 			if !scalingEnabled {
-				logging.Debug("core/runner: cluster scaling disabled, not initiating " +
-					"scaling operation (scale-out)")
+				logging.Debug("core/runner: cluster scaling disabled, not " +
+					"initiating scaling operation (scale-out)")
 
 				done <- true
 				return
@@ -143,9 +151,9 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 						"previous node failures: %v", scalingState.NodeFailureCount)
 				}
 
-				// We've verified the autoscaling group operation completed successfully.
-				// Next we'll identify the most recently launched EC2 instance from the
-				// worker pool ASG.
+				// We've verified the autoscaling group operation completed
+				// successfully. Next we'll identify the most recently launched EC2
+				// instance from the worker pool ASG.
 				newestNode, err := client.GetMostRecentInstance(
 					r.config.ClusterScaling.AutoscalingGroup,
 					r.config.Region,
@@ -154,11 +162,18 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 					logging.Error("core/runner: Failed to identify the most recently "+
 						"launched instance: %v", err)
 					scalingState.NodeFailureCount++
+					scalingState.LastNodeFailure = time.Now()
+
+					// Attempt to update state tracking information in Consul.
+					err = consulClient.WriteState(r.config, scalingState)
+					if err != nil {
+						logging.Error("core/runner: %v", err)
+					}
 					continue
 				}
 
-				// Attempt to verify the new worker node has completed bootstrapping and
-				// successfully joined the worker pool.
+				// Attempt to verify the new worker node has completed bootstrapping
+				// and successfully joined the worker pool.
 				healthy := nomadClient.VerifyNodeHealth(newestNode)
 				if healthy {
 					// Reset node failure count once we have a verified healthy worker.
@@ -167,14 +182,27 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 					// Update the last scaling event timestamp.
 					scalingState.LastScalingEvent = time.Now()
 
+					// Attempt to update state tracking information in Consul.
+					err = consulClient.WriteState(r.config, scalingState)
+					if err != nil {
+						logging.Error("core/runner: %v", err)
+					}
+
 					done <- true
 					return
 				}
 
 				scalingState.NodeFailureCount++
+				scalingState.LastNodeFailure = time.Now()
 				logging.Error("core/runner: new node %v failed to successfully join "+
 					"the worker pool, incrementing node failure count to %v and "+
 					"terminating instance", newestNode, scalingState.NodeFailureCount)
+
+				// Attempt to update state tracking information in Consul.
+				err = consulClient.WriteState(r.config, scalingState)
+				if err != nil {
+					logging.Error("core/runner: %v", err)
+				}
 
 				metrics.IncrCounter([]string{"cluster", "scale_out_failed"}, 1)
 
@@ -221,13 +249,20 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 
 				if err := nomadClient.DrainNode(nodeID); err == nil {
 					logging.Info("core/runner: terminating AWS instance %v", nodeIP)
-					err := client.ScaleInCluster(r.config.ClusterScaling.AutoscalingGroup, nodeIP, asgSess)
+					err := client.ScaleInCluster(
+						r.config.ClusterScaling.AutoscalingGroup, nodeIP, asgSess)
 					if err != nil {
 						logging.Error("core/runner: unable to successfully terminate AWS "+
 							"instance %v: %v", nodeID, err)
 					} else {
 						// Update the last scaling event timestamp.
 						scalingState.LastScalingEvent = time.Now()
+
+						// Attempt to update state tracking information in Consul.
+						err := consulClient.WriteState(r.config, scalingState)
+						if err != nil {
+							logging.Error("core/runner: %v", err)
+						}
 					}
 				}
 			}
@@ -264,7 +299,8 @@ func (r *Runner) jobScaling() {
 
 	// Determine if we are running on the leader node, halt if not.
 	if haveLeadership := nomadClient.LeaderCheck(); !haveLeadership {
-		logging.Debug("core/runner: replicator is not running on the known leader, no job scaling actions will be taken")
+		logging.Debug("core/runner: replicator is not running on the known " +
+			"leader, no job scaling actions will be taken")
 		return
 	}
 
@@ -272,7 +308,8 @@ func (r *Runner) jobScaling() {
 	// document. Fail quickly if we can't retrieve this list.
 	resp, err := consulClient.GetJobScalingPolicies(r.config, nomadClient)
 	if err != nil {
-		logging.Error("core/runner: failed to determine if any jobs have scaling policies enabled \n%v", err)
+		logging.Error("core/runner: failed to determine if any jobs have scaling "+
+			"policies enabled \n%v", err)
 		return
 	}
 
@@ -290,19 +327,22 @@ func (r *Runner) jobScaling() {
 		for _, group := range job.GroupScalingPolicies {
 			if group.Scaling.ScaleDirection == client.ScalingDirectionOut || group.Scaling.ScaleDirection == client.ScalingDirectionIn {
 				if job.Enabled && r.config.JobScaling.Enabled {
-					logging.Debug("core/runner: scaling for job \"%v\" is enabled; a scaling operation (%v) will be requested for group \"%v\"",
+					logging.Debug("core/runner: scaling for job \"%v\" is enabled; a "+
+						"scaling operation (%v) will be requested for group \"%v\"",
 						job.JobName, group.Scaling.ScaleDirection, group.GroupName)
 					i++
 				} else {
-					logging.Debug("core/runner: job scaling has been disabled; a scaling operation (%v) would have been requested for \"%v\" and group \"%v\"",
-						group.Scaling.ScaleDirection, job.JobName, group.GroupName)
+					logging.Debug("core/runner: job scaling has been disabled; a "+
+						"scaling operation (%v) would have been requested for \"%v\" "+
+						"and group \"%v\"", group.Scaling.ScaleDirection, job.JobName,
+						group.GroupName)
 				}
 			}
 		}
 
-		// If 1 or more groups need to be scaled we submit the whole job for scaling
-		// as to scale you must submit the whole job file currently. The JobScale
-		// function takes care of scaling groups independently.
+		// If 1 or more groups need to be scaled we submit the whole job for
+		// scaling as to scale you must submit the whole job file currently. The
+		// JobScale function takes care of scaling groups independently.
 		if i > 0 {
 			nomadClient.JobScale(job)
 		}

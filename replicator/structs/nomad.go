@@ -77,15 +77,22 @@ type ScalingState struct {
 	// while attempting to perform scaling operations. When operating in failsafe
 	// mode, the daemon will decline to take scaling actions of any type.
 	// TODO (e.westfall): Implement failover mode functionality.
-	FailsafeMode bool
+	FailsafeMode bool `json:"failsafe_mode"`
+
+	// LastNodeFailure represents the last time a new worker node was launched
+	// and failed to successfully join the worker pool.
+	LastNodeFailure time.Time `json:"last_node_failure"`
 
 	// LastScalingEvent represents the last time the daemon successfully
 	// completed a cluster scaling action.
-	LastScalingEvent time.Time
+	LastScalingEvent time.Time `json:"last_scaling_event"`
+
+	// LastUpdated tracks the last time the state tracking data was updated.
+	LastUpdated time.Time `json:"last_updated"`
 
 	// NodeFailureCount tracks the number of worker nodes that have failed to
 	// successfully join the worker pool after a scale-out operation.
-	NodeFailureCount int
+	NodeFailureCount int `json:"node_failure_count"`
 }
 
 // ClusterCapacity is the central object used to track and evaluate cluster

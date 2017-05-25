@@ -3,10 +3,12 @@ package client
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	consul "github.com/hashicorp/consul/api"
 )
@@ -56,8 +58,8 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 		return entries, err
 	}
 
-	// Loop the returned list to gather information on each and every job that has
-	// a scaling document.
+	// Loop the returned list to gather information on each and every job that
+	// has a scaling document.
 	for _, job := range resp {
 		// The results Value is base64 encoded. It is decoded and marshalled into
 		// the appropriate struct.
@@ -79,4 +81,116 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 	}
 
 	return entries, nil
+}
+
+// LoadState attempts to read state tracking information from the Consul
+// Key/Value Store. If state tracking information is present, it will be
+// deserialized and returned as a state tracking object. If no persistent
+// data is available, the method returns the state tracking object unmodified.
+func (c *consulClient) LoadState(config *structs.Config, state *structs.ScalingState) *structs.ScalingState {
+	// TODO (e.westfall): Convert to using base path from configuration, see
+	// GH-94 for further details.
+	stateKey := "replicator/config/state"
+
+	logging.Debug("client/consul: attempting to load state tracking "+
+		"information from Consul at location %v", stateKey)
+
+	// Create new scaling state struct to hold state data retrieved from Consul.
+	updatedState := &structs.ScalingState{}
+
+	// Setup the Consul QueryOptions to include an ACL token if on has been set;
+	// if not proceed with an empty options struct.
+	opts := &consul.QueryOptions{}
+	if config.ConsulToken != "" {
+		opts.Token = config.ConsulToken
+	}
+
+	// Instantiate new Consul Key/Value client.
+	kv := c.consul.KV()
+
+	// Retrieve state tracking information from Consul.
+	pair, _, err := kv.Get(stateKey, opts)
+	if err != nil {
+		logging.Error("client/consul: an error occurred while attempting to read "+
+			"state information from Consul at location %v: %v", stateKey, err)
+
+		// We were unable to retrieve state data from Consul, so return the
+		// unmodified struct back to the caller.
+		return state
+	} else if pair == nil {
+		logging.Debug("client/consul: no state tracking information is present "+
+			"in Consul at location %v, falling back to in-memory state", stateKey)
+
+		// No state tracking information was located in Consul, so return the
+		// unmodified struct back to the caller.
+		return state
+	}
+
+	// Deserialize state tracking data.
+	err = json.Unmarshal(pair.Value, updatedState)
+	if err != nil {
+		logging.Error("client/consul: an error occurred while attempting to "+
+			"deserialize scaling state retrieved from persistent storage: %v", err)
+
+		// We were unable to deserialize state data from Consul, so return the
+		// unmodified struct back to the caller.
+		return state
+	}
+
+	logging.Debug("client/consul: successfully loaded state tracking "+
+		"information from Consul, data was last updated: %v",
+		updatedState.LastUpdated)
+
+	return updatedState
+}
+
+// WriteState is responsible for persistently storing state tracking
+// information in the Consul Key/Value Store.
+func (c *consulClient) WriteState(config *structs.Config, state *structs.ScalingState) (err error) {
+	// TODO (e.westfall): Convert to using base path from configuration, see
+	// GH-94 for further details.
+	stateKey := "replicator/config/state"
+
+	logging.Debug("client/consul: attempting to persistently store scaling "+
+		"state in Consul at location %v", stateKey)
+
+	// Setup the Consul WriteOptions to include an ACL token if on has been set;
+	// if not proceed with an empty options struct.
+	opts := &consul.WriteOptions{}
+	if config.ConsulToken != "" {
+		opts.Token = config.ConsulToken
+	}
+
+	// Set the last_updated timestamp before serialization
+	state.LastUpdated = time.Now()
+
+	// Marshal the state struct into a JSON string for persistent storage.
+	scalingState, err := json.Marshal(state)
+	if err != nil {
+		err = fmt.Errorf("client/consul: an error occurred when attempting to "+
+			"serialize scaling state for persistent storage: %v", err)
+		return
+	}
+
+	// Build the key/value pair struct for persistent storage.
+	d := &consul.KVPair{
+		Key:   stateKey,
+		Value: scalingState,
+	}
+
+	// Instantiate new Consul Key/Value client.
+	kv := c.consul.KV()
+
+	// Attempt to write scaling state to Consul Key/Value Store.
+	_, err = kv.Put(d, opts)
+	if err != nil {
+		err = fmt.Errorf("client/consul: an error occurred when attempting to "+
+			"write scaling state data to Consul: %v", err)
+		return
+	}
+
+	logging.Debug("client/consul: successfully stored scaling state in Consul "+
+		"at location %v", stateKey)
+
+	return
 }
