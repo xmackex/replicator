@@ -75,4 +75,14 @@ type ConsulClient interface {
 	// policy document at a specified Consuk Key/Value Store location. Supports
 	// the use of an ACL token if required by the Consul cluster.
 	GetJobScalingPolicies(*Config, NomadClient) ([]*JobScalingPolicy, error)
+
+	// WriteState is responsible for persistently storing state tracking
+	// information in the Consul Key/Value Store.
+	WriteState(*Config, *ScalingState) error
+
+	// LoadState attempts to read state tracking information from the Consul
+	// Key/Value Store. If state tracking information is present, it will be
+	// preferred. If no persistent data is available, the method returns the
+	// state tracking object unmodified.
+	LoadState(*Config, *ScalingState) *ScalingState
 }
