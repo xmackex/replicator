@@ -237,9 +237,9 @@ func (c *Command) Help() string {
       it provides a "well-known" IP address for which clients can connect.
 
     -consul-key-location=<key>
-      The Consul Key/Value Store location where Replicator will look
+      The Consul Key/Value Store location that Replicator will use
       for persistent configuration and job scaling policies. By default,
-      this is replicator/config/jobs.
+      this is replicator/config.
 
     -consul-token=<token>
       The Consul ACL token to use when communicating with an ACL

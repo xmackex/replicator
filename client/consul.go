@@ -42,6 +42,7 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 	defer metrics.MeasureSince([]string{"job", "config_read"}, time.Now())
 
 	var entries []*structs.JobScalingPolicy
+	keyPath := config.ConsulKeyLocation + "/" + "jobs"
 
 	// Setup the QueryOptions to include the aclToken if this has been set, if not
 	// procede with empty QueryOptions struct.
@@ -51,7 +52,7 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 	}
 
 	kvClient := c.consul.KV()
-	resp, _, err := kvClient.List(config.ConsulKeyLocation, qop)
+	resp, _, err := kvClient.List(keyPath, qop)
 	if err != nil {
 		return entries, err
 	}
@@ -67,7 +68,7 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 		json.Unmarshal(uDec, s)
 
 		// Trim the Key and its trailing slash to find the job name.
-		s.JobName = strings.TrimPrefix(job.Key, config.ConsulKeyLocation+"/")
+		s.JobName = strings.TrimPrefix(job.Key, keyPath+"/")
 
 		// Check to see whether the job has running task groups before appending
 		// to the return.

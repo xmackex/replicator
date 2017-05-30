@@ -36,7 +36,7 @@ func DefaultConfig() *structs.Config {
 
 	return &structs.Config{
 		Consul:            LocalConsulAddress,
-		ConsulKeyLocation: "replicator/config/jobs",
+		ConsulKeyLocation: "replicator/config",
 		Nomad:             LocalNomadAddress,
 		LogLevel:          "INFO",
 		ScalingInterval:   10,
@@ -76,7 +76,7 @@ func DevConfig() *structs.Config {
 
 	return &structs.Config{
 		Consul:            LocalConsulAddress,
-		ConsulKeyLocation: "replicator/config/jobs",
+		ConsulKeyLocation: "replicator/config",
 		Nomad:             LocalNomadAddress,
 		LogLevel:          "DEBUG",
 		ScalingInterval:   10,
