@@ -7,8 +7,8 @@ type Config struct {
 	// (may be an IP address or FQDN) with port.
 	Consul string `mapstructure:"consul"`
 
-	// ConsulKeyLocation is the Consul key location where scaling policies are
-	// defined.
+	// ConsulKeyLocation is the Consul key root location where Replicator stores
+	// and fetches critical information from.
 	ConsulKeyLocation string `mapstructure:"consul_key_location"`
 
 	// ConsulToken is the Consul ACL token used to access KeyValues from a
