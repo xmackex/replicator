@@ -36,6 +36,49 @@ The version command displays build information about the running binary, includi
 
 Replicator uses the [HashiCorp Configuration Language](https://github.com/hashicorp/hcl) for configuration files. By proxy, this means the configuration is also JSON compatible. Additional information can be found on the Replicator [Agent Configuration Configuration Files ](https://github.com/elsevier-core-engineering/replicator/wiki/Agent_Configuration#configuration-files) wiki section.
 
+## Job Scaling Policy Syntax
+
+Replicator uses JSON documents stored in the Consul Key/Value Store for job scaling policies. This should be placed under /jobs of the `consul-key-location` value, meaning if the default `consul-key-location` is used scaling documents should be written to `replicator/config/jobs`. The key value should match the name of the job it should interact with as well as the groups name sections:
+
+`replicator/config/jobs/samplejob`
+```
+{
+ "enabled": true,
+ "groups": [
+   {
+     "name": "group1",
+     "scaling": {
+       "min": 3,
+       "max": 10,
+       "scaleout": {
+         "cpu": 80,
+         "mem": 80
+       },
+       "scalein": {
+         "cpu": 30,
+         "mem": 30
+       }
+     }
+   },
+   {
+     "name": "group2",
+     "scaling": {
+       "min": 2,
+       "max": 6,
+       "scaleout": {
+         "cpu": 80,
+         "mem": 80
+       },
+       "scalein": {
+         "cpu": 30,
+         "mem": 30
+       }
+     }
+   }
+ ]
+}
+```
+
 
 ## Permissions
 
