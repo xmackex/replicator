@@ -21,6 +21,7 @@ node is launched or the maximum retry threshold is reached. [GH-62]
 * AWS `TerminateInstance` function now verifies instance has successfully
 transitioned to a terminated state. [GH-80]
 * Make use of telemetry configuration by sending key metrics. [GH-85]
+* Replicator now runs leadership locking using Consul sessions +  KV [GH-101]
 
 BUG FIXES:
 
