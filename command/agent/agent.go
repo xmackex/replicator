@@ -65,10 +65,12 @@ func (c *Command) Run(args []string) int {
 		case s := <-signalCh:
 			switch s {
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+				logging.Info("command/agent: caught signal %v", s)
 				runner.Stop()
-				return 0
+				return 1
 
 			case syscall.SIGHUP:
+				logging.Info("command/agent: caught signal %v", s)
 				runner.Stop()
 
 				// Reload the configuration in order to make proper use of SIGHUP.

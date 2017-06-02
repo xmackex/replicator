@@ -272,28 +272,6 @@ func CalculateUsage(clusterInfo *structs.ClusterCapacity) {
 	}
 }
 
-// LeaderCheck determines if the node running the daemon is the gossip pool leader.
-func (c *nomadClient) LeaderCheck() bool {
-	haveLeadership := false
-
-	leader, err := c.nomad.Status().Leader()
-	if (err != nil) || (len(leader) == 0) {
-		logging.Error("client/nomad: failed to identify cluster leader")
-	}
-
-	self, err := c.nomad.Agent().Self()
-	if err != nil {
-		logging.Error("client/nomad: unable to retrieve local agent information")
-	} else {
-
-		if helper.FindIP(leader) == self.Member.Addr {
-			haveLeadership = true
-		}
-	}
-
-	return haveLeadership
-}
-
 // TaskAllocation determines the total allocation requirements of a single instance (count=1)
 // of all running jobs across the cluster. This is used to practively ensure the cluster
 // has sufficient available capacity to scale each task by +1 if an increase in capacity

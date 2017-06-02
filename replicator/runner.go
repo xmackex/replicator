@@ -12,17 +12,20 @@ import (
 // Runner is the main runner struct.
 type Runner struct {
 	// doneChan is where finish notifications occur.
-	doneChan chan struct{}
+	doneChan chan bool
 
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
 	config *structs.Config
+
+	// candaidate is our LeaderCandidate for the runner instance.
+	candidate *LeaderCandidate
 }
 
 // NewRunner sets up the Runner type.
 func NewRunner(config *structs.Config) (*Runner, error) {
 	runner := &Runner{
-		doneChan: make(chan struct{}),
+		doneChan: make(chan bool),
 		config:   config,
 	}
 	return runner, nil
@@ -36,17 +39,30 @@ func (r *Runner) Start() {
 	// Initialize the state tracking object for scaling operations.
 	scalingState := &structs.ScalingState{}
 
+	// Setup our LeaderCandidate object for leader elections and session renewl.
+	leaderKey := r.config.ConsulKeyLocation + "/" + "leader"
+	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey, r.config.ScalingInterval)
+
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
 
-			clusterChan := make(chan bool)
-			go r.clusterScaling(clusterChan, scalingState)
-			<-clusterChan
+			// Perform the leadership locking and continue if we have confirmed that
+			// we are running as the replicator leader.
+			r.candidate.leaderElection()
+			if r.candidate.isLeader() {
 
-			r.jobScaling()
+				// ClusterScaling blocks Replicator when it runs, we do not want job
+				// scaling to be invoked if we are moving workloads around or adding
+				// new capacity.
+				clusterChan := make(chan bool)
+				go r.clusterScaling(clusterChan, scalingState)
+				<-clusterChan
+
+				r.jobScaling()
+			}
 
 		case <-r.doneChan:
 			return
@@ -56,6 +72,8 @@ func (r *Runner) Start() {
 
 // Stop halts the execution of this runner.
 func (r *Runner) Stop() {
+	r.candidate.endCampaign()
+	r.doneChan <- true
 	close(r.doneChan)
 }
 
@@ -73,15 +91,6 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 
 	// Retrieve value of cluster scaling enabled flag.
 	scalingEnabled := r.config.ClusterScaling.Enabled
-
-	// Determine if we are running on the leader node, halt scaling
-	// evaluation if not.
-	if haveLeadership := nomadClient.LeaderCheck(); !haveLeadership {
-		logging.Debug("core/runner: replicator is not running on the known leader," +
-			"no cluster scaling actions will be taken")
-		done <- true
-		return
-	}
 
 	// If a region has not been specified, attempt to dynamically determine what
 	// region we are running in.
@@ -310,13 +319,6 @@ func (r *Runner) jobScaling() {
 	// we setup the clients here.
 	consulClient := r.config.ConsulClient
 	nomadClient := r.config.NomadClient
-
-	// Determine if we are running on the leader node, halt if not.
-	if haveLeadership := nomadClient.LeaderCheck(); !haveLeadership {
-		logging.Debug("core/runner: replicator is not running on the known " +
-			"leader, no job scaling actions will be taken")
-		return
-	}
 
 	// Pull the list of all currently running jobs which have a defined scaling
 	// document. Fail quickly if we can't retrieve this list.
