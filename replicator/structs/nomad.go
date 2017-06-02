@@ -44,10 +44,6 @@ type NomadClient interface {
 	// thresholds set.
 	JobScale(*JobScalingPolicy)
 
-	// LeaderCheck determines if the node running replicator is the gossip pool
-	// leader.
-	LeaderCheck() bool
-
 	// LeaseAllocatedNode determines the worker node consuming the least amount of
 	// the cluster's mosted-utilized resource.
 	LeastAllocatedNode(*ClusterCapacity) (string, string)

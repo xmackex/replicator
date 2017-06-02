@@ -85,4 +85,10 @@ type ConsulClient interface {
 	// preferred. If no persistent data is available, the method returns the
 	// state tracking object unmodified.
 	LoadState(*Config, *ScalingState) *ScalingState
+
+	CreateSession(int, chan struct{}) (string, error)
+
+	AcquireLeadership(string, string) bool
+
+	ResignLeadership(string, string)
 }
