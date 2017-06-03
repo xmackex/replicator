@@ -22,11 +22,16 @@ type consulClient struct {
 // NewConsulClient is used to construct a new Consul client using the default
 // configuration and supporting the ability to specify a Consul API address
 // endpoint in the form of address:port.
-func NewConsulClient(addr string) (structs.ConsulClient, error) {
+func NewConsulClient(addr, token string) (structs.ConsulClient, error) {
 	// TODO (e.westfall): Add a quick health check call to an API endpoint to
 	// validate connectivity or return an error back to the caller.
 	config := consul.DefaultConfig()
 	config.Address = addr
+
+	if token != "" {
+		config.Token = token
+	}
+
 	c, err := consul.NewClient(config)
 	if err != nil {
 		// TODO (e.westfall): Raise error here.
@@ -46,15 +51,8 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 	var entries []*structs.JobScalingPolicy
 	keyPath := config.ConsulKeyLocation + "/" + "jobs"
 
-	// Setup the QueryOptions to include the aclToken if this has been set, if not
-	// procede with empty QueryOptions struct.
-	qop := &consul.QueryOptions{}
-	if config.ConsulToken != "" {
-		qop.Token = config.ConsulToken
-	}
-
 	kvClient := c.consul.KV()
-	resp, _, err := kvClient.List(keyPath, qop)
+	resp, _, err := kvClient.List(keyPath, nil)
 	if err != nil {
 		return entries, err
 	}
@@ -99,18 +97,11 @@ func (c *consulClient) LoadState(config *structs.Config, state *structs.ScalingS
 	// Create new scaling state struct to hold state data retrieved from Consul.
 	updatedState := &structs.ScalingState{}
 
-	// Setup the Consul QueryOptions to include an ACL token if on has been set;
-	// if not proceed with an empty options struct.
-	opts := &consul.QueryOptions{}
-	if config.ConsulToken != "" {
-		opts.Token = config.ConsulToken
-	}
-
 	// Instantiate new Consul Key/Value client.
 	kv := c.consul.KV()
 
 	// Retrieve state tracking information from Consul.
-	pair, _, err := kv.Get(stateKey, opts)
+	pair, _, err := kv.Get(stateKey, nil)
 	if err != nil {
 		logging.Error("client/consul: an error occurred while attempting to read "+
 			"state information from Consul at location %v: %v", stateKey, err)
@@ -155,13 +146,6 @@ func (c *consulClient) WriteState(config *structs.Config, state *structs.Scaling
 	logging.Debug("client/consul: attempting to persistently store scaling "+
 		"state in Consul at location %v", stateKey)
 
-	// Setup the Consul WriteOptions to include an ACL token if on has been set;
-	// if not proceed with an empty options struct.
-	opts := &consul.WriteOptions{}
-	if config.ConsulToken != "" {
-		opts.Token = config.ConsulToken
-	}
-
 	// Set the last_updated timestamp before serialization
 	state.LastUpdated = time.Now()
 
@@ -183,7 +167,7 @@ func (c *consulClient) WriteState(config *structs.Config, state *structs.Scaling
 	kv := c.consul.KV()
 
 	// Attempt to write scaling state to Consul Key/Value Store.
-	_, err = kv.Put(d, opts)
+	_, err = kv.Put(d, nil)
 	if err != nil {
 		err = fmt.Errorf("client/consul: an error occurred when attempting to "+
 			"write scaling state data to Consul: %v", err)

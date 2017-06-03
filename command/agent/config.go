@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/elsevier-core-engineering/replicator/client"
-	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
@@ -21,18 +19,6 @@ const (
 
 // DefaultConfig returns a default configuration struct with sane defaults.
 func DefaultConfig() *structs.Config {
-
-	// Instantiate a new Consul client.
-	consulClient, err := client.NewConsulClient(LocalConsulAddress)
-	if err != nil {
-		logging.Error("command/agent: failed to obtain consul connection: %v", err)
-	}
-
-	// Instantiate a new Nomad client.
-	nomadClient, err := client.NewNomadClient(LocalNomadAddress)
-	if err != nil {
-		logging.Error("command/agent: failed to obtain nomad connection: %v", err)
-	}
 
 	return &structs.Config{
 		Consul:            LocalConsulAddress,
@@ -53,26 +39,12 @@ func DefaultConfig() *structs.Config {
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
-		ConsulClient: consulClient,
-		NomadClient:  nomadClient,
 	}
 }
 
 // DevConfig returns a configuration struct with sane defaults for development
 // and testing purposes.
 func DevConfig() *structs.Config {
-
-	// Instantiate a new Consul client.
-	consulClient, err := client.NewConsulClient(LocalConsulAddress)
-	if err != nil {
-		logging.Error("command/agent: failed to obtain consul connection: %v", err)
-	}
-
-	// Instantiate a new Nomad client.
-	nomadClient, err := client.NewNomadClient(LocalNomadAddress)
-	if err != nil {
-		logging.Error("command/agent: failed to obtain nomad connection: %v", err)
-	}
 
 	return &structs.Config{
 		Consul:            LocalConsulAddress,
@@ -94,8 +66,6 @@ func DevConfig() *structs.Config {
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
-		ConsulClient: consulClient,
-		NomadClient:  nomadClient,
 	}
 }
 

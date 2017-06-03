@@ -9,6 +9,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/command"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator"
@@ -33,12 +34,9 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	// Set the logging level for the logger.
-	logging.SetLevel(conf.LogLevel)
-
-	// Initialize the telemetry
-	if err := c.setupTelemetry(conf); err != nil {
-		c.UI.Error(fmt.Sprintf("Error initializing telemetry: %s", err))
+	err := c.initialzeAgent(conf)
+	if err != nil {
+		logging.Error("command/agent: unable to initialize agent: %v", err)
 		return 1
 	}
 
@@ -74,13 +72,19 @@ func (c *Command) Run(args []string) int {
 				runner.Stop()
 
 				// Reload the configuration in order to make proper use of SIGHUP.
-				c := c.parseFlags()
+				config := c.parseFlags()
 				if err != nil {
 					return 1
 				}
 
+				err := c.initialzeAgent(config)
+				if err != nil {
+					logging.Error("command/agent: unable to initialize agent: %v", err)
+					return 1
+				}
+
 				// Setup a new runner with the new configuration.
-				runner, err = replicator.NewRunner(c)
+				runner, err = replicator.NewRunner(config)
 				if err != nil {
 					return 1
 				}
@@ -170,17 +174,17 @@ func (c *Command) parseFlags() *structs.Config {
 }
 
 // setupTelemetry is used to setup Replicators telemetry.
-func (c *Command) setupTelemetry(config *structs.Config) error {
+func (c *Command) setupTelemetry(config *structs.Telemetry) error {
 
 	// Setup telemetry to aggregate on 10 second intervals for 1 minute.
 	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(inm)
 
 	var telemetry *structs.Telemetry
-	if config.Telemetry == nil {
+	if config == nil {
 		telemetry = &structs.Telemetry{}
 	} else {
-		telemetry = config.Telemetry
+		telemetry = config
 	}
 
 	metricsConf := metrics.DefaultConfig("replicator")
@@ -204,6 +208,36 @@ func (c *Command) setupTelemetry(config *structs.Config) error {
 		metricsConf.EnableHostname = false
 		metrics.NewGlobal(metricsConf, inm)
 	}
+	return nil
+}
+
+// initialzeAgent setups up a number of configuration clients which depend on
+// the merged configuration.
+func (c *Command) initialzeAgent(config *structs.Config) (err error) {
+
+	// Setup telemetry
+	if err = c.setupTelemetry(config.Telemetry); err != nil {
+		return
+	}
+
+	// Setup logging
+	logging.SetLevel(config.LogLevel)
+
+	// Setup the Nomad Client
+	nClient, err := client.NewNomadClient(config.Nomad)
+	if err != nil {
+		return err
+	}
+
+	// Setup the Consul Client
+	cClient, err := client.NewConsulClient(config.Consul, config.ConsulToken)
+	if err != nil {
+		return err
+	}
+
+	config.ConsulClient = cClient
+	config.NomadClient = nClient
+
 	return nil
 }
 
