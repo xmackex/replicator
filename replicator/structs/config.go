@@ -51,14 +51,14 @@ type Config struct {
 }
 
 // ClusterScaling is the configuration struct for the Nomad worker node scaling
-// activites.
+// activities.
 type ClusterScaling struct {
 	// Enabled indicates whether cluster scaling actions are permitted.
 	Enabled bool `mapstructure:"enabled"`
 
 	// MaxSize in the maximum number of instances the nomad node worker count is
 	// allowed to reach. This stops runaway increases in size due to misbehaviour
-	// but should be set high enough to accomodate usual workload peaks.
+	// but should be set high enough to accommodate usual workload peaks.
 	MaxSize int `mapstructure:"max_size"`
 
 	// MinSize is the minimum number of instances that should be present within

@@ -34,7 +34,7 @@ func (p *PagerDutyProvider) SendNotification(message FailureMessage) (key string
 	d := fmt.Sprintf("%s %s_%s",
 		message.AlertUID, message.ClusterIdentifier, message.IncidentReason)
 
-	// Setup the PagerDuty event strucutre which will then be used to trigger
+	// Setup the PagerDuty event structure which will then be used to trigger
 	// the event call.
 	event := pagerduty.Event{
 		ServiceKey:  p.config["PagerDutyServiceKey"],

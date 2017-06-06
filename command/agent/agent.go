@@ -17,7 +17,7 @@ import (
 	"github.com/elsevier-core-engineering/replicator/version"
 )
 
-// Command is the agent command strucutre used to track passed args as well as
+// Command is the agent command structure used to track passed args as well as
 // the CLI meta.
 type Command struct {
 	command.Meta

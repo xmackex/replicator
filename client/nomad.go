@@ -371,7 +371,7 @@ func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterCapacity) (
 	}
 
 	// In order to perform downscaling of the cluster we need to have access
-	// to the nodes IP address so  the AWS instance-id can be infered.
+	// to the nodes IP address so  the AWS instance-id can be inferred.
 	resp, _, err := c.nomad.Nodes().Info(nodeID, &nomad.QueryOptions{})
 	if err != nil {
 		logging.Error("client/nomad: unable to determine nomad node IP address: %v", err)
