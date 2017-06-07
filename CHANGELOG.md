@@ -22,6 +22,7 @@ node is launched or the maximum retry threshold is reached. [GH-62]
 transitioned to a terminated state. [GH-80]
 * Make use of telemetry configuration by sending key metrics. [GH-85]
 * Replicator now runs leadership locking using Consul sessions +  KV [GH-101]
+* Introduce distributed failsafe mode and new failsafe CLI command [GH-105]
 
 BUG FIXES:
 
