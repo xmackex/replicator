@@ -290,21 +290,6 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 	return
 }
 
-// func (r *Runner) disableClusterScaling(scalingState *structs.State) (disabled bool) {
-// 	// If we've reached the retry threshold, disable cluster scaling and
-// 	// halt.
-// 	if scalingState.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
-// 		disabled = true
-// 		r.config.ClusterScaling.Enabled = false
-//
-// 		logging.Error("core/runner: attempts to add new nodes to the "+
-// 			"worker pool have failed %v times. Cluster scaling will be "+
-// 			"disabled.", r.config.ClusterScaling.RetryThreshold)
-// 	}
-//
-// 	return
-// }
-
 // jobScaling is the main entry point for the Nomad job scaling functionality
 // and ties together a number of functions to be called from the runner.
 func (r *Runner) jobScaling() {
