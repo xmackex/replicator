@@ -86,7 +86,7 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 // Key/Value Store. If state tracking information is present, it will be
 // deserialized and returned as a state tracking object. If no persistent
 // data is available, the method returns the state tracking object unmodified.
-func (c *consulClient) LoadState(config *structs.Config, state *structs.ScalingState) *structs.ScalingState {
+func (c *consulClient) LoadState(config *structs.Config, state *structs.State) *structs.State {
 	// TODO (e.westfall): Convert to using base path from configuration, see
 	// GH-94 for further details.
 	stateKey := "replicator/config/state"
@@ -95,7 +95,7 @@ func (c *consulClient) LoadState(config *structs.Config, state *structs.ScalingS
 		"information from Consul at location %v", stateKey)
 
 	// Create new scaling state struct to hold state data retrieved from Consul.
-	updatedState := &structs.ScalingState{}
+	updatedState := &structs.State{}
 
 	// Instantiate new Consul Key/Value client.
 	kv := c.consul.KV()
@@ -138,7 +138,7 @@ func (c *consulClient) LoadState(config *structs.Config, state *structs.ScalingS
 
 // WriteState is responsible for persistently storing state tracking
 // information in the Consul Key/Value Store.
-func (c *consulClient) WriteState(config *structs.Config, state *structs.ScalingState) (err error) {
+func (c *consulClient) WriteState(config *structs.Config, state *structs.State) (err error) {
 	// TODO (e.westfall): Convert to using base path from configuration, see
 	// GH-94 for further details.
 	stateKey := "replicator/config/state"
