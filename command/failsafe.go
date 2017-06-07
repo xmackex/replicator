@@ -52,7 +52,7 @@ Usage: replicator failsafe [options]
     -consul-key-location=<key>
       The Consul Key/Value Store location that Replicator will use
       for persistent configuration, state tracking and job scaling policies.
-			By default, this is replicator/config.
+      By default, this is replicator/config.
 
     -consul-token=<token>
       The Consul ACL token to use when communicating with an ACL
@@ -61,7 +61,7 @@ Usage: replicator failsafe [options]
   Failsafe Mode Options:
 
     -disable
-      Disable the global failsafe lock. All copies of Replicator wil
+      Disable the global failsafe lock. All copies of Replicator will
       return to normal operations.
 
     -enable
