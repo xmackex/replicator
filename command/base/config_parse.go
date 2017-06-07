@@ -87,7 +87,7 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 	}
 
 	// Decode the full thing into a map[string]interface, removing these top
-	// levels before continuing to decode the remaining configuraiton.
+	// levels before continuing to decode the remaining configuration.
 	var m map[string]interface{}
 	if err := hcl.DecodeObject(&m, list); err != nil {
 		return err

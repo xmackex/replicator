@@ -65,7 +65,7 @@ func ScaleOutCluster(asgName string, svc *autoscaling.AutoScaling) error {
 
 	// The DesiredCapacity is incramented by 1, while the TerminationPolicies and
 	// AvailabilityZones which are required parameters are copied from the Info
-	// recieved from the initial call to DescribeScalingGroup. These params could
+	// received from the initial call to DescribeScalingGroup. These params could
 	// be directly referenced within UpdateAutoScalingGroupInput but are here for
 	// clarity.
 	newDesiredCapacity := *asg.AutoScalingGroups[0].DesiredCapacity + int64(1)
@@ -194,7 +194,7 @@ func ScaleInCluster(asgName, instanceIP string, svc *autoscaling.AutoScaling) er
 	err = TerminateInstance(instanceID, *svc.Config.Region)
 
 	if err != nil {
-		return fmt.Errorf("an error occured terminating instance %v", instanceID)
+		return fmt.Errorf("an error occurred terminating instance %v", instanceID)
 	}
 
 	metrics.IncrCounter([]string{"cluster", "aws", "scale_in"}, 1)
