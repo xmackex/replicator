@@ -64,16 +64,17 @@ type NomadClient interface {
 	VerifyNodeHealth(string) bool
 }
 
-// ScalingState is the central object for managing and storing all cluster
+// State is the central object for managing and storing all cluster
 // scaling state information.
-// TODO (e.westfall): Information in this struct should be persisted, see
-// GH-83 for more details.
-type ScalingState struct {
+type State struct {
 	// FailsafeMode tracks whether the daemon has exceeded the fault threshold
 	// while attempting to perform scaling operations. When operating in failsafe
 	// mode, the daemon will decline to take scaling actions of any type.
-	// TODO (e.westfall): Implement failover mode functionality.
 	FailsafeMode bool `json:"failsafe_mode"`
+
+	// Tracks whether the last failsafe mode change was initiated by an
+	// operator via the CLI.
+	FailsafeModeAdmin bool `json:"failsafe_mode_admin"`
 
 	// LastNodeFailure represents the last time a new worker node was launched
 	// and failed to successfully join the worker pool.

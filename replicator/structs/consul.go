@@ -78,13 +78,13 @@ type ConsulClient interface {
 
 	// WriteState is responsible for persistently storing state tracking
 	// information in the Consul Key/Value Store.
-	WriteState(*Config, *ScalingState) error
+	WriteState(*Config, *State) error
 
 	// LoadState attempts to read state tracking information from the Consul
 	// Key/Value Store. If state tracking information is present, it will be
 	// preferred. If no persistent data is available, the method returns the
 	// state tracking object unmodified.
-	LoadState(*Config, *ScalingState) *ScalingState
+	LoadState(*Config, *State) *State
 
 	CreateSession(int, chan struct{}) (string, error)
 
