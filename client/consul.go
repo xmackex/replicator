@@ -87,9 +87,8 @@ func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient
 // deserialized and returned as a state tracking object. If no persistent
 // data is available, the method returns the state tracking object unmodified.
 func (c *consulClient) LoadState(config *structs.Config, state *structs.State) *structs.State {
-	// TODO (e.westfall): Convert to using base path from configuration, see
-	// GH-94 for further details.
-	stateKey := "replicator/config/state"
+
+	stateKey := config.ConsulKeyLocation + "/" + "state"
 
 	logging.Debug("client/consul: attempting to load state tracking "+
 		"information from Consul at location %v", stateKey)
@@ -139,9 +138,8 @@ func (c *consulClient) LoadState(config *structs.Config, state *structs.State) *
 // WriteState is responsible for persistently storing state tracking
 // information in the Consul Key/Value Store.
 func (c *consulClient) WriteState(config *structs.Config, state *structs.State) (err error) {
-	// TODO (e.westfall): Convert to using base path from configuration, see
-	// GH-94 for further details.
-	stateKey := "replicator/config/state"
+
+	stateKey := config.ConsulKeyLocation + "/" + "state"
 
 	logging.Debug("client/consul: attempting to persistently store scaling "+
 		"state in Consul at location %v", stateKey)
