@@ -37,7 +37,7 @@ func (r *Runner) Start() {
 	ticker := time.NewTicker(time.Second * time.Duration(r.config.ScalingInterval))
 
 	// Initialize the state tracking object for scaling operations.
-	scalingState := &structs.ScalingState{}
+	state := &structs.State{}
 
 	// Setup our LeaderCandidate object for leader elections and session renewl.
 	leaderKey := r.config.ConsulKeyLocation + "/" + "leader"
@@ -48,17 +48,19 @@ func (r *Runner) Start() {
 	for {
 		select {
 		case <-ticker.C:
+			// Attempt to load state tracking information from Consul.
+			state = r.config.ConsulClient.LoadState(r.config, state)
 
 			// Perform the leadership locking and continue if we have confirmed that
 			// we are running as the replicator leader.
 			r.candidate.leaderElection()
-			if r.candidate.isLeader() {
+			if r.candidate.isLeader() && FailsafeCheck(state, r.config) {
 
 				// ClusterScaling blocks Replicator when it runs, we do not want job
 				// scaling to be invoked if we are moving workloads around or adding
 				// new capacity.
 				clusterChan := make(chan bool)
-				go r.clusterScaling(clusterChan, scalingState)
+				go r.clusterScaling(clusterChan, state)
 				<-clusterChan
 
 				r.jobScaling()
@@ -80,14 +82,10 @@ func (r *Runner) Stop() {
 // clusterScaling is the main entry point into the cluster scaling functionality
 // and ties numerous functions together to create an asynchronus function which
 // can be called from the runner.
-func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingState) {
+func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 	// Initialize clients for Nomad and Consul.
 	nomadClient := r.config.NomadClient
 	consulClient := r.config.ConsulClient
-
-	// Attempt to load state tracking information from the distributed key/value
-	// store and reset permitted flag.
-	scalingState = consulClient.LoadState(r.config, scalingState)
 
 	// Retrieve value of cluster scaling enabled flag.
 	scalingEnabled := r.config.ClusterScaling.Enabled
@@ -117,8 +115,8 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 	asgSess := client.NewAWSAsgService(r.config.Region)
 
 	// Calculate the scaling cooldown threshold.
-	if !scalingState.LastScalingEvent.IsZero() {
-		cooldown := scalingState.LastScalingEvent.Add(
+	if !state.LastScalingEvent.IsZero() {
+		cooldown := state.LastScalingEvent.Add(
 			time.Duration(r.config.ClusterScaling.CoolDown) * time.Second)
 
 		if time.Now().Before(cooldown) {
@@ -161,10 +159,10 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 
 		// Attempt to add a new node to the worker pool until we reach the
 		// retry threshold.
-		for scalingState.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
-			if scalingState.NodeFailureCount > 0 {
+		for state.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
+			if state.NodeFailureCount > 0 {
 				logging.Info("core/runner: attempting to launch a new worker node, "+
-					"previous node failures: %v", scalingState.NodeFailureCount)
+					"previous node failures: %v", state.NodeFailureCount)
 			}
 
 			// We've verified the autoscaling group operation completed
@@ -177,11 +175,11 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 			if err != nil {
 				logging.Error("core/runner: Failed to identify the most recently "+
 					"launched instance: %v", err)
-				scalingState.NodeFailureCount++
-				scalingState.LastNodeFailure = time.Now()
+				state.NodeFailureCount++
+				state.LastNodeFailure = time.Now()
 
 				// Attempt to update state tracking information in Consul.
-				err = consulClient.WriteState(r.config, scalingState)
+				err = consulClient.WriteState(r.config, state)
 				if err != nil {
 					logging.Error("core/runner: %v", err)
 				}
@@ -192,13 +190,13 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 			// and successfully joined the worker pool.
 			if healthy := nomadClient.VerifyNodeHealth(newestNode); healthy {
 				// Reset node failure count once we have a verified healthy worker.
-				scalingState.NodeFailureCount = 0
+				state.NodeFailureCount = 0
 
 				// Update the last scaling event timestamp.
-				scalingState.LastScalingEvent = time.Now()
+				state.LastScalingEvent = time.Now()
 
 				// Attempt to update state tracking information in Consul.
-				err = consulClient.WriteState(r.config, scalingState)
+				err = consulClient.WriteState(r.config, state)
 				if err != nil {
 					logging.Error("core/runner: %v", err)
 				}
@@ -207,14 +205,14 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 				return
 			}
 
-			scalingState.NodeFailureCount++
-			scalingState.LastNodeFailure = time.Now()
+			state.NodeFailureCount++
+			state.LastNodeFailure = time.Now()
 			logging.Error("core/runner: new node %v failed to successfully join "+
 				"the worker pool, incrementing node failure count to %v and "+
-				"terminating instance", newestNode, scalingState.NodeFailureCount)
+				"terminating instance", newestNode, state.NodeFailureCount)
 
 			// Attempt to update state tracking information in Consul.
-			err = consulClient.WriteState(r.config, scalingState)
+			err = consulClient.WriteState(r.config, state)
 			if err != nil {
 				logging.Error("core/runner: %v", err)
 			}
@@ -225,13 +223,9 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 			// instance ID.
 			instanceID := client.TranslateIptoID(newestNode, r.config.Region)
 
-			// If we've reached the retry threshold, disable cluster scaling and
-			// halt.
-			if disabled := r.disableClusterScaling(scalingState); disabled {
-				// Detach the last failed instance and decrement the desired count
-				// of the autoscaling group. This will leave the instance around
-				// for debugging purposes but allow us to cleanly resume cluster
-				// scaling without intervention.
+			// If we've reached the retry threshold, attempt to detach the last
+			// failed instance and decrement the autoscaling group desired count.
+			if state.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
 				err := client.DetachInstance(
 					r.config.ClusterScaling.AutoscalingGroup, instanceID, asgSess,
 				)
@@ -282,10 +276,10 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 			}
 
 			// Update the last scaling event timestamp.
-			scalingState.LastScalingEvent = time.Now()
+			state.LastScalingEvent = time.Now()
 
 			// Attempt to update state tracking information in Consul.
-			err = consulClient.WriteState(r.config, scalingState)
+			err = consulClient.WriteState(r.config, state)
 			if err != nil {
 				logging.Error("core/runner: %v", err)
 			}
@@ -293,21 +287,6 @@ func (r *Runner) clusterScaling(done chan bool, scalingState *structs.ScalingSta
 	}
 	done <- true
 	metrics.IncrCounter([]string{"cluster", "scale_out_success"}, 1)
-	return
-}
-
-func (r *Runner) disableClusterScaling(scalingState *structs.ScalingState) (disabled bool) {
-	// If we've reached the retry threshold, disable cluster scaling and
-	// halt.
-	if scalingState.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
-		disabled = true
-		r.config.ClusterScaling.Enabled = false
-
-		logging.Error("core/runner: attempts to add new nodes to the "+
-			"worker pool have failed %v times. Cluster scaling will be "+
-			"disabled.", r.config.ClusterScaling.RetryThreshold)
-	}
-
 	return
 }
 

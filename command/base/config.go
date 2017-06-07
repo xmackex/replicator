@@ -1,4 +1,4 @@
-package agent
+package base
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
@@ -67,6 +68,27 @@ func DevConfig() *structs.Config {
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
 	}
+}
+
+// InitializeClients completes the setup process for the Nomad and Consul
+// clients. Must be called after configuration merging is complete.
+func InitializeClients(config *structs.Config) (err error) {
+	// Setup the Nomad Client
+	nClient, err := client.NewNomadClient(config.Nomad)
+	if err != nil {
+		return
+	}
+
+	// Setup the Consul Client
+	cClient, err := client.NewConsulClient(config.Consul, config.ConsulToken)
+	if err != nil {
+		return
+	}
+
+	config.ConsulClient = cClient
+	config.NomadClient = nClient
+
+	return
 }
 
 // LoadConfig loads the configuration at the given path whether the specified

@@ -9,8 +9,8 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/command"
+	"github.com/elsevier-core-engineering/replicator/command/base"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
@@ -153,13 +153,13 @@ func (c *Command) parseFlags() *structs.Config {
 	var config *structs.Config
 
 	if dev {
-		config = DevConfig()
+		config = base.DevConfig()
 	} else {
-		config = DefaultConfig()
+		config = base.DefaultConfig()
 	}
 
 	if configPath != "" {
-		current, err := LoadConfig(configPath)
+		current, err := base.LoadConfig(configPath)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error loading configuration from %s: %s", configPath, err))
 			return nil
@@ -223,20 +223,10 @@ func (c *Command) initialzeAgent(config *structs.Config) (err error) {
 	// Setup logging
 	logging.SetLevel(config.LogLevel)
 
-	// Setup the Nomad Client
-	nClient, err := client.NewNomadClient(config.Nomad)
-	if err != nil {
-		return err
+	// Setup the Consul and Nomad clients
+	if err = base.InitializeClients(config); err != nil {
+		return
 	}
-
-	// Setup the Consul Client
-	cClient, err := client.NewConsulClient(config.Consul, config.ConsulToken)
-	if err != nil {
-		return err
-	}
-
-	config.ConsulClient = cClient
-	config.NomadClient = nClient
 
 	return nil
 }

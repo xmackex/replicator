@@ -36,6 +36,11 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				Meta: meta,
 			}, nil
 		},
+		"failsafe": func() (cli.Command, error) {
+			return &command.FailsafeCommand{
+				Meta: meta,
+			}, nil
+		},
 		"version": func() (cli.Command, error) {
 			ver := version.Version
 			rel := version.VersionPrerelease
