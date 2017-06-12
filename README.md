@@ -20,17 +20,25 @@ A [puppet module](https://github.com/elsevier-core-engineering/puppet-replicator
 
 Replicator supports a number of commands (CLI) which allow for the easy control and manipulation of the replicator binary.
 
-### Command: agent
+### Command: `agent`
 
-The agent command is the main entry point into Replicator. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments and the configuration parameters passed via CLI flags will always take precedent over parameters specified in configuration files. Detailed information regarding the available CLI flags can be found in the Replicator [Agent Configuration wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Agent_Configuration#command-line-flags).
+The `agent` command is the main entry point into Replicator. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments and the configuration parameters passed via CLI flags will always take precedent over parameters specified in configuration files.
 
-### Command: init
+Detailed information regarding the available CLI flags can be found in the Replicator [Agent Configuration wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Agent_Configuration#command-line-flags).
 
-The init command creates an example job scaling document in the current directory. This document can then be manipulated to meet your requirements, or be used to test replicator against the [Nomad init](https://www.nomadproject.io/docs/commands/init.html) example job.
+### Command: `failsafe`
 
-### Command: version
+The `failsafe` command is used to toggle failsafe mode across the pool of Replicator agents. Failsafe mode prevents any Replicator agent from taking any scaling actions.
 
-The version command displays build information about the running binary, including the release version.
+Detailed information about failsafe mode operations and the available CLI options can be found in the Replicator [Failsafe Mode wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Failsafe_Mode).
+
+### Command: `init`
+
+The `init` command creates an example job scaling document in the current directory. This document can then be manipulated to meet your requirements, or be used to test replicator against the [Nomad init](https://www.nomadproject.io/docs/commands/init.html) example job.
+
+### Command: `version`
+
+The `version` command displays build information about the running binary, including the release version.
 
 ## Configuration File Syntax
 
