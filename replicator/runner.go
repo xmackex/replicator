@@ -148,7 +148,7 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 
 		// Attempt to increment the desired count of the autoscaling group. If
 		// this fails, log an error and stop further processing.
-		err := client.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, asgSess)
+		err := client.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, clusterCapacity.NodeCount, asgSess)
 		if err != nil {
 			logging.Error("core/runner: unable to successfully initiate a "+
 				"scaling operation against autoscaling group %v: %v",
