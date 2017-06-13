@@ -7,11 +7,18 @@ import (
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
-// FailsafeCheck determines if any critical failure modes have been detected
-// and if so, automatically places Replicator in failsafe mode.
+// FailsafeCheck implements the failsafe mode circuit breaker that will
+// trip automatically if enough critical failures are detected. Once
+// tripped, the circuit breaker must be reset by a human operator.
 func FailsafeCheck(state *structs.State, config *structs.Config) (passing bool) {
 	// Assume we're in a good state until proven otherwise.
 	passing = true
+
+	// If the failsafe circuit breaker has been tripped already, we can fail
+	// quickly here.
+	if state.FailsafeMode {
+		return false
+	}
 
 	// If attempts to launch new worker pool nodes have failed and we've
 	// reached or exceeded the retry threshold, we should put the daemon in
@@ -31,7 +38,7 @@ func FailsafeCheck(state *structs.State, config *structs.Config) (passing bool) 
 	return
 }
 
-// SetFailsafeMode is used to toggle the global failsafe lock.
+// SetFailsafeMode is used to toggle the distributed failsafe mode lock.
 func SetFailsafeMode(state *structs.State, config *structs.Config, enabled bool) (err error) {
 	switch enabled {
 	case true:
@@ -53,14 +60,14 @@ func SetFailsafeMode(state *structs.State, config *structs.Config, enabled bool)
 		}
 	}
 
-	// Set the failsafe mode flag in the state object.
+	// Set the failsafe mode lock state in the state tracking object.
 	state.FailsafeMode = enabled
 
-	// Attempt to update the persistent state tracking data.
+	// Attempt to update the persistent state tracking information.
 	err = config.ConsulClient.WriteState(config, state)
 	if err != nil {
 		return fmt.Errorf("core/failsafe: an attempt to update the persistent "+
-			"state tracking data failed: %v", err)
+			"state tracking information failed: %v", err)
 	}
 
 	return nil

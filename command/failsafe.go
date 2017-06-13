@@ -81,9 +81,9 @@ func (c *FailsafeCommand) Synopsis() string {
 }
 
 // Run triggers the failsafe command to update the distributed state tracking
-// data and manipulate the failsafe lock.
+// data and manipulate the distributed failsafe lock.
 func (c *FailsafeCommand) Run(args []string) int {
-	// Initialize an new empty state tracking object.
+	// Initialize a new empty state tracking object.
 	state := &structs.State{}
 
 	// The operator must specify at least one operation.

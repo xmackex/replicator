@@ -1,7 +1,7 @@
 package structs
 
 // FailsafeMode is the configuration struct for administratively interacting
-// with the global failsafe lock.
+// with the distributed failsafe lock.
 type FailsafeMode struct {
 	// Config stores partial configuration required to interact with Consul.
 	Config *Config
