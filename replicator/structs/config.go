@@ -79,6 +79,11 @@ type ClusterScaling struct {
 	// RetryPeriod is the number of times Replicator will retry scale-out when
 	// new nodes do not join the worker pool and reach the join timeout.
 	RetryThreshold int `mapstructure:"retry_threshold"`
+
+	// ScalingThreshold is the number of consecutive times Replicator determines
+	// as cluster scaling action should occur before that request is allowed to
+	// be enforced.
+	ScalingThreshold int `mapstructure:"scaling_threshold"`
 }
 
 // JobScaling is the configuration struct for the Nomad job scaling activities.
@@ -206,6 +211,10 @@ func (c *ClusterScaling) Merge(b *ClusterScaling) *ClusterScaling {
 
 	if b.RetryThreshold != 0 {
 		config.RetryThreshold = b.RetryThreshold
+	}
+
+	if b.ScalingThreshold != 0 {
+		config.ScalingThreshold = b.ScalingThreshold
 	}
 
 	return &config

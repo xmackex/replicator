@@ -101,7 +101,6 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 	// Initialize a new disposable cluster capacity object.
 	clusterCapacity := &structs.ClusterCapacity{}
 
-	//if scale, err := nomadClient.EvaluateClusterCapacity(clusterCapacity, r.config); err != nil || !scale {
 	scale, err := nomadClient.EvaluateClusterCapacity(clusterCapacity, r.config)
 	if err != nil || !scale {
 		logging.Debug("core/runner: scaling operation not required or permitted")
@@ -135,7 +134,8 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 			"occurred, scaling operations will be permitted.")
 	}
 
-	if clusterCapacity.ScalingDirection == client.ScalingDirectionOut {
+	if clusterCapacity.ScalingDirection == client.ScalingDirectionOut &&
+		checkScalingThreshold(state, clusterCapacity.ScalingDirection, r.config.ClusterScaling) {
 		// If cluster scaling has been disabled, report but do not initiate a
 		// scaling operation.
 		if !scalingEnabled {
@@ -246,7 +246,8 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 		}
 	}
 
-	if clusterCapacity.ScalingDirection == client.ScalingDirectionIn {
+	if clusterCapacity.ScalingDirection == client.ScalingDirectionIn &&
+		checkScalingThreshold(state, clusterCapacity.ScalingDirection, r.config.ClusterScaling) {
 		// Attempt to identify the least-allocated node in the worker pool.
 		nodeID, nodeIP := nomadClient.LeastAllocatedNode(clusterCapacity)
 		if nodeIP != "" && nodeID != "" {
