@@ -132,6 +132,7 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.IntVar(&cliConfig.ClusterScaling.NodeFaultTolerance, "cluster-node-fault-tolerance", 0, "")
 	flags.StringVar(&cliConfig.ClusterScaling.AutoscalingGroup, "cluster-autoscaling-group", "", "")
 	flags.IntVar(&cliConfig.ClusterScaling.RetryThreshold, "cluster-retry-threshold", 0, "")
+	flags.IntVar(&cliConfig.ClusterScaling.ScalingThreshold, "cluster-scaling-threshold", 0, "")
 
 	// Job scaling configuration flags
 	flags.BoolVar(&cliConfig.JobScaling.Enabled, "job-scaling-enabled", false, "")
@@ -324,6 +325,12 @@ func (c *Command) Help() string {
       Indicates whether the daemon should perform scaling actions. If
       disabled, the actions that would have been taken will be reported
       in the logs but skipped.
+
+    -cluster-scaling-threshold
+      This is the number of consecutive times Replicator must calculate
+      that a cluster scaling action should be invoked, before the action
+      is triggered. This used in conjunction with the scaling-interval
+      helps prevent trashing of the cluster to fleeting load changes.
 
   Job Scaling Options:
 

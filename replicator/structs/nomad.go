@@ -90,6 +90,14 @@ type State struct {
 	// NodeFailureCount tracks the number of worker nodes that have failed to
 	// successfully join the worker pool after a scale-out operation.
 	NodeFailureCount int `json:"node_failure_count"`
+
+	// ClusterScaleInRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled in.
+	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
+
+	// ClusterScaleOutRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled out.
+	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
 }
 
 // ClusterCapacity is the central object used to track and evaluate cluster

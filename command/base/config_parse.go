@@ -148,6 +148,7 @@ func parseClusterScaling(result **structs.ClusterScaling, list *ast.ObjectList) 
 		"node_fault_tolerance",
 		"autoscaling_group",
 		"retry_threshold",
+		"scaling_threshold",
 	}
 	if err := checkHCLKeys(listVal, valid); err != nil {
 		return err
