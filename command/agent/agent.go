@@ -12,6 +12,7 @@ import (
 	"github.com/elsevier-core-engineering/replicator/command"
 	"github.com/elsevier-core-engineering/replicator/command/base"
 	"github.com/elsevier-core-engineering/replicator/logging"
+	"github.com/elsevier-core-engineering/replicator/notifier"
 	"github.com/elsevier-core-engineering/replicator/replicator"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	"github.com/elsevier-core-engineering/replicator/version"
@@ -212,12 +213,36 @@ func (c *Command) setupTelemetry(config *structs.Telemetry) error {
 	return nil
 }
 
+// setupNotifier is used to setup Replicators notifier provider.
+func (c *Command) setupNotifier(config *structs.Notification) (err error) {
+
+	// Configure the PagerDuty notifier.
+	if config.PagerDutyServiceKey != "" {
+
+		p := make(map[string]string)
+		p["PagerDutyServiceKey"] = config.PagerDutyServiceKey
+		pd, err := notifier.NewProvider("pagerduty", p)
+
+		if err != nil {
+			return err
+		}
+		config.Notifiers = append(config.Notifiers, pd)
+	}
+
+	return nil
+}
+
 // initialzeAgent setups up a number of configuration clients which depend on
 // the merged configuration.
 func (c *Command) initialzeAgent(config *structs.Config) (err error) {
 
 	// Setup telemetry
 	if err = c.setupTelemetry(config.Telemetry); err != nil {
+		return
+	}
+
+	// Setup notifiers
+	if err = c.setupNotifier(config.Notification); err != nil {
 		return
 	}
 

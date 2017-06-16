@@ -1,5 +1,9 @@
 package structs
 
+import (
+	"github.com/elsevier-core-engineering/replicator/notifier"
+)
+
 // Config is the main configuration struct used to configure the replicator
 // application.
 type Config struct {
@@ -112,6 +116,10 @@ type Notification struct {
 
 	// PagerDutyServiceKey is the PD integration key for the Events API v1.
 	PagerDutyServiceKey string `mapstructure:"pagerduty_service_key"`
+
+	// Notifiers is where our initialize notification backends are stored so they
+	// can be used on the fly when required.
+	Notifiers []notifier.Notifier
 }
 
 // Merge merges two configurations.
