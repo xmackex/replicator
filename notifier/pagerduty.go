@@ -6,6 +6,8 @@ import (
 	"github.com/PagerDuty/go-pagerduty"
 )
 
+// PagerDutyProvider contains the required configuration to send PagerDuty
+// notifications.
 type PagerDutyProvider struct {
 	config map[string]string
 }
