@@ -128,7 +128,7 @@ func (c *Command) parseFlags() *structs.Config {
 	// Cluster scaling configuration flags
 	flags.BoolVar(&cliConfig.ClusterScaling.Enabled, "cluster-scaling-enabled", false, "")
 	flags.IntVar(&cliConfig.ClusterScaling.MaxSize, "cluster-max-size", 0, "")
-	flags.IntVar(&cliConfig.ClusterScaling.MinSize, "cluster-mix-size", 0, "")
+	flags.IntVar(&cliConfig.ClusterScaling.MinSize, "cluster-min-size", 0, "")
 	flags.Float64Var(&cliConfig.ClusterScaling.CoolDown, "cluster-scaling-cool-down", 0, "")
 	flags.IntVar(&cliConfig.ClusterScaling.NodeFaultTolerance, "cluster-node-fault-tolerance", 0, "")
 	flags.StringVar(&cliConfig.ClusterScaling.AutoscalingGroup, "cluster-autoscaling-group", "", "")
