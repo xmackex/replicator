@@ -48,6 +48,10 @@ type NomadClient interface {
 	// the cluster's mosted-utilized resource.
 	LeastAllocatedNode(*ClusterCapacity) (string, string)
 
+	// LookupNode is responsible for performing reverse lookups of the Nomad Node
+	// ID by providing an allocation ID.
+	LookupNode(string) (string, error)
+
 	// MostUtilizedResource calculates which resource is most-utilized across the
 	// cluster. The worst-case allocation resource is prioritized when making
 	// scaling decisions.
@@ -67,6 +71,14 @@ type NomadClient interface {
 // State is the central object for managing and storing all cluster
 // scaling state information.
 type State struct {
+	// ClusterScaleInRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled in.
+	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
+
+	// ClusterScaleOutRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled out.
+	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
+
 	// FailsafeMode tracks whether the daemon has exceeded the fault threshold
 	// while attempting to perform scaling operations. When operating in failsafe
 	// mode, the daemon will decline to take scaling actions of any type.
@@ -90,14 +102,6 @@ type State struct {
 	// NodeFailureCount tracks the number of worker nodes that have failed to
 	// successfully join the worker pool after a scale-out operation.
 	NodeFailureCount int `json:"node_failure_count"`
-
-	// ClusterScaleInRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled in.
-	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
-
-	// ClusterScaleOutRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled out.
-	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
 }
 
 // ClusterCapacity is the central object used to track and evaluate cluster
