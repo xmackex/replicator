@@ -64,6 +64,7 @@ func (l *LeaderCandidate) leaderElection() (isLeader bool) {
 		return true
 	}
 
+	logging.Debug("core/leader: failed to aquire leadership lock")
 	return
 }
 
