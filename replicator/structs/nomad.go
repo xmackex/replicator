@@ -73,14 +73,6 @@ type NomadClient interface {
 // State is the central object for managing and storing all cluster
 // scaling state information.
 type State struct {
-	// ClusterScaleInRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled in.
-	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
-
-	// ClusterScaleOutRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled out.
-	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
-
 	// FailsafeMode tracks whether the daemon has exceeded the fault threshold
 	// while attempting to perform scaling operations. When operating in failsafe
 	// mode, the daemon will decline to take scaling actions of any type.
