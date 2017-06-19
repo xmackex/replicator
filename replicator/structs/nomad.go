@@ -44,13 +44,15 @@ type NomadClient interface {
 	// thresholds set.
 	JobScale(*JobScalingPolicy)
 
-	// LeaseAllocatedNode determines the worker node consuming the least amount of
-	// the cluster's mosted-utilized resource.
-	LeastAllocatedNode(*ClusterCapacity) (string, string)
+	// LeastAllocatedNode determines which worker pool node is consuming the
+	// least amount of the cluster's most-utilized resource. If Replicator is
+	// running as a Nomad job, the worker node running the Replicator leader will
+	// be excluded.
+	LeastAllocatedNode(*ClusterCapacity, *State) (string, string)
 
-	// LookupNode is responsible for performing reverse lookups of the Nomad Node
-	// ID by providing an allocation ID.
-	LookupNode(string) (string, error)
+	// NodeReverseLookup provides a method to get the ID of the worker pool node
+	// running a given allocation.
+	NodeReverseLookup(string) (string, error)
 
 	// MostUtilizedResource calculates which resource is most-utilized across the
 	// cluster. The worst-case allocation resource is prioritized when making
@@ -102,6 +104,11 @@ type State struct {
 	// NodeFailureCount tracks the number of worker nodes that have failed to
 	// successfully join the worker pool after a scale-out operation.
 	NodeFailureCount int `json:"node_failure_count"`
+
+	// ProtectedNode represents the Nomad agent node on which the Replicator
+	// leader is running. This node will be excluded when identifying an eligible
+	// node for termination during scaling actions.
+	ProtectedNode string `json:"protected_node"`
 }
 
 // ClusterCapacity is the central object used to track and evaluate cluster

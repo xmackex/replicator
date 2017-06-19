@@ -1,6 +1,7 @@
 package replicator
 
 import (
+	"os"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -55,6 +56,22 @@ func (r *Runner) Start() {
 			// we are running as the replicator leader.
 			r.candidate.leaderElection()
 			if r.candidate.isLeader() && FailsafeCheck(state, r.config) {
+				// If we're running as a Nomad job, perform a reverse lookup to
+				// identify the node on which we're running and register it as
+				// protected.
+				if allocID := os.Getenv("NOMAD_ALLOC_ID"); len(allocID) > 0 {
+					host, err := r.config.NomadClient.NodeReverseLookup(allocID)
+					if err != nil {
+						logging.Error("core/runner: Running as a Nomad job but unable "+
+							"to determine the ID of our host node: %v", err)
+					}
+
+					// Register the worker pool node on which we're running as a
+					// protected node.
+					if len(host) > 0 {
+						state.ProtectedNode = host
+					}
+				}
 
 				// ClusterScaling blocks Replicator when it runs, we do not want job
 				// scaling to be invoked if we are moving workloads around or adding
@@ -146,6 +163,8 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 			return
 		}
 
+		// TODO (e.westfall): Now that this method performs additional safety
+		// checks, this can and should be moved within the retry loop.
 		// Attempt to increment the desired count of the autoscaling group. If
 		// this fails, log an error and stop further processing.
 		err := client.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, clusterCapacity.NodeCount, asgSess)
@@ -249,7 +268,7 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 	if clusterCapacity.ScalingDirection == client.ScalingDirectionIn &&
 		checkScalingThreshold(state, clusterCapacity.ScalingDirection, r.config.ClusterScaling) {
 		// Attempt to identify the least-allocated node in the worker pool.
-		nodeID, nodeIP := nomadClient.LeastAllocatedNode(clusterCapacity)
+		nodeID, nodeIP := nomadClient.LeastAllocatedNode(clusterCapacity, state)
 		if nodeIP != "" && nodeID != "" {
 			if !scalingEnabled {
 				logging.Debug("core/runner: cluster scaling disabled, not " +
