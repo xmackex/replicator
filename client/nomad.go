@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -171,6 +172,22 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterCapacit
 	}
 
 	return true
+}
+
+// NodeReverseLookup provides a method to get the ID of the worker pool node
+// running a given allocation.
+func (c *nomadClient) NodeReverseLookup(allocID string) (node string, err error) {
+	resp, _, err := c.nomad.Allocations().Info(allocID, &nomad.QueryOptions{})
+	if err != nil {
+		return
+	}
+
+	if len(resp.NodeID) == 0 {
+		err = fmt.Errorf("The node reverse lookup returned an empty result")
+		return
+	}
+
+	return resp.NodeID, nil
 }
 
 // ClusterAllocationCapacity calculates the total cluster capacity and determines the
@@ -346,27 +363,35 @@ func (c *nomadClient) MostUtilizedGroupResource(gsp *structs.GroupScalingPolicy)
 	}
 }
 
-// LeastAllocatedNode determines which worker node is consuming the lowest percentage of the
-// resource identified as the most-utilized resource across the cluster. Since Nomad follows
-// a bin-packing approach, when we need to remove a worker node in response to a scale-in
-// activity, we want to identify the least-allocated node and target it for removal.
-func (c *nomadClient) LeastAllocatedNode(clusterInfo *structs.ClusterCapacity) (nodeID, nodeIP string) {
-	var lowestAllocation float64
+// LeastAllocatedNode determines which worker pool node is consuming the least
+// amount of the cluster's most-utilized resource. If Replicator is running as
+// a Nomad job, the worker node running the Replicator leader will be excluded.
+func (c *nomadClient) LeastAllocatedNode(capacity *structs.ClusterCapacity,
+	state *structs.State) (nodeID, nodeIP string) {
+	var lowest float64
 
-	for _, nodeAlloc := range clusterInfo.NodeAllocations {
-		switch clusterInfo.ScalingMetric {
+	for _, alloc := range capacity.NodeAllocations {
+		// If we've encountered a protected worker pool node, exclude it from
+		// least-allocated node discovery.
+		if alloc.NodeID == state.ProtectedNode {
+			logging.Debug("client/nomad: Node %v will be excluded when calculating "+
+				"eligible worker pool nodes to be removed", state.ProtectedNode)
+			continue
+		}
+
+		switch capacity.ScalingMetric {
 		case ScalingMetricProcessor:
-			if (lowestAllocation == 0) || (nodeAlloc.UsedCapacity.CPUPercent < lowestAllocation) {
-				nodeID = nodeAlloc.NodeID
-				lowestAllocation = nodeAlloc.UsedCapacity.CPUPercent
+			if (lowest == 0) || (alloc.UsedCapacity.CPUPercent < lowest) {
+				nodeID = alloc.NodeID
+				lowest = alloc.UsedCapacity.CPUPercent
 			}
 		case ScalingMetricMemory:
-			if (lowestAllocation == 0) || (nodeAlloc.UsedCapacity.MemoryPercent < lowestAllocation) {
-				nodeID = nodeAlloc.NodeID
-				lowestAllocation = nodeAlloc.UsedCapacity.MemoryPercent
+			if (lowest == 0) || (alloc.UsedCapacity.MemoryPercent < lowest) {
+				nodeID = alloc.NodeID
+				lowest = alloc.UsedCapacity.MemoryPercent
 			}
 		case ScalingMetricNone:
-			nodeID = nodeAlloc.NodeID
+			nodeID = alloc.NodeID
 		}
 	}
 
