@@ -73,6 +73,14 @@ type NomadClient interface {
 // State is the central object for managing and storing all cluster
 // scaling state information.
 type State struct {
+	// ClusterScaleInRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled in.
+	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
+
+	// ClusterScaleOutRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled out.
+	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
+
 	// FailsafeMode tracks whether the daemon has exceeded the fault threshold
 	// while attempting to perform scaling operations. When operating in failsafe
 	// mode, the daemon will decline to take scaling actions of any type.
@@ -81,6 +89,10 @@ type State struct {
 	// Tracks whether the last failsafe mode change was initiated by an
 	// operator via the CLI.
 	FailsafeModeAdmin bool `json:"failsafe_mode_admin"`
+
+	// LastFailedNode allows us to track the last node which was launched which
+	// failed to join the cluster.
+	LastFailedNode string `json:"last_failed_node"`
 
 	// LastNodeFailure represents the last time a new worker node was launched
 	// and failed to successfully join the worker pool.
@@ -96,18 +108,6 @@ type State struct {
 	// NodeFailureCount tracks the number of worker nodes that have failed to
 	// successfully join the worker pool after a scale-out operation.
 	NodeFailureCount int `json:"node_failure_count"`
-
-	// ClusterScaleInRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled in.
-	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
-
-	// ClusterScaleOutRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled out.
-	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
-
-	// LastFailedNode allows us to track the last node which was launched which
-	// failed to join the cluster.
-	LastFailedNode string `json:"last_failed_node"`
 
 	// ProtectedNode represents the Nomad agent node on which the Replicator
 	// leader is running. This node will be excluded when identifying an eligible
