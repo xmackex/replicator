@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/elsevier-core-engineering/replicator/logging"
 )
 
 // PagerDutyProvider contains the required configuration to send PagerDuty
@@ -30,11 +31,12 @@ func NewPagerDutyProvider(c map[string]string) (Notifier, error) {
 
 // SendNotification will send a notification to PagerDuty using the Event
 // library call to create a new incident.
-func (p *PagerDutyProvider) SendNotification(message FailureMessage) (key string, err error) {
+func (p *PagerDutyProvider) SendNotification(message FailureMessage) {
 
 	// Format the message description.
-	d := fmt.Sprintf("%s %s_%s",
-		message.AlertUID, message.ClusterIdentifier, message.IncidentReason)
+	d := fmt.Sprintf("%s %s_%s_%s",
+		message.AlertUID, message.ClusterIdentifier, message.Reason,
+		message.FailedResource)
 
 	// Setup the PagerDuty event structure which will then be used to trigger
 	// the event call.
@@ -47,8 +49,9 @@ func (p *PagerDutyProvider) SendNotification(message FailureMessage) (key string
 
 	resp, err := pagerduty.CreateEvent(event)
 	if err != nil {
-		return "", err
+		logging.Error("notifier/pagerduty: an error occured creating the PagerDuty event: %v", err)
+		return
 	}
 
-	return resp.IncidentKey, nil
+	logging.Info("notifier/pagerduty: incident %s has been triggerd", resp.IncidentKey)
 }

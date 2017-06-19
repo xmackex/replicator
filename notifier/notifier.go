@@ -9,17 +9,15 @@ import (
 type FailureMessage struct {
 	AlertUID          string
 	ClusterIdentifier string
-	FailedNode        string
-	IncidentReason    string
-	NomadDataCentre   string
-	NomadRegion       string
+	Reason            string
+	FailedResource    string
 }
 
 // Notifier is the interface to the Notifiers functions. All notifers are
 // expected to implament this set of functions.
 type Notifier interface {
 	Name() string
-	SendNotification(FailureMessage) (string, error)
+	SendNotification(FailureMessage)
 }
 
 // NewProvider is the factory entrace to the notifications backends.

@@ -98,6 +98,10 @@ type State struct {
 	// ClusterScaleOutRequests tracks the number of consecutive times replicator
 	// has indicated the cluster worker pool should be scaled out.
 	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
+
+	// LastFailedNode allows us to track the last node which was launched which
+	// failed to join the cluster.
+	LastFailedNode string `json:"last_failed_node"`
 }
 
 // ClusterCapacity is the central object used to track and evaluate cluster
