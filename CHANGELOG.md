@@ -10,6 +10,7 @@ externally referencing the worker pool autoscaling group. [GH-91]
 * Failed worker nodes are detached after maximum retry interval is reached for
 troubleshooting. [GH-76]
 * Add support for event notifications via PagerDuty [GH-66]
+* Replicator will send a notification if failsafe mode is enabled [GH-131]
 * New nodes are verified to have successfully joined the worker pool after a
 cluster scaling operation is initiated. Replicator will retry until a healthy
 node is launched or the maximum retry threshold is reached. [GH-62]
