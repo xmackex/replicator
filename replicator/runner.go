@@ -232,6 +232,7 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 
 			state.NodeFailureCount++
 			state.LastNodeFailure = time.Now()
+			state.LastFailedNode = newestNode
 			logging.Error("core/runner: new node %v failed to successfully join "+
 				"the worker pool, incrementing node failure count to %v and "+
 				"terminating instance", newestNode, state.NodeFailureCount)

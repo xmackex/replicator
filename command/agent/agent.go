@@ -377,9 +377,10 @@ func (c *Command) Help() string {
       which cluster is alerting.
 
     -cluster-scaling-uid=<uid>
-      The cluster UID is an identifier which represents a run book entry
-      which allows operators and support to quickly work through
-      resolution steps.
+      The cluster scaling UID is an identifier which represents a run book
+      entry relating to failsafe resolution guidelines. When a notification
+      is sent upon failsafe mode being enabled, the alert will include this
+      UID.
 
     -pagerduty-service-key=<key>
       The PagerDuty integration key which has been setup to allow

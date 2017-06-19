@@ -4,7 +4,12 @@ import (
 	"fmt"
 
 	"github.com/elsevier-core-engineering/replicator/logging"
+	"github.com/elsevier-core-engineering/replicator/notifier"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
+)
+
+const (
+	failSafeMessage = "cluster_failsafe_mode"
 )
 
 // FailsafeCheck implements the failsafe mode circuit breaker that will
@@ -43,8 +48,21 @@ func SetFailsafeMode(state *structs.State, config *structs.Config, enabled bool)
 	switch enabled {
 	case true:
 		if !state.FailsafeMode {
-			// TODO (e.westfall) Send notification here after we've sorted
-			// notification client initialization.
+
+			// If we have configured notification backends then lets send
+			if len(config.Notification.Notifiers) > 0 {
+
+				message := &notifier.FailureMessage{
+					AlertUID:          config.Notification.ClusterScalingUID,
+					ClusterIdentifier: config.Notification.ClusterIdentifier,
+					Reason:            failSafeMessage,
+					FailedResource:    state.LastFailedNode,
+				}
+
+				for _, not := range config.Notification.Notifiers {
+					not.SendNotification(*message)
+				}
+			}
 		}
 
 		// Suppress logging output if we're being called from the CLI tools.

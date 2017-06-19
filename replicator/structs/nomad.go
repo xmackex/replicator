@@ -90,6 +90,10 @@ type State struct {
 	// operator via the CLI.
 	FailsafeModeAdmin bool `json:"failsafe_mode_admin"`
 
+	// LastFailedNode allows us to track the last node which was launched which
+	// failed to join the cluster.
+	LastFailedNode string `json:"last_failed_node"`
+
 	// LastNodeFailure represents the last time a new worker node was launched
 	// and failed to successfully join the worker pool.
 	LastNodeFailure time.Time `json:"last_node_failure"`
