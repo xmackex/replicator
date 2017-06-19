@@ -44,9 +44,15 @@ type NomadClient interface {
 	// thresholds set.
 	JobScale(*JobScalingPolicy)
 
-	// LeaseAllocatedNode determines the worker node consuming the least amount of
-	// the cluster's mosted-utilized resource.
-	LeastAllocatedNode(*ClusterCapacity) (string, string)
+	// LeastAllocatedNode determines which worker pool node is consuming the
+	// least amount of the cluster's most-utilized resource. If Replicator is
+	// running as a Nomad job, the worker node running the Replicator leader will
+	// be excluded.
+	LeastAllocatedNode(*ClusterCapacity, *State) (string, string)
+
+	// NodeReverseLookup provides a method to get the ID of the worker pool node
+	// running a given allocation.
+	NodeReverseLookup(string) (string, error)
 
 	// MostUtilizedResource calculates which resource is most-utilized across the
 	// cluster. The worst-case allocation resource is prioritized when making
@@ -67,6 +73,14 @@ type NomadClient interface {
 // State is the central object for managing and storing all cluster
 // scaling state information.
 type State struct {
+	// ClusterScaleInRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled in.
+	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
+
+	// ClusterScaleOutRequests tracks the number of consecutive times replicator
+	// has indicated the cluster worker pool should be scaled out.
+	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
+
 	// FailsafeMode tracks whether the daemon has exceeded the fault threshold
 	// while attempting to perform scaling operations. When operating in failsafe
 	// mode, the daemon will decline to take scaling actions of any type.
@@ -91,13 +105,10 @@ type State struct {
 	// successfully join the worker pool after a scale-out operation.
 	NodeFailureCount int `json:"node_failure_count"`
 
-	// ClusterScaleInRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled in.
-	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
-
-	// ClusterScaleOutRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled out.
-	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
+	// ProtectedNode represents the Nomad agent node on which the Replicator
+	// leader is running. This node will be excluded when identifying an eligible
+	// node for termination during scaling actions.
+	ProtectedNode string `json:"protected_node"`
 }
 
 // ClusterCapacity is the central object used to track and evaluate cluster
