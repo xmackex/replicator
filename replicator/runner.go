@@ -56,6 +56,12 @@ func (r *Runner) Start() {
 			// we are running as the replicator leader.
 			r.candidate.leaderElection()
 			if r.candidate.isLeader() && FailsafeCheck(state, r.config) {
+				// If there was no pre-existing state tracking information in Consul,
+				// persist an initial state tracking object.
+				if state.LastUpdated.IsZero() {
+					r.config.ConsulClient.WriteState(r.config, state)
+				}
+
 				// If we're running as a Nomad job, perform a reverse lookup to
 				// identify the node on which we're running and register it as
 				// protected.
