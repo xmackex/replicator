@@ -13,9 +13,12 @@ import (
 type FlagSetFlags uint
 
 const (
-	FlagSetNone    FlagSetFlags = 0
-	FlagSetClient  FlagSetFlags = 1 << iota
-	FlagSetDefault              = FlagSetClient
+	// FlagSetNone is set when no flags are present.
+	FlagSetNone FlagSetFlags = 0
+	// FlagSetClient is our enum.
+	FlagSetClient FlagSetFlags = 1 << iota
+	// FlagSetDefault is our default flag set.
+	FlagSetDefault = FlagSetClient
 )
 
 // Meta contains the meta-options and functionality that

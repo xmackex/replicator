@@ -13,6 +13,7 @@ const (
 	DefaultInitName = "example.json"
 )
 
+// InitCommand is the command implamentation for init.
 type InitCommand struct {
 	Meta
 }
