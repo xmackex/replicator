@@ -2,6 +2,10 @@ package helper
 
 import (
 	"regexp"
+
+	"github.com/elsevier-core-engineering/replicator/logging"
+	"github.com/elsevier-core-engineering/replicator/replicator/structs"
+	"github.com/mitchellh/hashstructure"
 )
 
 // FindIP will return the IP address from a string. This is used to deal with
@@ -35,4 +39,23 @@ func Min(values ...float64) float64 {
 		}
 	}
 	return min
+}
+
+// JobGroupScalingPolicyDiff performs a comparison between two GroupScalingPolicy
+// structs to determine if they are the same or not.
+func JobGroupScalingPolicyDiff(policyA, policyB *structs.GroupScalingPolicy) (isSame bool) {
+	policyAHash, err := hashstructure.Hash(policyA, nil)
+	if err != nil {
+		logging.Error("helper/funcs: errror hashing policy %v: ", policyA.GroupName, err)
+	}
+
+	policyBHash, err := hashstructure.Hash(policyB, nil)
+	if err != nil {
+		logging.Error("helper/funcs: errror hashing policy %v: ", policyB.GroupName, err)
+	}
+
+	if policyAHash == policyBHash {
+		isSame = true
+	}
+	return
 }
