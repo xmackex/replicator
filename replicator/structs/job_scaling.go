@@ -13,16 +13,16 @@ type JobScalingPolicies struct {
 // GroupScalingPolicy represents all the information needed to make JobTaskGroup
 // scaling decisions.
 type GroupScalingPolicy struct {
-	Cooldown       int  `mapstructure:"replicator-cooldown"`
-	Enabled        bool `mapstructure:"replicator-enabled"`
+	Cooldown       int  `mapstructure:"replicator_cooldown"`
+	Enabled        bool `mapstructure:"replicator_enabled"`
 	GroupName      string
-	Max            int            `mapstructure:"replicator-max"`
-	Min            int            `mapstructure:"replicator-min"`
+	Max            int            `mapstructure:"replicator_max"`
+	Min            int            `mapstructure:"replicator_min"`
 	ScaleDirection string         `hash:"ignore"`
-	ScaleInCPU     float64        `mapstructure:"replicator-scalein-cpu"`
-	ScaleInMem     float64        `mapstructure:"replicator-scalein-mem"`
+	ScaleInCPU     float64        `mapstructure:"replicator_scalein_cpu"`
+	ScaleInMem     float64        `mapstructure:"replicator_scalein_mem"`
 	ScalingMetric  string         `hash:"ignore"`
-	ScaleOutCPU    float64        `mapstructure:"replicator-scaleout-cpu"`
-	ScaleOutMem    float64        `mapstructure:"replicator-scaleout-mem"`
+	ScaleOutCPU    float64        `mapstructure:"replicator_scaleout_cpu"`
+	ScaleOutMem    float64        `mapstructure:"replicator_scaleout_mem"`
 	Tasks          TaskAllocation `hash:"ignore"`
 }

@@ -18,13 +18,13 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	groupName3 := "hertzfeld"
 
 	metaKeys := make(map[string]string)
-	metaKeys["replicator-enabled"] = "true"
-	metaKeys["replicator-max"] = "10000"
-	metaKeys["replicator-min"] = "7500"
-	metaKeys["replicator-scalein-mem"] = "40"
-	metaKeys["replicator-scalein-cpu"] = "40"
-	metaKeys["replicator-scaleout-mem"] = "90"
-	metaKeys["replicator-scaleout-cpu"] = "90"
+	metaKeys["replicator_enabled"] = "true"
+	metaKeys["replicator_max"] = "10000"
+	metaKeys["replicator_min"] = "7500"
+	metaKeys["replicator_scalein_mem"] = "40"
+	metaKeys["replicator_scalein_cpu"] = "40"
+	metaKeys["replicator_scaleout_mem"] = "90"
+	metaKeys["replicator_scaleout_cpu"] = "90"
 
 	updateScalingPolicy(jobName1, groupName1, metaKeys, scaling)
 	updateScalingPolicy(jobName2, groupName2, metaKeys, scaling)
@@ -128,19 +128,19 @@ func TestJobScalingPolicies_parseMeta(t *testing.T) {
 		t.Fatalf("expected 7 required keys to be returned, got %v", len(zeroKeyReturn))
 	}
 
-	metaKeys["replicator-enabled"] = "true"
-	metaKeys["replicator-max"] = "1000"
-	metaKeys["replicator-min"] = "750"
-	metaKeys["replicator-scalein-mem"] = "40"
-	metaKeys["replicator-scalein-cpu"] = "40"
-	metaKeys["replicator-scaleout-mem"] = "90"
+	metaKeys["replicator_enabled"] = "true"
+	metaKeys["replicator_max"] = "1000"
+	metaKeys["replicator_min"] = "750"
+	metaKeys["replicator_scalein_mem"] = "40"
+	metaKeys["replicator_scalein_cpu"] = "40"
+	metaKeys["replicator_scaleout_mem"] = "90"
 
 	partialKeyReturn := parseMeta(metaKeys)
 	if len(partialKeyReturn) != 1 {
 		t.Fatalf("expected 1 required keys to be returned, got %v", len(partialKeyReturn))
 	}
 
-	metaKeys["replicator-scaleout-cpu"] = "90"
+	metaKeys["replicator_scaleout_cpu"] = "90"
 
 	allKeysReturn := parseMeta(metaKeys)
 	if len(allKeysReturn) != 0 {

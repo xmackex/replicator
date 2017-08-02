@@ -242,13 +242,13 @@ func parseMeta(meta map[string]string) []string {
 
 	// These are our required key for Replicator
 	requiredKeys := []string{
-		"replicator-enabled",
-		"replicator-min",
-		"replicator-max",
-		"replicator-scalein-mem",
-		"replicator-scalein-cpu",
-		"replicator-scaleout-mem",
-		"replicator-scaleout-cpu",
+		"replicator_enabled",
+		"replicator_min",
+		"replicator_max",
+		"replicator_scalein_mem",
+		"replicator_scalein_cpu",
+		"replicator_scaleout_mem",
+		"replicator_scaleout_cpu",
 	}
 
 	// Iterate over the group meta and remove found keys from requiredKeys in order
