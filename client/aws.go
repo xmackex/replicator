@@ -63,24 +63,7 @@ func ScaleOutCluster(asgName string, nodeCount int, svc *autoscaling.AutoScaling
 		return err
 	}
 
-	// Evaluate the desired capacity against the current worker count and the
-	// MaxSize. Details of why we do the first check GH-70. If the desired
-	// capacity +1 is greater than the MaxSize the AWS call would fail so we bail
-	// anyway.
-	desiredCap := *asg.AutoScalingGroups[0].DesiredCapacity
-	maxSize := *asg.AutoScalingGroups[0].MaxSize
-
-	if desiredCap != int64(nodeCount) {
-		return fmt.Errorf("asg desired capacity %v does not match the current "+
-			"Nomad worker pool count %v", desiredCap, nodeCount)
-	}
-
-	if desiredCap+int64(1) > maxSize {
-		return fmt.Errorf("incrementing asg count would violate asg max size of %v",
-			maxSize)
-	}
-
-	// The DesiredCapacity is incramented by 1, while the TerminationPolicies and
+	// The DesiredCapacity is incremented by 1, while the TerminationPolicies and
 	// AvailabilityZones which are required parameters are copied from the Info
 	// received from the initial call to DescribeScalingGroup. These params could
 	// be directly referenced within UpdateAutoScalingGroupInput but are here for

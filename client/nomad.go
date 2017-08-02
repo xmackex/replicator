@@ -141,10 +141,39 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterCapacit
 		clusterUsedCapacity = capacity.UsedCapacity.MemoryMB
 	}
 
+	// Instantiate a new AWS auto scaling service object.
+	asgService := NewAWSAsgService(config.Region)
+
+	// Retrieve the auto scaling group name.
+	asgName := config.ClusterScaling.AutoscalingGroup
+
+	// Retrieve ASG configuration so we can check min/max/desired counts
+	// against the desired scaling action.
+	asg, err := DescribeScalingGroup(asgName, asgService)
+	if err != nil {
+		logging.Error("client/nomad: unable to retrieve worker pool ASG "+
+			"configuration to evaluate constraints: %v", err)
+		return
+	}
+
+	// Get the worker pool ASG min/max/desired constraints.
+	desiredCap := *asg.AutoScalingGroups[0].DesiredCapacity
+	maxSize := *asg.AutoScalingGroups[0].MaxSize
+	minSize := *asg.AutoScalingGroups[0].MinSize
+
 	if scaleDirection == ScalingDirectionIn {
-		// Determine if removing a node would violate safety thresholds or declared minimums
+		// If scaling in would violate the ASG min count, fail the safety check.
+		if desiredCap-1 < minSize {
+			logging.Debug("client/nomad: cluster scale-in operation would violate " +
+				"the worker pool ASG min count")
+			return
+		}
+
+		// Determine if removing a node would violate safety thresholds or
+		// declared minimums.
 		if (capacity.NodeCount <= 1) || ((capacity.NodeCount - 1) < config.ClusterScaling.MinSize) {
-			logging.Debug("client/nomad: cluster scale-in operation would violate safety thresholds or declared minimums")
+			logging.Debug("client/nomad: cluster scale-in operation would violate " +
+				"safety thresholds or declared minimums")
 			return
 		}
 
@@ -152,21 +181,35 @@ func (c *nomadClient) CheckClusterScalingSafety(capacity *structs.ClusterCapacit
 		newMaxAllowedUtilization := MaxAllowedClusterUtilization(capacity,
 			config.ClusterScaling.NodeFaultTolerance, true)
 
-		// Calculate utilization against new maximum allowed utilization, if utilization would be 90% or greater,
-		// we will not permit the scale-in operation.
+		// Calculate utilization against new maximum allowed utilization, if
+		// utilization would be 90% or greater, we will not permit the scale-in
+		// operation.
 		newClusterUtilization := percent.PercentOf(clusterUsedCapacity, newMaxAllowedUtilization)
 
-		logging.Debug("client/nomad: max allowed cluster utilization after simulated node removal: %v (percent utilized: %v)",
+		logging.Debug("client/nomad: max allowed cluster utilization after "+
+			"simulated node removal: %v (percent utilized: %v)",
 			newMaxAllowedUtilization, newClusterUtilization)
 
-		// Evaluate utilization against new maximum allowed threshold and stop if a violation is present.
+		// Evaluate utilization against new maximum allowed threshold and stop if
+		// a violation is present.
 		if (clusterUsedCapacity >= newMaxAllowedUtilization) || (newClusterUtilization >= scaleInCapacityThreshold) {
-			logging.Debug("client/nomad: cluster scale-in operation would violate or is too close to the maximum allowed cluster utilization threshold")
+			logging.Debug("client/nomad: cluster scale-in operation would violate " +
+				"or is too close to the maximum allowed cluster utilization threshold")
 			return
 		}
 	} else if scaleDirection == ScalingDirectionOut {
+		// If scaling out would violate the ASG max count, fail the safety check.
+		if desiredCap+1 > maxSize {
+			logging.Debug("client/nomad: cluster scale-out operation would violate " +
+				"the worker pool ASG max count")
+			return
+		}
+
+		// If scaling out would violate the Replicator max count, fail the safety
+		// check.
 		if (capacity.NodeCount + 1) > config.ClusterScaling.MaxSize {
-			logging.Debug("client/nomad: cluster scale-out operation would violate declared maximum threshold")
+			logging.Debug("client/nomad: cluster scale-out operation would violate " +
+				"the scaling maximum threshold")
 			return
 		}
 	}
