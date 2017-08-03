@@ -29,6 +29,13 @@ const (
 	ScalingDirectionNone = "None"
 )
 
+// Set of possible states for a job.
+const (
+	StatePending = "pending"
+	StateRunning = "running"
+	StateDead    = "dead"
+)
+
 const scaleInCapacityThreshold = 90.0
 const bytesPerMegabyte = 1024000
 
@@ -279,7 +286,7 @@ func (c *nomadClient) ClusterAssignedAllocation(clusterInfo *structs.ClusterCapa
 		}
 
 		for _, nodeAlloc := range allocations {
-			if (nodeAlloc.ClientStatus == "running") && (nodeAlloc.DesiredStatus == "run") {
+			if (nodeAlloc.ClientStatus == StateRunning) && (nodeAlloc.DesiredStatus == "run") {
 
 				// Add the consumed resources to the overall cluster consumed resource values.
 				clusterInfo.UsedCapacity.CPUMHz += *nodeAlloc.Resources.CPU
@@ -489,7 +496,7 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 			// Iterate over allocations, if any are running or pending, increment the active
 			// allocations counter.
 			for _, nodeAlloc := range allocations {
-				if (nodeAlloc.ClientStatus == "running") || (nodeAlloc.ClientStatus == "pending") {
+				if (nodeAlloc.ClientStatus == StateRunning) || (nodeAlloc.ClientStatus == "pending") {
 					activeAllocations++
 				}
 			}
@@ -507,48 +514,49 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 // JobScale takes a Scaling Policy and then attempts to scale the desired job
 // to the appropriate level whilst ensuring the event will not excede any job
 // thresholds set.
-func (c *nomadClient) JobScale(scalingDoc *structs.JobScalingPolicy) {
+func (c *nomadClient) JobScale(jobName string, jobScalingPolicies []*structs.GroupScalingPolicy) {
 
 	// In order to scale the job, we need information on the current status of the
 	// running job from Nomad.
-	jobResp, _, err := c.nomad.Jobs().Info(scalingDoc.JobName, &nomad.QueryOptions{})
+	jobResp, _, err := c.nomad.Jobs().Info(jobName, &nomad.QueryOptions{})
 
 	if err != nil {
-		logging.Info("client/nomad: unable to determine job info of %v", scalingDoc.JobName)
+		logging.Info("client/nomad: unable to determine job info of %v", jobName)
 		return
 	}
 
 	// Use the current task count in order to determine whether or not a
 	// scaling event will violate the min/max job policy and exit the function if
 	// it would.
-	for _, group := range scalingDoc.GroupScalingPolicies {
+	for _, group := range jobScalingPolicies {
 
-		if group.Scaling.ScaleDirection != "None" {
+		if group.ScaleDirection != "None" {
 
 			for i, taskGroup := range jobResp.TaskGroups {
-				if group.Scaling.ScaleDirection == "Out" && *taskGroup.Count >= group.Scaling.Max ||
-					group.Scaling.ScaleDirection == "In" && *taskGroup.Count <= group.Scaling.Min {
+				if group.ScaleDirection == "Out" && *taskGroup.Count >= group.Max ||
+					group.ScaleDirection == "In" && *taskGroup.Count <= group.Min {
 					logging.Debug("client/nomad: scale %v not permitted due to constraints on job \"%v\" and group \"%v\"",
-						group.Scaling.ScaleDirection, *jobResp.ID, group.GroupName)
+						group.ScaleDirection, *jobResp.ID, group.GroupName)
 					return
 				}
 
 				logging.Info("client/nomad: scaling action (%v) will now be initiated against job \"%v\" and group \"%v\"",
-					group.Scaling.ScaleDirection, scalingDoc.JobName, group.GroupName)
+					group.ScaleDirection, jobName, group.GroupName)
 				// Depending on the scaling direction decrement/incrament the count;
 				// currently replicator only supports addition/subtraction of 1.
-				if *taskGroup.Name == group.GroupName && group.Scaling.ScaleDirection == "Out" {
-					metrics.IncrCounter([]string{"job", scalingDoc.JobName, group.GroupName, "scale_out"}, 1)
+				if *taskGroup.Name == group.GroupName && group.ScaleDirection == "Out" {
+					metrics.IncrCounter([]string{"job", jobName, group.GroupName, "scale_out"}, 1)
 					*jobResp.TaskGroups[i].Count++
 				}
 
-				if *taskGroup.Name == group.GroupName && group.Scaling.ScaleDirection == "In" {
-					metrics.IncrCounter([]string{"job", scalingDoc.JobName, group.GroupName, "scale_in"}, 1)
+				if *taskGroup.Name == group.GroupName && group.ScaleDirection == "In" {
+					metrics.IncrCounter([]string{"job", jobName, group.GroupName, "scale_in"}, 1)
 					*jobResp.TaskGroups[i].Count--
 				}
 			}
 		}
 	}
+
 	// Nomad 0.5.5 introduced a Jobs.Validate endpoint within the API package
 	// which validates the job syntax before submition.
 	_, _, err = c.nomad.Jobs().Validate(jobResp, &nomad.WriteOptions{})
@@ -586,34 +594,32 @@ func (c *nomadClient) GetTaskGroupResources(jobName string, groupPolicy *structs
 // EvaluateJobScaling identifies Nomad allocations representative of a Job group
 // and compares the consumed resource percentages against the scaling policy to
 // determine whether a scaling event is required.
-func (c *nomadClient) EvaluateJobScaling(jobs []*structs.JobScalingPolicy) {
-	for _, policy := range jobs {
-		for _, gsp := range policy.GroupScalingPolicies {
-			c.GetTaskGroupResources(policy.JobName, gsp)
+func (c *nomadClient) EvaluateJobScaling(jobName string, jobScalingPolicies []*structs.GroupScalingPolicy) {
+	for _, gsp := range jobScalingPolicies {
+		c.GetTaskGroupResources(jobName, gsp)
 
-			allocs, _, err := c.nomad.Jobs().Allocations(policy.JobName, false, &nomad.QueryOptions{})
-			if err != nil {
-				logging.Error("client/nomad: failed to retrieve allocations for job %v: %v\n", policy.JobName, err)
+		allocs, _, err := c.nomad.Jobs().Allocations(jobName, false, &nomad.QueryOptions{})
+		if err != nil {
+			logging.Error("client/nomad: failed to retrieve allocations for job %v: %v\n", jobName, err)
+		}
+
+		c.GetJobAllocations(allocs, gsp)
+		c.MostUtilizedGroupResource(gsp)
+
+		switch gsp.ScalingMetric {
+		case ScalingMetricProcessor:
+			if gsp.Tasks.Resources.CPUPercent > gsp.ScaleOutCPU {
+				gsp.ScaleDirection = ScalingDirectionOut
 			}
-
-			c.GetJobAllocations(allocs, gsp)
-			c.MostUtilizedGroupResource(gsp)
-
-			switch gsp.ScalingMetric {
-			case ScalingMetricProcessor:
-				if gsp.Tasks.Resources.CPUPercent > gsp.Scaling.ScaleOut.CPU {
-					gsp.Scaling.ScaleDirection = ScalingDirectionOut
-				}
-			case ScalingMetricMemory:
-				if gsp.Tasks.Resources.MemoryPercent > gsp.Scaling.ScaleOut.MEM {
-					gsp.Scaling.ScaleDirection = ScalingDirectionOut
-				}
+		case ScalingMetricMemory:
+			if gsp.Tasks.Resources.MemoryPercent > gsp.ScaleOutMem {
+				gsp.ScaleDirection = ScalingDirectionOut
 			}
+		}
 
-			if (gsp.Tasks.Resources.CPUPercent < gsp.Scaling.ScaleIn.CPU) &&
-				(gsp.Tasks.Resources.MemoryPercent < gsp.Scaling.ScaleIn.MEM) {
-				gsp.Scaling.ScaleDirection = ScalingDirectionIn
-			}
+		if (gsp.Tasks.Resources.CPUPercent < gsp.ScaleInCPU) &&
+			(gsp.Tasks.Resources.MemoryPercent < gsp.ScaleInMem) {
+			gsp.ScaleDirection = ScalingDirectionIn
 		}
 	}
 }
@@ -621,7 +627,7 @@ func (c *nomadClient) EvaluateJobScaling(jobs []*structs.JobScalingPolicy) {
 // GetJobAllocations identifies all allocations for an active job.
 func (c *nomadClient) GetJobAllocations(allocs []*nomad.AllocationListStub, gsp *structs.GroupScalingPolicy) {
 	for _, allocationStub := range allocs {
-		if (allocationStub.ClientStatus == "running") && (allocationStub.DesiredStatus == "run") {
+		if (allocationStub.ClientStatus == StateRunning) && (allocationStub.DesiredStatus == "run") {
 			if alloc, _, err := c.nomad.Allocations().Info(allocationStub.ID, &nomad.QueryOptions{}); err == nil && alloc != nil {
 				c.GetAllocationStats(alloc, gsp)
 			}

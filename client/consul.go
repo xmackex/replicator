@@ -1,10 +1,8 @@
 package client
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -39,47 +37,6 @@ func NewConsulClient(addr, token string) (structs.ConsulClient, error) {
 	}
 
 	return &consulClient{consul: c}, nil
-}
-
-// GetJobScalingPolicies provides a list of Nomad jobs with a defined scaling
-// policy document at a specified Consuk Key/Value Store location. Supports
-// the use of an ACL token if required by the Consul cluster.
-func (c *consulClient) GetJobScalingPolicies(config *structs.Config, nomadClient structs.NomadClient) ([]*structs.JobScalingPolicy, error) {
-
-	defer metrics.MeasureSince([]string{"job", "config_read"}, time.Now())
-
-	var entries []*structs.JobScalingPolicy
-	keyPath := config.ConsulKeyLocation + "/" + "jobs"
-
-	kvClient := c.consul.KV()
-	resp, _, err := kvClient.List(keyPath, nil)
-	if err != nil {
-		return entries, err
-	}
-
-	// Loop the returned list to gather information on each and every job that
-	// has a scaling document.
-	for _, job := range resp {
-		// The results Value is base64 encoded. It is decoded and marshalled into
-		// the appropriate struct.
-		uEnc := base64.URLEncoding.EncodeToString([]byte(job.Value))
-		uDec, _ := base64.URLEncoding.DecodeString(uEnc)
-		s := &structs.JobScalingPolicy{}
-		json.Unmarshal(uDec, s)
-
-		// Trim the Key and its trailing slash to find the job name.
-		s.JobName = strings.TrimPrefix(job.Key, keyPath+"/")
-
-		// Check to see whether the job has running task groups before appending
-		// to the return.
-		if nomadClient.IsJobRunning(s.JobName) {
-			// Each scaling policy document is then appended to a list to form a full
-			// view of all scaling documents available to the cluster.
-			entries = append(entries, s)
-		}
-	}
-
-	return entries, nil
 }
 
 // LoadState attempts to read state tracking information from the Consul

@@ -26,7 +26,7 @@ type NomadClient interface {
 
 	// EvaluateJobScaling compares the consumed resource percentages of a Job group
 	// against its scaling policy to determine whether a scaling event is required.
-	EvaluateJobScaling([]*JobScalingPolicy)
+	EvaluateJobScaling(string, []*GroupScalingPolicy)
 
 	// GetAllocationStats discovers the resources consumed by a particular Nomad
 	// allocation.
@@ -42,7 +42,11 @@ type NomadClient interface {
 	// JobScale takes a scaling policy and then attempts to scale the desired job
 	// to the appropriate level whilst ensuring the event will not excede any job
 	// thresholds set.
-	JobScale(*JobScalingPolicy)
+	JobScale(string, []*GroupScalingPolicy)
+
+	// JobWatcher is the main entry point into Replicators process of reading and
+	// updating its JobScalingPolicies tracking.
+	JobWatcher(*JobScalingPolicies)
 
 	// LeastAllocatedNode determines which worker pool node is consuming the
 	// least amount of the cluster's most-utilized resource. If Replicator is

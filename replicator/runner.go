@@ -12,15 +12,15 @@ import (
 
 // Runner is the main runner struct.
 type Runner struct {
-	// doneChan is where finish notifications occur.
-	doneChan chan bool
+	// candaidate is our LeaderCandidate for the runner instance.
+	candidate *LeaderCandidate
 
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
 	config *structs.Config
 
-	// candaidate is our LeaderCandidate for the runner instance.
-	candidate *LeaderCandidate
+	// doneChan is where finish notifications occur.
+	doneChan chan bool
 }
 
 // NewRunner sets up the Runner type.
@@ -45,6 +45,10 @@ func (r *Runner) Start() {
 	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey, r.config.ScalingInterval)
 
 	defer ticker.Stop()
+
+	// Setup our JobScalingPolicy Watcher and start running this.
+	jobScalingPolicy := newJobScalingPolicy()
+	go r.config.NomadClient.JobWatcher(jobScalingPolicy)
 
 	for {
 		select {
@@ -86,7 +90,7 @@ func (r *Runner) Start() {
 				go r.clusterScaling(clusterChan, state)
 				<-clusterChan
 
-				r.jobScaling()
+				r.jobScaling(jobScalingPolicy)
 			}
 
 		case <-r.doneChan:
@@ -153,7 +157,7 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 		logging.Debug("core/runner: cluster scaling cooldown threshold %v has "+
 			"been reached, scaling operations will be permitted", cooldown)
 	} else {
-		logging.Info("core/runner: no previous scaling operations have " +
+		logging.Debug("core/runner: no previous scaling operations have " +
 			"occurred, scaling operations will be permitted.")
 	}
 
@@ -315,58 +319,4 @@ func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
 	done <- true
 	metrics.IncrCounter([]string{"cluster", "scale_out_success"}, 1)
 	return
-}
-
-// jobScaling is the main entry point for the Nomad job scaling functionality
-// and ties together a number of functions to be called from the runner.
-func (r *Runner) jobScaling() {
-
-	// Scaling a Cluster Jobs requires access to both Consul and Nomad therefore
-	// we setup the clients here.
-	consulClient := r.config.ConsulClient
-	nomadClient := r.config.NomadClient
-
-	// Pull the list of all currently running jobs which have a defined scaling
-	// document. Fail quickly if we can't retrieve this list.
-	resp, err := consulClient.GetJobScalingPolicies(r.config, nomadClient)
-	if err != nil {
-		logging.Error("core/runner: failed to determine if any jobs have scaling "+
-			"policies enabled \n%v", err)
-		return
-	}
-
-	// EvaluateJobScaling identifies whether each of the Job.Groups requires a
-	// scaling event to be triggered. This is then iterated so the individual
-	// groups can be assesed.
-	nomadClient.EvaluateJobScaling(resp)
-	for _, job := range resp {
-
-		// Due to the nested nature of the job and group Nomad definitions a dumb
-		// metric is used to determine whether the job has 1 or more groups which
-		// require scaling.
-		i := 0
-
-		for _, group := range job.GroupScalingPolicies {
-			if group.Scaling.ScaleDirection == client.ScalingDirectionOut || group.Scaling.ScaleDirection == client.ScalingDirectionIn {
-				if job.Enabled && r.config.JobScaling.Enabled {
-					logging.Debug("core/runner: scaling for job \"%v\" is enabled; a "+
-						"scaling operation (%v) will be requested for group \"%v\"",
-						job.JobName, group.Scaling.ScaleDirection, group.GroupName)
-					i++
-				} else {
-					logging.Debug("core/runner: job scaling has been disabled; a "+
-						"scaling operation (%v) would have been requested for \"%v\" "+
-						"and group \"%v\"", group.Scaling.ScaleDirection, job.JobName,
-						group.GroupName)
-				}
-			}
-		}
-
-		// If 1 or more groups need to be scaled we submit the whole job for
-		// scaling as to scale you must submit the whole job file currently. The
-		// JobScale function takes care of scaling groups independently.
-		if i > 0 {
-			nomadClient.JobScale(job)
-		}
-	}
 }
