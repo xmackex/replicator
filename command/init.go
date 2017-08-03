@@ -22,9 +22,7 @@ func (c *InitCommand) Help() string {
 	helpText := `
 Usage: replicator init [options]
 
-  Creates an example scaling document that can be used as a starting
-  point  to customize further. The example is designed to work with the
-  'nomad init' job example.
+  Creates example job and cluster scaling configurations.
 
   General Options:
 
