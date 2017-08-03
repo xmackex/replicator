@@ -1,4 +1,4 @@
-## 0.0.2 (Unreleased)
+## 0.0.2 (03 August 2017)
 
 IMPROVEMENTS:
 
@@ -24,7 +24,7 @@ transitioned to a terminated state. [GH-80]
 * Make use of telemetry configuration by sending key metrics. [GH-85]
 * Replicator now runs leadership locking using Consul sessions +  KV [GH-101]
 * Introduce distributed failsafe mode and new failsafe CLI command [GH-105]
-* `cluster-scaling-theshold` parameter is now used to determine scaling saftey [GH-115]
+* `cluster-scaling-theshold` parameter is now used to determine scaling safety [GH-115]
 
 BUG FIXES:
 
@@ -32,6 +32,8 @@ BUG FIXES:
 scaling operations. [GH-81]
 * Prevent Divide By Zero Panic When Replicator Detects No Healthy Worker
 Nodes. [GH-55]
+* Prevent Cluster Scaling Operations That Would Violate ASG Constraints.
+[GH-142]
 
 ## 0.0.1 (02 May 2017)
 
