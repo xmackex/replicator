@@ -77,7 +77,7 @@ Usage: replicator failsafe [options]
 
 // Synopsis is provides a brief summary of the failsafe command.
 func (c *FailsafeCommand) Synopsis() string {
-	return "Provide an administrative interface to control failsafe mode."
+	return "Provide an administrative interface to control failsafe mode"
 }
 
 // Run triggers the failsafe command to update the distributed state tracking
