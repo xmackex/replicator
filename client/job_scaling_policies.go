@@ -242,6 +242,7 @@ func parseMeta(meta map[string]string) []string {
 
 	// These are our required key for Replicator
 	requiredKeys := []string{
+		"replicator_cooldown",
 		"replicator_enabled",
 		"replicator_min",
 		"replicator_max",
