@@ -1,5 +1,9 @@
 ## 0.0.3 (Unreleased)
 
+IMPROVEMENTS:
+
+* Nomad JobScaling now uses meta parameters within the job file for configuration [GH-139]
+
 ## 0.0.2 (03 August 2017)
 
 IMPROVEMENTS:
