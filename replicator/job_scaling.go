@@ -2,6 +2,7 @@ package replicator
 
 import (
 	"sync"
+	"time"
 
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
@@ -46,6 +47,15 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 
 			jobScalingPolicies.Lock.RLock()
 			for _, group := range groups {
+
+				cd := time.Duration(group.Cooldown) * time.Second
+
+				if !group.LastScalingEvent.Before(time.Now().Add(cd)) {
+					logging.Debug("core/job_scaling: job \"%v\" and group \"%v\" has not reached scaling cooldown threshold of %s",
+						job, group.GroupName, cd)
+					continue
+				}
+
 				if group.ScaleDirection == client.ScalingDirectionOut || group.ScaleDirection == client.ScalingDirectionIn {
 					if group.Enabled && r.config.JobScaling.Enabled {
 						logging.Debug("core/job_scaling: scaling for job \"%v\" is enabled; a "+
@@ -55,8 +65,7 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 					} else {
 						logging.Debug("core/job_scaling: job scaling has been disabled; a "+
 							"scaling operation (%v) would have been requested for \"%v\" "+
-							"and group \"%v\"", group.ScaleDirection, job,
-							group.GroupName)
+							"and group \"%v\"", group.ScaleDirection, job, group.GroupName)
 					}
 				}
 			}

@@ -18,6 +18,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	groupName3 := "hertzfeld"
 
 	metaKeys := make(map[string]string)
+	metaKeys["replicator_cooldown"] = "60"
 	metaKeys["replicator_enabled"] = "true"
 	metaKeys["replicator_max"] = "10000"
 	metaKeys["replicator_min"] = "7500"
@@ -35,6 +36,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	}
 	policy1 := &structs.GroupScalingPolicy{
 		GroupName:   "cache",
+		Cooldown:    60,
 		Enabled:     true,
 		Min:         7500,
 		Max:         10000,
@@ -45,6 +47,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	}
 	policy2 := &structs.GroupScalingPolicy{
 		GroupName:   "jobs",
+		Cooldown:    60,
 		Enabled:     true,
 		Min:         7500,
 		Max:         10000,
@@ -55,6 +58,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	}
 	policy3 := &structs.GroupScalingPolicy{
 		GroupName:   "hertzfeld",
+		Cooldown:    60,
 		Enabled:     true,
 		Min:         7500,
 		Max:         10000,
@@ -104,6 +108,7 @@ func TestJobScalingPolicies_checkOrphanedGroup(t *testing.T) {
 
 	policy2 := &structs.GroupScalingPolicy{
 		GroupName:   "cache2",
+		Cooldown:    60,
 		Enabled:     true,
 		Min:         7500,
 		Max:         10000,
@@ -124,10 +129,11 @@ func TestJobScalingPolicies_parseMeta(t *testing.T) {
 	metaKeys := make(map[string]string)
 
 	zeroKeyReturn := parseMeta(metaKeys)
-	if len(zeroKeyReturn) != 7 {
-		t.Fatalf("expected 7 required keys to be returned, got %v", len(zeroKeyReturn))
+	if len(zeroKeyReturn) != 8 {
+		t.Fatalf("expected 8 required keys to be returned, got %v", len(zeroKeyReturn))
 	}
 
+	metaKeys["replicator_cooldown"] = "60"
 	metaKeys["replicator_enabled"] = "true"
 	metaKeys["replicator_max"] = "1000"
 	metaKeys["replicator_min"] = "750"
@@ -154,6 +160,7 @@ func exampleJobScalingPolicies() *structs.JobScalingPolicies {
 	}
 	policy := &structs.GroupScalingPolicy{
 		GroupName:   "cache",
+		Cooldown:    60,
 		Enabled:     true,
 		Min:         750,
 		Max:         1000,

@@ -5,7 +5,6 @@ import (
 	"math"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
 	"github.com/dariubs/percent"
 	"github.com/elsevier-core-engineering/replicator/helper"
 	"github.com/elsevier-core-engineering/replicator/logging"
@@ -509,70 +508,6 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 			logging.Info("client/nomad: node %v has %v active allocations, pausing and will re-poll allocations", nodeID, activeAllocations)
 		}
 	}
-}
-
-// JobScale takes a Scaling Policy and then attempts to scale the desired job
-// to the appropriate level whilst ensuring the event will not excede any job
-// thresholds set.
-func (c *nomadClient) JobScale(jobName string, jobScalingPolicies []*structs.GroupScalingPolicy) {
-
-	// In order to scale the job, we need information on the current status of the
-	// running job from Nomad.
-	jobResp, _, err := c.nomad.Jobs().Info(jobName, &nomad.QueryOptions{})
-
-	if err != nil {
-		logging.Info("client/nomad: unable to determine job info of %v", jobName)
-		return
-	}
-
-	// Use the current task count in order to determine whether or not a
-	// scaling event will violate the min/max job policy and exit the function if
-	// it would.
-	for _, group := range jobScalingPolicies {
-
-		if group.ScaleDirection != "None" {
-
-			for i, taskGroup := range jobResp.TaskGroups {
-				if group.ScaleDirection == "Out" && *taskGroup.Count >= group.Max ||
-					group.ScaleDirection == "In" && *taskGroup.Count <= group.Min {
-					logging.Debug("client/nomad: scale %v not permitted due to constraints on job \"%v\" and group \"%v\"",
-						group.ScaleDirection, *jobResp.ID, group.GroupName)
-					return
-				}
-
-				logging.Info("client/nomad: scaling action (%v) will now be initiated against job \"%v\" and group \"%v\"",
-					group.ScaleDirection, jobName, group.GroupName)
-				// Depending on the scaling direction decrement/incrament the count;
-				// currently replicator only supports addition/subtraction of 1.
-				if *taskGroup.Name == group.GroupName && group.ScaleDirection == "Out" {
-					metrics.IncrCounter([]string{"job", jobName, group.GroupName, "scale_out"}, 1)
-					*jobResp.TaskGroups[i].Count++
-				}
-
-				if *taskGroup.Name == group.GroupName && group.ScaleDirection == "In" {
-					metrics.IncrCounter([]string{"job", jobName, group.GroupName, "scale_in"}, 1)
-					*jobResp.TaskGroups[i].Count--
-				}
-			}
-		}
-	}
-
-	// Nomad 0.5.5 introduced a Jobs.Validate endpoint within the API package
-	// which validates the job syntax before submition.
-	_, _, err = c.nomad.Jobs().Validate(jobResp, &nomad.WriteOptions{})
-	if err != nil {
-		return
-	}
-
-	// Submit the job to the Register API endpoint with the altered count number
-	// and check that no error is returned.
-	_, _, err = c.nomad.Jobs().Register(jobResp, &nomad.WriteOptions{})
-	if err != nil {
-		return
-	}
-
-	logging.Info("client/nomad: scaling action successfully taken against job \"%v\"", *jobResp.ID)
-	return
 }
 
 // GetTaskGroupResources finds the defined resource requirements for a
