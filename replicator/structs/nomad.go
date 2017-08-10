@@ -35,6 +35,10 @@ type NomadClient interface {
 	// GetJobAllocations identifies all allocations for an active job.
 	GetJobAllocations([]*nomad.AllocationListStub, *GroupScalingPolicy)
 
+	// IsJobInDeployment checks to see whether the supplied Nomad job is currently
+	// in the process of a deployment.
+	IsJobInDeployment(string) bool
+
 	// IsJobRunning checks to see whether the specified jobID has any currently
 	// task groups on the cluster.
 	IsJobRunning(string) bool
