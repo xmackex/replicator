@@ -29,6 +29,11 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 
 	for job, groups := range jobScalingPolicies.Policies {
 
+		if nomadClient.IsJobInDeployment(job) {
+			logging.Debug("core/job_scaling: job %s is in deployment, no scaling evaluation will be triggerd", job)
+			continue
+		}
+
 		// Launch a routine for each job so that we can concurrantly run job scaling
 		// functions as much as a map will allow.
 		go func(job string, groups []*structs.GroupScalingPolicy) {
@@ -50,7 +55,7 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 
 				cd := time.Duration(group.Cooldown) * time.Second
 
-				if !group.LastScalingEvent.Before(time.Now().Add(cd)) {
+				if !group.LastScalingEvent.Before(time.Now().Add(-cd)) {
 					logging.Debug("core/job_scaling: job \"%v\" and group \"%v\" has not reached scaling cooldown threshold of %s",
 						job, group.GroupName, cd)
 					continue

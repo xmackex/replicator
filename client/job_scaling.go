@@ -7,6 +7,11 @@ import (
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	nomad "github.com/hashicorp/nomad/api"
+	nomadstructs "github.com/hashicorp/nomad/nomad/structs"
+)
+
+const (
+	deploymentTimeOut = 15 * time.Minute
 )
 
 // JobScale takes a Scaling Policy and then attempts to scale the desired job
@@ -60,12 +65,88 @@ func (c *nomadClient) JobScale(jobName string, jobScalingPolicies []*structs.Gro
 
 	// Submit the job to the Register API endpoint with the altered count number
 	// and check that no error is returned.
-	if _, _, err = c.nomad.Jobs().Register(jobResp, &nomad.WriteOptions{}); err != nil {
-		logging.Error("client/job_scaling: issue submitting job %s for scaling action: %v",
-			jobName, err)
+	resp, _, err := c.nomad.Jobs().Register(jobResp, &nomad.WriteOptions{})
+	if err != nil {
+		logging.Error("client/job_scaling: issue submitting job %s for scaling action: %v", jobName, err)
 		return
 	}
 
-	logging.Info("client/job_scaling: scaling action successfully taken against job \"%v\"", *jobResp.ID)
-	return
+	success := c.scaleConfirmation(resp.EvalID)
+
+	// :TODO update this section to invoke failsafe for the job if scaling has
+	// failed.
+	if !success {
+		logging.Error("client/job_scaling: scale of job %s failed, failsafe will be enabled", jobName)
+	}
+}
+
+// scaleConfirmation takes the EvaluationID from the job registration and checks
+// via a timer and blocking queries that the resulting deployment completes
+// successfully.
+func (c *nomadClient) scaleConfirmation(evalID string) (success bool) {
+
+	eval, _, err := c.nomad.Evaluations().Info(evalID, nil)
+	if err != nil {
+		logging.Error("client/job_scaling: unable to obtain eval info for %s: %v", evalID, err)
+		return
+	}
+
+	timeOut := time.After(deploymentTimeOut)
+	tick := time.Tick(500 * time.Millisecond)
+	depID := eval.DeploymentID
+	q := &nomad.QueryOptions{WaitIndex: 1, AllowStale: true}
+
+	for {
+		select {
+		case <-timeOut:
+			logging.Error("client/job_scaling: deployment %s reached timeout %v", depID, deploymentTimeOut)
+			return
+
+		case <-tick:
+			dep, meta, err := c.nomad.Deployments().Info(depID, q)
+			if err != nil {
+				logging.Error("client/job_scaling: unable to list Nomad deployment %s: %v", depID, err)
+				return
+			}
+
+			// Check the LastIndex for an update.
+			if meta.LastIndex <= q.WaitIndex {
+				continue
+			}
+
+			q.WaitIndex = meta.LastIndex
+
+			// Check the deployment status.
+			if dep.Status == nomadstructs.DeploymentStatusSuccessful {
+				logging.Info("client/job_scaling: deployment %s of job %s successfully completed", depID, dep.JobID)
+				return true
+			} else if dep.Status == nomadstructs.DeploymentStatusRunning {
+				logging.Debug("client/job_scaling: deployment %s of job %s still in progress", depID, dep.JobID)
+				continue
+			} else {
+				return false
+			}
+		}
+	}
+}
+
+// IsJobInDeployment checks to see whether the supplied Nomad job is currently
+// in the process of a deployment.
+func (c *nomadClient) IsJobInDeployment(jobName string) (isRunning bool) {
+
+	resp, _, err := c.nomad.Jobs().LatestDeployment(jobName, nil)
+
+	if err != nil {
+		logging.Error("client/job_scaling: unable to list Nomad deployments: %v", err)
+		return
+	}
+
+	switch resp.Status {
+	case nomadstructs.DeploymentStatusRunning:
+		return true
+	case nomadstructs.DeploymentStatusDescriptionPaused:
+		return true
+	default:
+		return false
+	}
 }

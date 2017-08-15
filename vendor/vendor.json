@@ -379,10 +379,10 @@
 			"revisionTime": "2017-02-17T16:47:38Z"
 		},
 		{
-			"checksumSHA1": "1SPpfXGKa3bKhRMutnzH+OOWci8=",
+			"checksumSHA1": "o4WnZLWfSGYHnMkQwMybG0mvI2E=",
 			"path": "github.com/hashicorp/nomad/api",
-			"revision": "e943b953c19b862e3e4c4ba5fd311d52e9058499",
-			"revisionTime": "2017-03-15T18:30:28Z"
+			"revision": "d1aa60bdf42ff4816613ceb53077b5c4629fd353",
+			"revisionTime": "2017-08-07T23:40:54Z"
 		},
 		{
 			"checksumSHA1": "b7n7AQRAa7Lb763wJEjpxXaQZ00=",
@@ -403,10 +403,10 @@
 			"revisionTime": "2017-03-15T18:30:28Z"
 		},
 		{
-			"checksumSHA1": "3Ep23BD/FtLVO84ga/tHtPguXwo=",
+			"checksumSHA1": "dKuf/y8L3Q8vx/3OkVgQQ84137M=",
 			"path": "github.com/hashicorp/nomad/nomad/structs",
-			"revision": "e943b953c19b862e3e4c4ba5fd311d52e9058499",
-			"revisionTime": "2017-03-15T18:30:28Z"
+			"revision": "d1aa60bdf42ff4816613ceb53077b5c4629fd353",
+			"revisionTime": "2017-08-07T23:40:54Z"
 		},
 		{
 			"checksumSHA1": "wpirHJV/6VEbbD+HyAP2/6Xc0ek=",
@@ -516,6 +516,12 @@
 			"path": "github.com/ugorji/go/codec",
 			"revision": "e943b953c19b862e3e4c4ba5fd311d52e9058499",
 			"revisionTime": "2017-03-15T18:30:28Z"
+		},
+		{
+			"checksumSHA1": "NqlOcIqzDg46JUFFXqZdKUER0B0=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "d8f5ea21b9295e315e612b4bcf4bedea93454d4d",
+			"revisionTime": "2017-08-03T09:04:06Z"
 		}
 	],
 	"rootPath": "github.com/elsevier-core-engineering/replicator"
