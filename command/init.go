@@ -8,9 +8,8 @@ import (
 )
 
 const (
-	// DefaultInitName is the default name we use when
-	// initializing the example file
-	DefaultInitName = "example.json"
+	defaultJobScalingName     = "job_scaling.hcl"
+	defaultClusterScalingName = "cluster_scaling.hcl"
 )
 
 // InitCommand is the command implamentation for init.
@@ -21,53 +20,109 @@ type InitCommand struct {
 // Help provides the help information for the init command.
 func (c *InitCommand) Help() string {
 	helpText := `
-Usage: replicator init
+Usage: replicator init [options]
 
-  Creates an example scaling document that can be used as a
-  starting point to customize further. The example is designed
-  to work with the 'nomad init' job example.
+  Creates example job and cluster scaling configurations.
+
+  General Options:
+
+    -job-scaling
+      Write a file which contains example job scaling configuration. This
+      can be used directly within the Nomad job specification file to enable
+      scaling for the desired job group.
+
+    -cluster-scaling
+      Write a file which contains example cluster scaling configuration.
+      This can be adapted to your configuration management to enable
+      cluster scaling.
 `
 	return strings.TrimSpace(helpText)
 }
 
 // Synopsis is provides a brief summary of the init command.
 func (c *InitCommand) Synopsis() string {
-	return "Create an example Replicator job scaling document"
+	return "Create example Replicator job and cluster scaling configurations"
 }
 
 // Run triggers the init command to write the example.json file out to the
 // current directory.
 func (c *InitCommand) Run(args []string) int {
 
-	// The command should be used with 0 extra flags.
-	if len(args) != 0 {
-		c.UI.Error(c.Help())
+	var jobScaling, clusterScaling bool
+
+	// Initialize command flags.
+	flags := c.Meta.FlagSet("init", FlagSetClient)
+	flags.Usage = func() { c.UI.Error(c.Help()) }
+
+	// General configuration flags.
+	flags.BoolVar(&jobScaling, "job-scaling", false, "")
+	flags.BoolVar(&clusterScaling, "cluster-scaling", false, "")
+
+	// Parse the passed CLI flags.
+	if err := flags.Parse(args); err != nil {
 		return 1
 	}
 
-	// Check if the file already exists.
-	_, err := os.Stat(DefaultInitName)
-	if err != nil && !os.IsNotExist(err) {
-		c.UI.Error(fmt.Sprintf("Failed to stat '%s': %v", DefaultInitName, err))
-		return 1
+	if jobScaling || len(args) == 0 {
+		err := c.writeFile(defaultJobScalingName, defaultJobScalingDocument)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Unable to write file %s: %v", defaultJobScalingName, err))
+			return 1
+		}
 	}
+
+	if clusterScaling || len(args) == 0 {
+		err := c.writeFile(defaultClusterScalingName, defaultClusterScalingDocument)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Unable to write file %s: %v", defaultClusterScalingName, err))
+			return 1
+		}
+	}
+	return 0
+}
+
+func (c *InitCommand) writeFile(file, content string) (err error) {
+
+	// Check if the file already exists.
+	if _, err = os.Stat(file); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
 	if !os.IsNotExist(err) {
-		c.UI.Error(fmt.Sprintf("Scaling document '%s' already exists", DefaultInitName))
-		return 1
+		return fmt.Errorf("scaling document already exists")
 	}
 
 	// Write the example file to the relative local directory where Replicator
 	// was invoked from.
-	err = ioutil.WriteFile(DefaultInitName, []byte(defaultScalingDocument), 0660)
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to write '%s': %v", DefaultInitName, err))
-		return 1
+	if err = ioutil.WriteFile(file, []byte(content), 0660); err != nil {
+		return err
 	}
 
-	c.UI.Output(fmt.Sprintf("Example scaling document file written to %s", DefaultInitName))
-	return 0
+	c.UI.Info(fmt.Sprintf("Example scaling configuration written to %s", file))
+	return
 }
 
-var defaultScalingDocument = strings.TrimSpace(`
-{"enabled":true,"groups":[{"name":"cache","scaling":{"min":1,"max":3,"scaleout":{"cpu":80,"mem":80},"scalein":{"cpu":30,"mem":30}}}]}
+var defaultJobScalingDocument = strings.TrimSpace(`
+meta {
+  "replicator_max"          =  9
+  "replicator_enabled"      = true
+  "replicator_min"          = 1
+  "replicator_scalein_mem"  = 30
+  "replicator_scalein_cpu"  = 30
+  "replicator_scaleout_mem" = 80
+  "replicator_scaleout_cpu" = 80
+}
+`)
+
+var defaultClusterScalingDocument = strings.TrimSpace(`
+meta {
+  "replicator_enabled"              = true
+  "replicator_max_size"             = 10
+  "replicator_min_size"             = 5
+  "replicator_cool_down"            = 400
+  "replicator_node_fault_tolerance" = 1
+  "replicator_autoscaling_group"    = "container-node-public-prod"
+  "replicator_retry_threshold"      = 3
+  "replicator_scaling_threshold"    = 3
+}
 `)

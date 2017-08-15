@@ -18,13 +18,13 @@ func TestInitCommand_Run(t *testing.T) {
 	cmd := &InitCommand{Meta: Meta{UI: ui}}
 
 	// Fails on misuse
-	if code := cmd.Run([]string{"some", "bad", "args"}); code != 1 {
+	if code := cmd.Run([]string{"-this", "-is", "-just", "-shocking"}); code != 1 {
 		t.Fatalf("expect exit code 1, got: %d", code)
 	}
 	if out := ui.ErrorWriter.String(); !strings.Contains(out, cmd.Help()) {
 		t.Fatalf("expect help output, got: %s", out)
 	}
-	ui.ErrorWriter.Reset()
+	// ui.ErrorWriter.Reset()
 
 	// Ensure we change the cwd back
 	origDir, err := os.Getwd()
@@ -47,11 +47,11 @@ func TestInitCommand_Run(t *testing.T) {
 	if code := cmd.Run([]string{}); code != 0 {
 		t.Fatalf("expect exit code 0, got: %d", code)
 	}
-	content, err := ioutil.ReadFile(DefaultInitName)
+	content, err := ioutil.ReadFile(defaultJobScalingName)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if string(content) != defaultScalingDocument {
+	if string(content) != defaultJobScalingDocument {
 		t.Fatalf("unexpected file content\n\n%s", string(content))
 	}
 
