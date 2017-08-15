@@ -6,6 +6,13 @@ import (
 	nomad "github.com/hashicorp/nomad/api"
 )
 
+// Set of possible states for a node.
+const (
+	NodeStatusInit  = "initializing"
+	NodeStatusReady = "ready"
+	NodeStatusDown  = "down"
+)
+
 // NomadClient exposes all API methods needed to interact with the Nomad API,
 // evaluate cluster capacity and allocations and make scaling decisions.
 type NomadClient interface {
@@ -61,6 +68,10 @@ type NomadClient interface {
 	// NodeReverseLookup provides a method to get the ID of the worker pool node
 	// running a given allocation.
 	NodeReverseLookup(string) (string, error)
+
+	// NodeWatcher provides an automated mechanism to discover worker pools and
+	// nodes and populate the node registry.
+	NodeWatcher(*NodeRegistry)
 
 	// MostUtilizedResource calculates which resource is most-utilized across the
 	// cluster. The worst-case allocation resource is prioritized when making
