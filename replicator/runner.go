@@ -50,6 +50,10 @@ func (r *Runner) Start() {
 	jobScalingPolicy := newJobScalingPolicy()
 	go r.config.NomadClient.JobWatcher(jobScalingPolicy)
 
+	// Setup the node registry and initiate worker pool and node discovery.
+	NodeRegistry := newNodeRegistry()
+	go r.config.NomadClient.NodeWatcher(NodeRegistry)
+
 	for {
 		select {
 		case <-ticker.C:

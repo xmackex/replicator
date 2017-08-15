@@ -4,7 +4,18 @@ import (
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
+	"sync"
 )
+
+// newNodeRegistry returns a new NodeRegistry object to allow Replicator
+// to track discovered worker pools and nodes.
+func newNodeRegistry() *structs.NodeRegistry {
+	return &structs.NodeRegistry{
+		WorkerPools:     make(map[string]*structs.WorkerPool),
+		RegisteredNodes: make(map[string]string),
+		Lock:            sync.RWMutex{},
+	}
+}
 
 func checkScalingThreshold(state *structs.State, direction string, config *structs.Config) (scale bool) {
 

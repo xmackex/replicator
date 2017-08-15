@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"fmt"
+	"reflect"
 	"regexp"
 
 	"github.com/elsevier-core-engineering/replicator/logging"
@@ -41,6 +43,21 @@ func Min(values ...float64) float64 {
 	return min
 }
 
+// ParseMetaConfig parses meta parameters from a Nomad agent or job
+// configuration and validates required keys are present. If any required
+// keys are found to be missing, these are returned otherwise, an empty
+// slice is returned.
+func ParseMetaConfig(meta map[string]string, reqKeys []string) (missing []string) {
+	// Iterate over the required configuration parameters and
+	// record any that are missing.
+	for _, reqKey := range reqKeys {
+		if _, ok := meta[reqKey]; !ok {
+			missing = append(missing, reqKey)
+		}
+	}
+	return
+}
+
 // JobGroupScalingPolicyDiff performs a comparison between two GroupScalingPolicy
 // structs to determine if they are the same or not.
 func JobGroupScalingPolicyDiff(policyA, policyB *structs.GroupScalingPolicy) (isSame bool) {
@@ -57,5 +74,26 @@ func JobGroupScalingPolicyDiff(policyA, policyB *structs.GroupScalingPolicy) (is
 	if policyAHash == policyBHash {
 		isSame = true
 	}
+	return
+}
+
+// HasObjectChanged compares two objects to determine if they have changed.
+func HasObjectChanged(objectA, objectB interface{}) (changed bool, err error) {
+	objectAHash, err := hashstructure.Hash(objectA, nil)
+	if err != nil {
+		return false, fmt.Errorf("error hashing first object %v of type %v: %v",
+			objectA, reflect.TypeOf(objectA), err)
+	}
+
+	objectBHash, err := hashstructure.Hash(objectB, nil)
+	if err != nil {
+		return false, fmt.Errorf("error hashing second object %v of type %v: %v",
+			objectA, reflect.TypeOf(objectA), err)
+	}
+
+	if objectAHash != objectBHash {
+		changed = true
+	}
+
 	return
 }
