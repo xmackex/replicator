@@ -37,7 +37,7 @@ func TestHelper_Min(t *testing.T) {
 	}
 }
 
-func TestHelper_JobGroupScalingPolicyDiff(t *testing.T) {
+func TestHelper_HasObjectChanged(t *testing.T) {
 	policyA := &structs.GroupScalingPolicy{
 		GroupName:   "core-engineering",
 		Enabled:     true,
@@ -59,17 +59,74 @@ func TestHelper_JobGroupScalingPolicyDiff(t *testing.T) {
 		ScaleOutCPU: 90,
 	}
 
-	if !JobGroupScalingPolicyDiff(policyA, policyB) {
-		t.Fatalf("expected true but got false")
+	change, err := HasObjectChanged(policyA, policyB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if change {
+		t.Fatalf("expected false but got %v", change)
 	}
 
 	policyB.ScaleDirection = "Out"
-	if !JobGroupScalingPolicyDiff(policyA, policyB) {
-		t.Fatalf("expected true but got false")
+	change, err = HasObjectChanged(policyA, policyB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if change {
+		t.Fatalf("expected false but got %v", change)
 	}
 
 	policyB.ScaleInMem = 20
-	if JobGroupScalingPolicyDiff(policyA, policyB) {
-		t.Fatalf("expected false but got true")
+	change, err = HasObjectChanged(policyA, policyB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !change {
+		t.Fatalf("expected true but got %v", change)
+	}
+
+}
+
+func TestHelper_ParseMetaConfig(t *testing.T) {
+	metaKeys := make(map[string]string)
+
+	// These are our required key for Replicator
+	requiredKeys := []string{
+		"replicator_cooldown",
+		"replicator_enabled",
+		"replicator_min",
+		"replicator_max",
+		"replicator_scalein_mem",
+		"replicator_scalein_cpu",
+		"replicator_scaleout_mem",
+		"replicator_scaleout_cpu",
+	}
+
+	zeroKeyReturn := ParseMetaConfig(metaKeys, requiredKeys)
+	if len(zeroKeyReturn) != 8 {
+		t.Fatalf("expected 8 required keys to be returned, got %v", len(zeroKeyReturn))
+	}
+
+	metaKeys["replicator_cooldown"] = "60"
+	metaKeys["replicator_enabled"] = "true"
+	metaKeys["replicator_max"] = "1000"
+	metaKeys["replicator_min"] = "750"
+	metaKeys["replicator_scalein_mem"] = "40"
+	metaKeys["replicator_scalein_cpu"] = "40"
+	metaKeys["replicator_scaleout_mem"] = "90"
+
+	partialKeyReturn := ParseMetaConfig(metaKeys, requiredKeys)
+	if len(partialKeyReturn) != 1 {
+		t.Fatalf("expected 1 required keys to be returned, got %v", len(partialKeyReturn))
+	}
+
+	metaKeys["replicator_scaleout_cpu"] = "90"
+
+	allKeysReturn := ParseMetaConfig(metaKeys, requiredKeys)
+	if len(allKeysReturn) != 0 {
+		t.Fatalf("expected 0 required keys to be returned, got %v", len(allKeysReturn))
 	}
 }

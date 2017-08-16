@@ -69,11 +69,23 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 		return
 	}
 
+	// These are our required key for Replicator
+	requiredKeys := []string{
+		"replicator_cooldown",
+		"replicator_enabled",
+		"replicator_min",
+		"replicator_max",
+		"replicator_scalein_mem",
+		"replicator_scalein_cpu",
+		"replicator_scaleout_mem",
+		"replicator_scaleout_cpu",
+	}
+
 	// Run the checkOrphanedGroup function.
 	go checkOrphanedGroup(jobID, jobInfo.TaskGroups, scaling)
 
 	for _, group := range jobInfo.TaskGroups {
-		missedKeys := parseMeta(group.Meta)
+		missedKeys := helper.ParseMetaConfig(group.Meta, requiredKeys)
 
 		// If all 7 keys missed, then the job group does not have scaling enabled,
 		// this is logged for operator clarity.
@@ -143,14 +155,21 @@ func updateScalingPolicy(jobName, groupName string, groupMeta map[string]string,
 	// group policy is found we append the new group policy to the job.
 	if val, ok := s.Policies[jobName]; ok {
 		for i, group := range val {
-			if group.GroupName == groupName && helper.JobGroupScalingPolicyDiff(result, val[i]) {
+			if group.GroupName == groupName {
 				found = true
-				continue
-			} else if group.GroupName == groupName && !helper.JobGroupScalingPolicyDiff(result, val[i]) {
-				found = true
+				changed, err := helper.HasObjectChanged(result, val[i])
+				if err != nil {
+					logging.Error("client/job_scaling_policies: unable to determine if the job group policy has been updated: %v", err)
+				}
+
+				if !changed {
+					continue
+				}
+
 				val[i] = result
 				logging.Info("client/job_scaling_policies: updated scaling policy for job %s and group %s",
 					jobName, groupName)
+
 			} else {
 				s.Policies[jobName] = append(s.Policies[jobName], result)
 				logging.Info("client/job_scaling_policies: added new scaling policy for job %s and group %s",
@@ -233,33 +252,4 @@ func checkOrphanedGroup(jobName string, groups []*nomad.TaskGroup, scaling *stru
 	for _, g := range taskGroupPolicyNames {
 		removeGroupScalingPolicy(jobName, g, scaling)
 	}
-}
-
-// parseMeta parses a Nomad JobGroup meta map to discover if replciator keys
-// are present. A list of requiredKeys that were not found is returned so that
-// full logging can be made about the autoscaling state of each JobGroup.
-func parseMeta(meta map[string]string) []string {
-
-	// These are our required key for Replicator
-	requiredKeys := []string{
-		"replicator_cooldown",
-		"replicator_enabled",
-		"replicator_min",
-		"replicator_max",
-		"replicator_scalein_mem",
-		"replicator_scalein_cpu",
-		"replicator_scaleout_mem",
-		"replicator_scaleout_cpu",
-	}
-
-	// Iterate over the group meta and remove found keys from requiredKeys in order
-	// to gain a view of the configuration.
-	for key := range meta {
-		for i, rKey := range requiredKeys {
-			if key == rKey {
-				requiredKeys = append(requiredKeys[:i], requiredKeys[i+1:]...)
-			}
-		}
-	}
-	return requiredKeys
 }
