@@ -24,5 +24,6 @@ type WorkerPool struct {
 	Min            int                  `mapstructure:"replicator_min"`
 	Name           string               `mapstructure:"replicator_autoscaling_group"`
 	Nodes          map[string]*api.Node `hash:"ignore"`
+	RetryThreshold int                  `mapstructure:"replicator_retry_threshold"`
 	ScalingEnabled bool                 `mapstructure:"replicator_enabled"`
 }

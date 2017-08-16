@@ -129,6 +129,7 @@ func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
 		"replicator_max",
 		"replicator_min",
 		"replicator_node_fault_tolerance",
+		"replicator_retry_threshold",
 	}
 
 	// Parse meta configuration parameters and determine if any required
