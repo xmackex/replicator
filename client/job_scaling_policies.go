@@ -89,7 +89,7 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 
 		// If all 7 keys missed, then the job group does not have scaling enabled,
 		// this is logged for operator clarity.
-		if len(missedKeys) == 7 {
+		if len(missedKeys) == len(requiredKeys) {
 			logging.Debug("client/job_scaling_policies: job %s and group %v is not configured for autoscaling",
 				jobID, *group.Name)
 			go removeGroupScalingPolicy(jobID, *group.Name, scaling)
@@ -99,7 +99,7 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 		// If some keys missed, the operator has made an effort to enable job scaling
 		// but potentially made a typo. This is logged as an error so operators can
 		// see and quickly resolve these issues.
-		if len(missedKeys) > 0 && len(missedKeys) < 7 {
+		if len(missedKeys) > 0 && len(missedKeys) < len(requiredKeys) {
 			logging.Error("client/job_scaling_policies: job %s and group %v is missing meta scaling key(s): %v",
 				jobID, *group.Name, missedKeys)
 			continue
