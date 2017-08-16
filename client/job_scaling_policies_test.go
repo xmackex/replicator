@@ -125,35 +125,6 @@ func TestJobScalingPolicies_checkOrphanedGroup(t *testing.T) {
 	}
 }
 
-func TestJobScalingPolicies_parseMeta(t *testing.T) {
-	metaKeys := make(map[string]string)
-
-	zeroKeyReturn := parseMeta(metaKeys)
-	if len(zeroKeyReturn) != 8 {
-		t.Fatalf("expected 8 required keys to be returned, got %v", len(zeroKeyReturn))
-	}
-
-	metaKeys["replicator_cooldown"] = "60"
-	metaKeys["replicator_enabled"] = "true"
-	metaKeys["replicator_max"] = "1000"
-	metaKeys["replicator_min"] = "750"
-	metaKeys["replicator_scalein_mem"] = "40"
-	metaKeys["replicator_scalein_cpu"] = "40"
-	metaKeys["replicator_scaleout_mem"] = "90"
-
-	partialKeyReturn := parseMeta(metaKeys)
-	if len(partialKeyReturn) != 1 {
-		t.Fatalf("expected 1 required keys to be returned, got %v", len(partialKeyReturn))
-	}
-
-	metaKeys["replicator_scaleout_cpu"] = "90"
-
-	allKeysReturn := parseMeta(metaKeys)
-	if len(allKeysReturn) != 0 {
-		t.Fatalf("expected 0 required keys to be returned, got %v", len(allKeysReturn))
-	}
-}
-
 func exampleJobScalingPolicies() *structs.JobScalingPolicies {
 	scaling := &structs.JobScalingPolicies{
 		Policies: make(map[string][]*structs.GroupScalingPolicy),

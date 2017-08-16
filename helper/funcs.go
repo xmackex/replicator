@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/elsevier-core-engineering/replicator/logging"
-	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	"github.com/mitchellh/hashstructure"
 )
 
@@ -54,25 +52,6 @@ func ParseMetaConfig(meta map[string]string, reqKeys []string) (missing []string
 		if _, ok := meta[reqKey]; !ok {
 			missing = append(missing, reqKey)
 		}
-	}
-	return
-}
-
-// JobGroupScalingPolicyDiff performs a comparison between two GroupScalingPolicy
-// structs to determine if they are the same or not.
-func JobGroupScalingPolicyDiff(policyA, policyB *structs.GroupScalingPolicy) (isSame bool) {
-	policyAHash, err := hashstructure.Hash(policyA, nil)
-	if err != nil {
-		logging.Error("helper/funcs: errror hashing policy %v: ", policyA.GroupName, err)
-	}
-
-	policyBHash, err := hashstructure.Hash(policyB, nil)
-	if err != nil {
-		logging.Error("helper/funcs: errror hashing policy %v: ", policyB.GroupName, err)
-	}
-
-	if policyAHash == policyBHash {
-		isSame = true
 	}
 	return
 }
