@@ -23,6 +23,7 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 		"replicator_max",
 		"replicator_min",
 		"replicator_node_fault_tolerance",
+		"replicator_retry_threshold",
 	}
 
 	// Test that a node with no scaling configuration correctly indicates
@@ -37,9 +38,9 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 	meta["replicator_autoscaling_group"] = "example-group"
 
 	partialConfigReturn := helper.ParseMetaConfig(meta, requiredKeys)
-	if len(partialConfigReturn) != 5 {
-		t.Fatalf("expected 5 required parameters reported as missing, got %v",
-			len(partialConfigReturn))
+	if len(partialConfigReturn) != len(requiredKeys)-1 {
+		t.Fatalf("expected %v required parameters reported as missing, got %v",
+			len(requiredKeys)-1, len(partialConfigReturn))
 	}
 
 	// Add the rest of the meta configuration parameters.
@@ -48,6 +49,7 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
 	meta["replicator_node_fault_tolerance"] = "1"
+	meta["replicator_retry_threshold"] = "3"
 
 	// Test that a node with a complete and valid scaling configuration
 	// correctly indicates there are no required configuration parameters
@@ -166,6 +168,7 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 		FaultTolerance: 1,
 		Max:            3,
 		Min:            1,
+		RetryThreshold: 3,
 		ScalingEnabled: true,
 		Name:           "example-group",
 		Nodes: map[string]*api.Node{
@@ -182,6 +185,7 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 					"replicator_max":                  "3",
 					"replicator_min":                  "1",
 					"replicator_node_fault_tolerance": "1",
+					"replicator_retry_threshold":      "3",
 				},
 			},
 		},
@@ -228,6 +232,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 		FaultTolerance: 1,
 		Max:            3,
 		Min:            1,
+		RetryThreshold: 3,
 		ScalingEnabled: true,
 		Name:           "example-group",
 		Nodes: map[string]*api.Node{
@@ -244,6 +249,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 					"replicator_max":                  "3",
 					"replicator_min":                  "1",
 					"replicator_node_fault_tolerance": "1",
+					"replicator_retry_threshold":      "3",
 				},
 			},
 		},
@@ -296,6 +302,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 			"replicator_max":                  "3",
 			"replicator_min":                  "1",
 			"replicator_node_fault_tolerance": "1",
+			"replicator_retry_threshold":      "3",
 		},
 	}
 
@@ -404,6 +411,7 @@ func mockNode(node *api.NodeListStub) (nodeRecord *api.Node) {
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
 	meta["replicator_node_fault_tolerance"] = "1"
+	meta["replicator_retry_threshold"] = "3"
 
 	// Add meta configuration parameters to node record.
 	nodeRecord.Meta = meta
