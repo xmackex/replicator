@@ -3,14 +3,19 @@ package replicator
 import (
 	"testing"
 
+	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
+	"github.com/elsevier-core-engineering/replicator/testutil"
 )
 
 func TestFailsafe_FaileSafeCheck(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClientWithConfig(t)
+	c, s := testutil.MakeClientWithConfig(t)
 	defer s.Stop()
+
+	consul, _ := client.NewConsulClient(s.HTTPAddr, "")
+	c.ConsulClient = consul
 
 	state := &structs.State{}
 
@@ -42,8 +47,11 @@ func TestFailsafe_FaileSafeCheck(t *testing.T) {
 func TestFailsafe_SetFailsafeMode(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClientWithConfig(t)
+	c, s := testutil.MakeClientWithConfig(t)
 	defer s.Stop()
+
+	consul, _ := client.NewConsulClient(s.HTTPAddr, "")
+	c.ConsulClient = consul
 
 	state := &structs.State{}
 

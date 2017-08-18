@@ -5,13 +5,17 @@ import (
 
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
+	"github.com/elsevier-core-engineering/replicator/testutil"
 )
 
 func TestClusterScaling_scalingThreshold(t *testing.T) {
 	t.Parallel()
 
-	c, s := makeClientWithConfig(t)
+	c, s := testutil.MakeClientWithConfig(t)
 	defer s.Stop()
+
+	consul, _ := client.NewConsulClient(s.HTTPAddr, "")
+	c.ConsulClient = consul
 
 	state := &structs.State{}
 	c.ClusterScaling.ScalingThreshold = 3
