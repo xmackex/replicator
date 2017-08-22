@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/elsevier-core-engineering/replicator/helper"
 	"github.com/elsevier-core-engineering/replicator/logging"
@@ -19,9 +20,11 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 	for {
 		nodes, meta, err := c.nomad.Nodes().List(q)
 		if err != nil {
-			logging.Error("client/node_discovery: failed to retrieve nodes from "+
-				"the Nomad API: %v", err)
-			return
+			logging.Error("client/node_discovery: failed to retrieve nodes from the Nomad API: %v", err)
+
+			// Sleep as we don't want to retry the API call as fast as Go possibly can.
+			time.Sleep(20 * time.Second)
+			continue
 		}
 
 		if meta.LastIndex <= nodeRegistry.LastChangeIndex {
