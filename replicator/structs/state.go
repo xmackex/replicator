@@ -17,6 +17,10 @@ type ScalingState struct {
 	// successfully join the worker pool after a scale-out operation.
 	FailureCount int `json:"failure_count"`
 
+	// LastNotificationEvent tracks the time of the last notification send run
+	// for this state object.
+	LastNotificationEvent time.Time `json:"last_notification_event"`
+
 	// LastScalingEvent represents the last time the daemon successfully
 	// completed a cluster scaling action.
 	LastScalingEvent time.Time `json:"last_scaling_event"`

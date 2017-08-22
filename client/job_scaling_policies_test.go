@@ -26,6 +26,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	metaKeys["replicator_scalein_cpu"] = "40"
 	metaKeys["replicator_scaleout_mem"] = "90"
 	metaKeys["replicator_scaleout_cpu"] = "90"
+	metaKeys["replicator_uid"] = "ELS2"
 
 	updateScalingPolicy(jobName1, groupName1, metaKeys, scaling)
 	updateScalingPolicy(jobName2, groupName2, metaKeys, scaling)
@@ -44,6 +45,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 		ScaleInCPU:  40,
 		ScaleOutMem: 90,
 		ScaleOutCPU: 90,
+		UID:         "ELS2",
 	}
 	policy2 := &structs.GroupScalingPolicy{
 		GroupName:   "jobs",
@@ -55,6 +57,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 		ScaleInCPU:  40,
 		ScaleOutMem: 90,
 		ScaleOutCPU: 90,
+		UID:         "ELS2",
 	}
 	policy3 := &structs.GroupScalingPolicy{
 		GroupName:   "hertzfeld",
@@ -66,6 +69,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 		ScaleInCPU:  40,
 		ScaleOutMem: 90,
 		ScaleOutCPU: 90,
+		UID:         "ELS2",
 	}
 	expected.Policies["example"] = append(expected.Policies["example"], policy1)
 	expected.Policies["woz"] = append(expected.Policies["woz"], policy2)
@@ -116,6 +120,7 @@ func TestJobScalingPolicies_checkOrphanedGroup(t *testing.T) {
 		ScaleInCPU:  40,
 		ScaleOutMem: 90,
 		ScaleOutCPU: 90,
+		UID:         "ELS1",
 	}
 	scaling.Policies["example"] = append(scaling.Policies["example"], policy2)
 
@@ -139,6 +144,7 @@ func exampleJobScalingPolicies() *structs.JobScalingPolicies {
 		ScaleInCPU:  30,
 		ScaleOutMem: 80,
 		ScaleOutCPU: 80,
+		UID:         "ELS1",
 	}
 	scaling.Policies["example"] = append(scaling.Policies["example"], policy)
 	return scaling

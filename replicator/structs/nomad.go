@@ -46,14 +46,9 @@ type NomadClient interface {
 	// in the process of a deployment.
 	IsJobInDeployment(string) bool
 
-	// IsJobRunning checks to see whether the specified jobID has any currently
-	// task groups on the cluster.
-	IsJobRunning(string) bool
-
-	// JobScale takes a scaling policy and then attempts to scale the desired job
-	// to the appropriate level whilst ensuring the event will not excede any job
-	// thresholds set.
-	JobScale(string, []*GroupScalingPolicy)
+	// JobGroupScale scales a particular job group, confirming that the action
+	// completes successfully.
+	JobGroupScale(string, *GroupScalingPolicy, *ScalingState)
 
 	// JobWatcher is the main entry point into Replicators process of reading and
 	// updating its JobScalingPolicies tracking.
