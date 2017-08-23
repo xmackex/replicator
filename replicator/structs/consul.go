@@ -23,7 +23,8 @@ type ConsulClient interface {
 	// state information in the Consul Key/Value Store.
 	PersistState(string, *ScalingState) error
 
-	//ReadState does stuff and things.
+	// ReadState attempts to read state tracking information from the Consul
+	// Key/Value Store from the path provided.
 	ReadState(string, *ScalingState)
 
 	// ResignLeadership attempts to remove the leadership lock upon shutdown of the

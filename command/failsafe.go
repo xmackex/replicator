@@ -5,15 +5,15 @@ import (
 	"strings"
 
 	"github.com/elsevier-core-engineering/replicator/command/base"
-	core "github.com/elsevier-core-engineering/replicator/replicator"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
 // FailsafeCommand is a command implementation that allows operators to
 // place the daemon in or take the daemon out of failsafe mode.
 type FailsafeCommand struct {
-	Meta
 	args []string
+	Meta
+	statePath string
 }
 
 // Help provides the help information for the failsafe command.
@@ -23,11 +23,11 @@ Usage: replicator failsafe [options]
 
   Allows an operator to administratively control the failsafe behavior
   of Replicator. When Replicator enters failsafe mode, all running
-  copies of Replicator will prohibit any scaling operations.
+  copies of Replicator will prohibit any scaling operations on the
+	resource in question.
 
   Failsafe mode is intended to stabilize a cluster that has experienced
-  consecutive critical failures while attempting to perform scaling
-  operations.
+  critical failures while attempting to perform scaling operations.
 
   To exit failsafe mode, an operator must explicitly remove the failsafe
   lock after identifying the root cause of the failures.
@@ -49,28 +49,30 @@ Usage: replicator failsafe [options]
       server and reduce the number of open HTTP connections. Additionally,
       it provides a "well-known" IP address for which clients can connect.
 
-    -consul-key-location=<key>
-      The Consul Key/Value Store location that Replicator will use
-      for persistent configuration, state tracking and job scaling policies.
-      By default, this is replicator/config.
-
     -consul-token=<token>
       The Consul ACL token to use when communicating with an ACL
       protected Consul cluster.
 
+    -state-path=<key>
+      The Consul Key/Value Store where the state object is stored for the
+      resource which failsafe will be manipulated for. The default base is
+      replicator/config/state; cluster worker pools live at worker/<pool_name>
+      and job group state at jobs/<job_name>/<group_name>.
+
   Failsafe Mode Options:
 
     -disable
-      Disable the global failsafe lock. All copies of Replicator will
-      return to normal operations.
+      Disable the failsafe lock on the provided resource. All copies of
+      Replicator will return to normal operations.
 
     -enable
-      Enable the global failsafe lock. All copies of Replicator will
-      be prohibited from taking any scaling actions.
+      Enable the failsafe lock on the provided resource. All copies of
+      Replicator will be prohibited from taking any scaling actions on
+      the failsafe enabled jobgroup or worker pool.
 
     -force
-      Suppress confirmation prompts when enabling or disabling the
-      global failsafe lock.
+      Suppress confirmation prompts when enabling or disabling the failsafe
+      lock.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -84,7 +86,7 @@ func (c *FailsafeCommand) Synopsis() string {
 // data and manipulate the distributed failsafe lock.
 func (c *FailsafeCommand) Run(args []string) int {
 	// Initialize a new empty state tracking object.
-	state := &structs.State{}
+	state := &structs.ScalingState{}
 
 	// The operator must specify at least one operation.
 	if len(args) == 0 {
@@ -116,7 +118,7 @@ func (c *FailsafeCommand) Run(args []string) int {
 	}
 
 	// Attempt to load state tracking data from Consul.
-	state = consul.LoadState(conf.Config, state)
+	consul.ReadState(c.statePath, state)
 
 	// If failsafe mode is already in the desired state, report and take no
 	// action.
@@ -128,10 +130,8 @@ func (c *FailsafeCommand) Run(args []string) int {
 
 	// If the user has not disabled confirmation prompts, ask for confirmation.
 	if !conf.Force {
-		keyLocation := conf.Config.ConsulKeyLocation + "/" + "state"
-
-		question := fmt.Sprintf("Are you sure you want to %s the global failsafe "+
-			"lock stored at %q?\n", conf.Verb, keyLocation)
+		question := fmt.Sprintf("Are you sure you want to %s the failsafe "+
+			"lock stored at %q?\n", conf.Verb, c.statePath)
 
 		// If we're enabling failsafe mode, give the user a clear warning about
 		// the implications.
@@ -162,17 +162,13 @@ func (c *FailsafeCommand) Run(args []string) int {
 		}
 	}
 
-	// Indicate that failsafe mode was administratively updated.
-	state.FailsafeModeAdmin = true
-
 	// Set desired failsafe mode.
-	if err := core.SetFailsafeMode(state, conf.Config, conf.Enable); err != nil {
-		c.UI.Error(fmt.Sprintf("An error occurred while attempting to %v "+
-			"failsafe mode: %v", conf.Verb, err))
-		return 1
+	state.FailsafeMode = conf.Enable
+	if err := consul.PersistState(c.statePath, state); err != nil {
+		c.UI.Error(fmt.Sprintf("An error occurred while attempting to %v failsafe mode: %v", conf.Verb, err))
 	}
 
-	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode.", conf.Verb))
+	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode on %s", conf.Verb, c.statePath))
 
 	return 0
 }
@@ -194,14 +190,12 @@ func (c *FailsafeCommand) parseFlags() *structs.FailsafeMode {
 	flags.StringVar(&configPath, "config", "", "")
 	flags.StringVar(&cliConfig.Config.Consul, "consul", "", "")
 	flags.StringVar(&cliConfig.Config.ConsulToken, "consul-token", "", "")
-	flags.StringVar(&cliConfig.Config.ConsulKeyLocation,
-		"consul-key-location", "", "")
+	flags.StringVar(&c.statePath, "state-path", "", "")
 
 	// Failsafe mode configuration flags.
-	flags.BoolVar(&cliConfig.Enable, "enable", false, "Enable failsafe mode")
-	flags.BoolVar(&cliConfig.Disable, "disable", false, "Disable failsafe mode")
-	flags.BoolVar(&cliConfig.Force, "force", false,
-		"Supress confirmation prompts.")
+	flags.BoolVar(&cliConfig.Enable, "enable", false, "")
+	flags.BoolVar(&cliConfig.Disable, "disable", false, "")
+	flags.BoolVar(&cliConfig.Force, "force", false, "")
 
 	// Parse the passed CLI flags.
 	if err := flags.Parse(c.args); err != nil {

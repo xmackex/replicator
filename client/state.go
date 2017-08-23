@@ -13,8 +13,6 @@ import (
 // ReadState does stuff and things.
 func (c *consulClient) ReadState(path string, state *structs.ScalingState) {
 
-	// updatedState := &structs.ScalingState{}
-
 	logging.Debug("client/state: attempting to read state tracking "+
 		"information from Consul at location %v", path)
 
