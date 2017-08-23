@@ -104,13 +104,15 @@ func (c *InitCommand) writeFile(file, content string) (err error) {
 
 var defaultJobScalingDocument = strings.TrimSpace(`
 meta {
-  "replicator_max"          =  9
+  "replicator_cooldown"     = 50
   "replicator_enabled"      = true
+  "replicator_max"          = 10
   "replicator_min"          = 1
   "replicator_scalein_mem"  = 30
   "replicator_scalein_cpu"  = 30
   "replicator_scaleout_mem" = 80
   "replicator_scaleout_cpu" = 80
+  "replicator_uid"          = "REP1"
 }
 `)
 
