@@ -4,8 +4,6 @@ import (
 	"os"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
@@ -37,12 +35,10 @@ func NewRunner(config *structs.Config) (*Runner, error) {
 func (r *Runner) Start() {
 	ticker := time.NewTicker(time.Second * time.Duration(r.config.ScalingInterval))
 
-	// Initialize the state tracking object for scaling operations.
-	state := &structs.State{}
-
 	// Setup our LeaderCandidate object for leader elections and session renewl.
 	leaderKey := r.config.ConsulKeyLocation + "/" + "leader"
-	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey, r.config.ScalingInterval)
+	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey,
+		r.config.ScalingInterval)
 
 	defer ticker.Stop()
 
@@ -57,19 +53,10 @@ func (r *Runner) Start() {
 	for {
 		select {
 		case <-ticker.C:
-			// Attempt to load state tracking information from Consul.
-			state = r.config.ConsulClient.LoadState(r.config, state)
-
 			// Perform the leadership locking and continue if we have confirmed that
 			// we are running as the replicator leader.
 			r.candidate.leaderElection()
-			if r.candidate.isLeader() && FailsafeCheck(state, r.config) {
-				// If there was no pre-existing state tracking information in Consul,
-				// persist an initial state tracking object.
-				if state.LastUpdated.IsZero() {
-					r.config.ConsulClient.WriteState(r.config, state)
-				}
-
+			if r.candidate.isLeader() {
 				// If we're running as a Nomad job, perform a reverse lookup to
 				// identify the node on which we're running and register it as
 				// protected.
@@ -80,20 +67,23 @@ func (r *Runner) Start() {
 							"to determine the ID of our host node: %v", err)
 					}
 
-					// Register the worker pool node on which we're running as a
-					// protected node.
 					if len(host) > 0 {
-						state.ProtectedNode = host
+						NodeRegistry.Lock.Lock()
+						// Reverse lookup our worker pool name by node ID and register
+						// the node as protected.
+						if pool, ok := NodeRegistry.RegisteredNodes[host]; ok {
+							logging.Debug("core/runner: registering node %v in worker "+
+								"pool %v as protected", host, pool)
+							NodeRegistry.WorkerPools[pool].ProtectedNode = host
+						}
+						NodeRegistry.Lock.Unlock()
 					}
 				}
 
-				// ClusterScaling blocks Replicator when it runs, we do not want job
-				// scaling to be invoked if we are moving workloads around or adding
-				// new capacity.
-				clusterChan := make(chan bool)
-				go r.clusterScaling(clusterChan, state)
-				<-clusterChan
+				// Initiate cluster scaling for each known scaleable worker pool.
+				r.asyncClusterScaling(NodeRegistry, jobScalingPolicy)
 
+				// Initiate job scaling for each known scaleable job.
 				r.jobScaling(jobScalingPolicy)
 			}
 
@@ -108,219 +98,4 @@ func (r *Runner) Stop() {
 	r.candidate.endCampaign()
 	r.doneChan <- true
 	close(r.doneChan)
-}
-
-// clusterScaling is the main entry point into the cluster scaling functionality
-// and ties numerous functions together to create an asynchronus function which
-// can be called from the runner.
-func (r *Runner) clusterScaling(done chan bool, state *structs.State) {
-	// Initialize clients for Nomad and Consul.
-	nomadClient := r.config.NomadClient
-	consulClient := r.config.ConsulClient
-
-	// Retrieve value of cluster scaling enabled flag.
-	scalingEnabled := r.config.ClusterScaling.Enabled
-
-	// If a region has not been specified, attempt to dynamically determine what
-	// region we are running in.
-	if r.config.Region == "" {
-		if region, err := client.DescribeAWSRegion(); err == nil {
-			r.config.Region = region
-		}
-	}
-
-	// Initialize a new disposable cluster capacity object.
-	clusterCapacity := &structs.ClusterCapacity{}
-
-	scale, err := nomadClient.EvaluateClusterCapacity(clusterCapacity, r.config)
-	if err != nil || !scale {
-		logging.Debug("core/runner: scaling operation not required or permitted")
-
-		done <- true
-		return
-	}
-
-	// If we reached this point we will be performing AWS interaction so we
-	// create an client connection.
-	asgSess := client.NewAWSAsgService(r.config.Region)
-
-	// Calculate the scaling cooldown threshold.
-	if !state.LastScalingEvent.IsZero() {
-		cooldown := state.LastScalingEvent.Add(
-			time.Duration(r.config.ClusterScaling.CoolDown) * time.Second)
-
-		if time.Now().Before(cooldown) {
-			logging.Info("core/runner: cluster scaling cooldown threshold has "+
-				"not been reached: %v, scaling operations will not be permitted",
-				cooldown)
-
-			done <- true
-			return
-		}
-
-		logging.Debug("core/runner: cluster scaling cooldown threshold %v has "+
-			"been reached, scaling operations will be permitted", cooldown)
-	} else {
-		logging.Debug("core/runner: no previous scaling operations have " +
-			"occurred, scaling operations will be permitted.")
-	}
-
-	if clusterCapacity.ScalingDirection == client.ScalingDirectionOut &&
-		checkScalingThreshold(state, clusterCapacity.ScalingDirection, r.config) {
-		// If cluster scaling has been disabled, report but do not initiate a
-		// scaling operation.
-		if !scalingEnabled {
-			logging.Debug("core/runner: cluster scaling disabled, a scaling " +
-				"operation [scale-out] will not be initiated")
-
-			done <- true
-			return
-		}
-
-		// TODO (e.westfall): Now that this method performs additional safety
-		// checks, this can and should be moved within the retry loop.
-		// Attempt to increment the desired count of the autoscaling group. If
-		// this fails, log an error and stop further processing.
-		err := client.ScaleOutCluster(r.config.ClusterScaling.AutoscalingGroup, clusterCapacity.NodeCount, asgSess)
-		if err != nil {
-			logging.Error("core/runner: unable to successfully initiate a "+
-				"scaling operation against autoscaling group %v: %v",
-				r.config.ClusterScaling.AutoscalingGroup, err)
-			done <- true
-			return
-		}
-
-		// Attempt to add a new node to the worker pool until we reach the
-		// retry threshold.
-		for state.NodeFailureCount <= r.config.ClusterScaling.RetryThreshold {
-			if state.NodeFailureCount > 0 {
-				logging.Info("core/runner: attempting to launch a new worker node, "+
-					"previous node failures: %v", state.NodeFailureCount)
-			}
-
-			// We've verified the autoscaling group operation completed
-			// successfully. Next we'll identify the most recently launched EC2
-			// instance from the worker pool ASG.
-			newestNode, err := client.GetMostRecentInstance(
-				r.config.ClusterScaling.AutoscalingGroup,
-				r.config.Region,
-			)
-			if err != nil {
-				logging.Error("core/runner: Failed to identify the most recently "+
-					"launched instance: %v", err)
-				state.NodeFailureCount++
-				state.LastNodeFailure = time.Now()
-
-				// Attempt to update state tracking information in Consul.
-				err = consulClient.WriteState(r.config, state)
-				if err != nil {
-					logging.Error("core/runner: %v", err)
-				}
-				continue
-			}
-
-			// Attempt to verify the new worker node has completed bootstrapping
-			// and successfully joined the worker pool.
-			if healthy := nomadClient.VerifyNodeHealth(newestNode); healthy {
-				// Reset node failure count once we have a verified healthy worker.
-				state.NodeFailureCount = 0
-
-				// Update the last scaling event timestamp.
-				state.LastScalingEvent = time.Now()
-
-				// Attempt to update state tracking information in Consul.
-				err = consulClient.WriteState(r.config, state)
-				if err != nil {
-					logging.Error("core/runner: %v", err)
-				}
-
-				done <- true
-				return
-			}
-
-			state.NodeFailureCount++
-			state.LastNodeFailure = time.Now()
-			state.LastFailedNode = newestNode
-			logging.Error("core/runner: new node %v failed to successfully join "+
-				"the worker pool, incrementing node failure count to %v and "+
-				"terminating instance", newestNode, state.NodeFailureCount)
-
-			// Attempt to update state tracking information in Consul.
-			err = consulClient.WriteState(r.config, state)
-			if err != nil {
-				logging.Error("core/runner: %v", err)
-			}
-
-			metrics.IncrCounter([]string{"cluster", "scale_out_failed"}, 1)
-
-			// Translate the IP address of the most recent instance to the EC2
-			// instance ID.
-			instanceID := client.TranslateIptoID(newestNode, r.config.Region)
-
-			// If we've reached the retry threshold, attempt to detach the last
-			// failed instance and decrement the autoscaling group desired count.
-			if state.NodeFailureCount == r.config.ClusterScaling.RetryThreshold {
-				err := client.DetachInstance(
-					r.config.ClusterScaling.AutoscalingGroup, instanceID, asgSess,
-				)
-				if err != nil {
-					logging.Error("core/runner: an error occurred while attempting "+
-						"to detach the failed instance from the ASG: %v", err)
-				}
-
-				done <- true
-				return
-			}
-
-			// Attempt to clean up the most recent instance.
-			if err := client.TerminateInstance(instanceID, r.config.Region); err != nil {
-				logging.Error("core/runner: an error occurred while attempting "+
-					"to terminate instance %v: %v", instanceID, err)
-			}
-		}
-	}
-
-	if clusterCapacity.ScalingDirection == client.ScalingDirectionIn &&
-		checkScalingThreshold(state, clusterCapacity.ScalingDirection, r.config) {
-		// Attempt to identify the least-allocated node in the worker pool.
-		nodeID, nodeIP := nomadClient.LeastAllocatedNode(clusterCapacity, state)
-		if nodeIP != "" && nodeID != "" {
-			if !scalingEnabled {
-				logging.Debug("core/runner: cluster scaling disabled, not " +
-					"initiating scaling operation (scale-in)")
-				done <- true
-				return
-			}
-
-			// Attempt to place the least-allocated node in drain mode.
-			if err := nomadClient.DrainNode(nodeID); err != nil {
-				logging.Error("core/runner: an error occurred while attempting to "+
-					"place node %v in drain mode: %v", nodeID, err)
-				done <- true
-				return
-			}
-
-			logging.Info("core/runner: terminating AWS instance %v", nodeIP)
-			err := client.ScaleInCluster(
-				r.config.ClusterScaling.AutoscalingGroup, nodeIP, asgSess)
-			if err != nil {
-				logging.Error("core/runner: unable to successfully terminate AWS "+
-					"instance %v: %v", nodeID, err)
-				done <- true
-				return
-			}
-
-			// Update the last scaling event timestamp.
-			state.LastScalingEvent = time.Now()
-
-			// Attempt to update state tracking information in Consul.
-			err = consulClient.WriteState(r.config, state)
-			if err != nil {
-				logging.Error("core/runner: %v", err)
-			}
-		}
-	}
-	done <- true
-	metrics.IncrCounter([]string{"cluster", "scale_out_success"}, 1)
-	return
 }

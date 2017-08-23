@@ -40,4 +40,7 @@ type ScalingState struct {
 	// ScaleOutRequests tracks the number of consecutive times replicator
 	// has indicated the cluster worker pool should be scaled out.
 	ScaleOutRequests int `json:"scaleout_requests"`
+
+	// StatePath stores the path where the object should be persisted.
+	StatePath string `json:"state_path"`
 }

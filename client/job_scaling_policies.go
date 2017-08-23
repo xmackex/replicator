@@ -11,7 +11,6 @@ import (
 // JobWatcher is the main entry point into Replicators process of reading and
 // updating its JobScalingPolicies tracking.
 func (c *nomadClient) JobWatcher(jobScalingPolicies *structs.JobScalingPolicies) {
-
 	q := &nomad.QueryOptions{WaitIndex: 1, AllowStale: true}
 
 	for {
