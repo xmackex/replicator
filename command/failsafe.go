@@ -101,6 +101,9 @@ func (c *FailsafeCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Set the state path in the state object.
+	state.StatePath = c.statePath
+
 	// Setup the Consul client.
 	if err := base.InitializeClients(conf.Config); err != nil {
 		c.UI.Error(fmt.Sprintf("An error occurred while attempting to initialize "+
@@ -118,7 +121,7 @@ func (c *FailsafeCommand) Run(args []string) int {
 	}
 
 	// Attempt to load state tracking data from Consul.
-	consul.ReadState(c.statePath, state)
+	consul.ReadState(state)
 
 	// If failsafe mode is already in the desired state, report and take no
 	// action.
@@ -164,11 +167,13 @@ func (c *FailsafeCommand) Run(args []string) int {
 
 	// Set desired failsafe mode.
 	state.FailsafeMode = conf.Enable
-	if err := consul.PersistState(c.statePath, state); err != nil {
-		c.UI.Error(fmt.Sprintf("An error occurred while attempting to %v failsafe mode: %v", conf.Verb, err))
+	if err := consul.PersistState(state); err != nil {
+		c.UI.Error(fmt.Sprintf("An error occurred while attempting to %v "+
+			"failsafe mode: %v", conf.Verb, err))
 	}
 
-	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode on %s", conf.Verb, c.statePath))
+	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode on %s",
+		conf.Verb, c.statePath))
 
 	return 0
 }

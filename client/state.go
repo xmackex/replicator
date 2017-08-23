@@ -54,9 +54,6 @@ func (c *consulClient) ReadState(state *structs.ScalingState) {
 		"information from Consul, data was last updated: %v",
 		state.LastUpdated)
 
-	logging.Debug("client/state: successfully updated state tracking "+
-		"from Consul: %v", state)
-
 	return
 }
 
