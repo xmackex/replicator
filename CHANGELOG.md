@@ -6,6 +6,7 @@ IMPROVEMENTS:
 * Replicator now tracks scaling deployment to confirm success [GH-146]
 * Introduce Node Discovery With Dynamic Refresh [GH-148]
 * Replicator now supports setting failsafe per job group [GH-152]
+* Replicator now supports concurrent cluster scaling of multiple worker pools [GH-157]
 
 ## 0.0.2 (03 August 2017)
 
