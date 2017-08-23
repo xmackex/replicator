@@ -18,12 +18,15 @@ type NodeRegistry struct {
 // WorkerPool represents the scaling configuration of a discovered
 // worker pool and its associated node membership.
 type WorkerPool struct {
-	Cooldown       int                  `mapstructure:"replicator_cooldown"`
-	FaultTolerance int                  `mapstructure:"replicator_node_fault_tolerance"`
-	Max            int                  `mapstructure:"replicator_max"`
-	Min            int                  `mapstructure:"replicator_min"`
-	Name           string               `mapstructure:"replicator_autoscaling_group"`
-	Nodes          map[string]*api.Node `hash:"ignore"`
-	RetryThreshold int                  `mapstructure:"replicator_retry_threshold"`
-	ScalingEnabled bool                 `mapstructure:"replicator_enabled"`
+	Cooldown         int                  `mapstructure:"replicator_cooldown"`
+	FaultTolerance   int                  `mapstructure:"replicator_node_fault_tolerance"`
+	Max              int                  `mapstructure:"replicator_max"`
+	Min              int                  `mapstructure:"replicator_min"`
+	Name             string               `mapstructure:"replicator_worker_pool"`
+	Nodes            map[string]*api.Node `hash:"ignore"`
+	ProtectedNode    string               `hash:"ignore"`
+	Region           string               `mapstructure:"replicator_region"`
+	RetryThreshold   int                  `mapstructure:"replicator_retry_threshold"`
+	ScalingEnabled   bool                 `mapstructure:"replicator_enabled"`
+	ScalingThreshold int                  `mapstructure:"replicator_scaling_threshold"`
 }

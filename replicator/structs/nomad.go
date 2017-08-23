@@ -1,9 +1,8 @@
 package structs
 
 import (
-	"time"
-
 	nomad "github.com/hashicorp/nomad/api"
+	"time"
 )
 
 // Set of possible states for a node.
@@ -16,23 +15,20 @@ const (
 // NomadClient exposes all API methods needed to interact with the Nomad API,
 // evaluate cluster capacity and allocations and make scaling decisions.
 type NomadClient interface {
-	// ClusterAllocationCapacity determines the total cluster capacity and current
-	// number of worker nodes.
-	ClusterAllocationCapacity(*ClusterCapacity) error
+	ClusterScalingSafe(*ClusterCapacity, *WorkerPool) bool
 
-	// ClusterAssignedAllocation determines the consumed capacity across the
-	// cluster and tracks the resource consumption of each worker node.
-	ClusterAssignedAllocation(*ClusterCapacity) error
-
-	// DrainNode places a worker node in drain mode to stop future allocations and
-	// migrate existing allocations to other worker nodes.
+	// DrainNode places a worker node in drain mode to stop future allocations
+	// and migrate existing allocations to other worker nodes.
 	DrainNode(string) error
 
-	// EvaluateClusterCapacity determines if a cluster scaling action is required.
-	EvaluateClusterCapacity(*ClusterCapacity, *Config) (bool, error)
+	// EvaluatePoolScaling evaluates a worker pool capacity and utilization,
+	// and determines whether a scaling operation is required and safe to
+	// implement.
+	EvaluatePoolScaling(*ClusterCapacity, *WorkerPool, *JobScalingPolicies) (bool, error)
 
-	// EvaluateJobScaling compares the consumed resource percentages of a Job group
-	// against its scaling policy to determine whether a scaling event is required.
+	// EvaluateJobScaling compares the consumed resource percentages of a Job
+	// group against its scaling policy to determine whether a scaling event is
+	// required.
 	EvaluateJobScaling(string, []*GroupScalingPolicy)
 
 	// GetAllocationStats discovers the resources consumed by a particular Nomad
@@ -55,10 +51,8 @@ type NomadClient interface {
 	JobWatcher(*JobScalingPolicies)
 
 	// LeastAllocatedNode determines which worker pool node is consuming the
-	// least amount of the cluster's most-utilized resource. If Replicator is
-	// running as a Nomad job, the worker node running the Replicator leader will
-	// be excluded.
-	LeastAllocatedNode(*ClusterCapacity, *State) (string, string)
+	// least amount of the cluster's most-utilized resource.
+	LeastAllocatedNode(*ClusterCapacity, *ScalingState) (string, string)
 
 	// NodeReverseLookup provides a method to get the ID of the worker pool node
 	// running a given allocation.
@@ -72,12 +66,6 @@ type NomadClient interface {
 	// cluster. The worst-case allocation resource is prioritized when making
 	// scaling decisions.
 	MostUtilizedResource(*ClusterCapacity)
-
-	// TaskAllocationTotals calculates the allocations required by each running
-	// job and what amount of resources required if we increased the count of
-	// each job by one. This allows the cluster to proactively ensure it has
-	// sufficient capacity for scaling events and deal with potential node failures.
-	TaskAllocationTotals(*ClusterCapacity) error
 
 	// VerifyNodeHealth evaluates whether a specified worker node is a healthy
 	// member of the Nomad cluster.

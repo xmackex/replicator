@@ -17,13 +17,15 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 
 	// Define required meta configuration parameters.
 	requiredKeys := []string{
-		"replicator_autoscaling_group",
 		"replicator_cooldown",
 		"replicator_enabled",
 		"replicator_max",
 		"replicator_min",
 		"replicator_node_fault_tolerance",
+		"replicator_region",
 		"replicator_retry_threshold",
+		"replicator_scaling_threshold",
+		"replicator_worker_pool",
 	}
 
 	// Test that a node with no scaling configuration correctly indicates
@@ -35,7 +37,7 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 	}
 
 	// Add one configuration parameter.
-	meta["replicator_autoscaling_group"] = "example-group"
+	meta["replicator_worker_pool"] = "example-group"
 
 	partialConfigReturn := helper.ParseMetaConfig(meta, requiredKeys)
 	if len(partialConfigReturn) != len(requiredKeys)-1 {
@@ -49,7 +51,9 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
 	meta["replicator_node_fault_tolerance"] = "1"
+	meta["replicator_region"] = "us-east-1"
 	meta["replicator_retry_threshold"] = "3"
+	meta["replicator_scaling_threshold"] = "3"
 
 	// Test that a node with a complete and valid scaling configuration
 	// correctly indicates there are no required configuration parameters
@@ -164,13 +168,15 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 	expectedRegistry.RegisteredNodes["ec2026ec-3632-7cb6-a3d2-88b9e254c793"] =
 		"example-group"
 	expectedRegistry.WorkerPools["example-group"] = &structs.WorkerPool{
-		Cooldown:       300,
-		FaultTolerance: 1,
-		Max:            3,
-		Min:            1,
-		RetryThreshold: 3,
-		ScalingEnabled: true,
-		Name:           "example-group",
+		Cooldown:         300,
+		FaultTolerance:   1,
+		Max:              3,
+		Min:              1,
+		Region:           "us-east-1",
+		RetryThreshold:   3,
+		ScalingEnabled:   true,
+		ScalingThreshold: 3,
+		Name:             "example-group",
 		Nodes: map[string]*api.Node{
 			"ec2026ec-3632-7cb6-a3d2-88b9e254c793": {
 				ID:         "ec2026ec-3632-7cb6-a3d2-88b9e254c793",
@@ -179,13 +185,15 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 				Drain:      false,
 				Status:     structs.NodeStatusReady,
 				Meta: map[string]string{
-					"replicator_autoscaling_group":    "example-group",
 					"replicator_cooldown":             "300",
 					"replicator_enabled":              "true",
 					"replicator_max":                  "3",
 					"replicator_min":                  "1",
 					"replicator_node_fault_tolerance": "1",
+					"replicator_region":               "us-east-1",
 					"replicator_retry_threshold":      "3",
+					"replicator_scaling_threshold":    "3",
+					"replicator_worker_pool":          "example-group",
 				},
 			},
 		},
@@ -228,13 +236,15 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 	expected.RegisteredNodes["ec2026ec-3632-7cb6-a3d2-88b9e254c793"] =
 		"example-group"
 	expected.WorkerPools["example-group"] = &structs.WorkerPool{
-		Cooldown:       300,
-		FaultTolerance: 1,
-		Max:            3,
-		Min:            1,
-		RetryThreshold: 3,
-		ScalingEnabled: true,
-		Name:           "example-group",
+		Cooldown:         300,
+		FaultTolerance:   1,
+		Max:              3,
+		Min:              1,
+		Region:           "us-east-1",
+		RetryThreshold:   3,
+		ScalingEnabled:   true,
+		ScalingThreshold: 3,
+		Name:             "example-group",
 		Nodes: map[string]*api.Node{
 			"ec2026ec-3632-7cb6-a3d2-88b9e254c793": {
 				ID:         "ec2026ec-3632-7cb6-a3d2-88b9e254c793",
@@ -243,13 +253,15 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 				Drain:      false,
 				Status:     structs.NodeStatusReady,
 				Meta: map[string]string{
-					"replicator_autoscaling_group":    "example-group",
 					"replicator_cooldown":             "300",
 					"replicator_enabled":              "true",
 					"replicator_max":                  "3",
 					"replicator_min":                  "1",
 					"replicator_node_fault_tolerance": "1",
+					"replicator_region":               "us-east-1",
 					"replicator_retry_threshold":      "3",
+					"replicator_scaling_threshold":    "3",
+					"replicator_worker_pool":          "example-group",
 				},
 			},
 		},
@@ -296,13 +308,15 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 		Drain:      false,
 		Status:     structs.NodeStatusReady,
 		Meta: map[string]string{
-			"replicator_autoscaling_group":    "example-group",
 			"replicator_cooldown":             "300",
 			"replicator_enabled":              "true",
 			"replicator_max":                  "3",
 			"replicator_min":                  "1",
 			"replicator_node_fault_tolerance": "1",
+			"replicator_region":               "us-east-1",
 			"replicator_retry_threshold":      "3",
+			"replicator_scaling_threshold":    "3",
+			"replicator_worker_pool":          "example-group",
 		},
 	}
 
@@ -405,13 +419,15 @@ func mockNode(node *api.NodeListStub) (nodeRecord *api.Node) {
 
 	// Build meta configuration parameters
 	meta := make(map[string]string)
-	meta["replicator_autoscaling_group"] = "example-group"
 	meta["replicator_cooldown"] = "300"
 	meta["replicator_enabled"] = "true"
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
 	meta["replicator_node_fault_tolerance"] = "1"
+	meta["replicator_region"] = "us-east-1"
 	meta["replicator_retry_threshold"] = "3"
+	meta["replicator_scaling_threshold"] = "3"
+	meta["replicator_worker_pool"] = "example-group"
 
 	// Add meta configuration parameters to node record.
 	nodeRecord.Meta = meta

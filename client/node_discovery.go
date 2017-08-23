@@ -34,6 +34,7 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 		}
 
 		for _, node := range nodes {
+			// BUG (e.westfall): We should check for drain mode and status ready.
 			// Deregister the node if it has been placed in drain mode.
 			if node.Drain == true {
 				logging.Warning("client/node_discovery: node %v has been placed in "+
@@ -79,8 +80,11 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 					Deregister(node.ID, nodeRegistry)
 				}
 
-				// If the node is down, deregister the node.
+			// If the node is down, deregister the node.
 			case structs.NodeStatusDown:
+				// BUG (e.westfall): We should not log like this as we will always
+				// see nodes that are down until they are reaped. Consider checking
+				// the meta index of each node.
 				logging.Warning("client/node_discovery: node %v is down, initiating "+
 					"deregistration of the node", node.ID)
 				Deregister(node.ID, nodeRegistry)
@@ -126,13 +130,15 @@ func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
 
 	// Required meta configuration keys.
 	requiredKeys := []string{
-		"replicator_autoscaling_group",
 		"replicator_cooldown",
 		"replicator_enabled",
 		"replicator_max",
 		"replicator_min",
 		"replicator_node_fault_tolerance",
+		"replicator_region",
 		"replicator_retry_threshold",
+		"replicator_scaling_threshold",
+		"replicator_worker_pool",
 	}
 
 	// Parse meta configuration parameters and determine if any required
@@ -212,9 +218,12 @@ func Register(node *nomad.Node, workerPool *structs.WorkerPool,
 				"changed, updating.")
 			existingPool.Max = workerPool.Max
 			existingPool.Min = workerPool.Min
+			existingPool.Region = workerPool.Region
 			existingPool.Cooldown = workerPool.Cooldown
+			existingPool.RetryThreshold = workerPool.RetryThreshold
 			existingPool.FaultTolerance = workerPool.FaultTolerance
 			existingPool.ScalingEnabled = workerPool.ScalingEnabled
+			existingPool.ScalingThreshold = workerPool.ScalingThreshold
 		}
 
 		// If the node is not already known to the worker pool, register it.

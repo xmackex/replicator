@@ -21,11 +21,11 @@ type ConsulClient interface {
 
 	// PersistState is responsible for persistently storing scaling
 	// state information in the Consul Key/Value Store.
-	PersistState(string, *ScalingState) error
+	PersistState(*ScalingState) error
 
 	// ReadState attempts to read state tracking information from the Consul
 	// Key/Value Store from the path provided.
-	ReadState(string, *ScalingState)
+	ReadState(*ScalingState)
 
 	// ResignLeadership attempts to remove the leadership lock upon shutdown of the
 	// replicator daemon. If this is unsuccessful there is not too much we can do
