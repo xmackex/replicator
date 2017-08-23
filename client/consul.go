@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -161,7 +162,7 @@ func (c *consulClient) CreateSession(ttl int, stopCh chan struct{}) (id string, 
 // AcquireLeadership attempts to acquire a Consul leadersip lock using the
 // provided session. If the lock is already taken this will return false in
 // a show that there is already a leader.
-func (c *consulClient) AcquireLeadership(key, session string) (aquired bool) {
+func (c *consulClient) AcquireLeadership(key string, session *string) (aquired bool) {
 
 	// Attempt to inspect the leadership key if it is available and present.
 	k, _, err := c.consul.KV().Get(key, nil)
@@ -171,17 +172,31 @@ func (c *consulClient) AcquireLeadership(key, session string) (aquired bool) {
 		return false
 	}
 
+	// Check we have a valid session.
+	s, _, err := c.consul.Session().Info(*session, nil)
+	if err != nil {
+		logging.Error("client/consul: unable to read the leader key at %s", key)
+		return false
+	}
+
+	// If the session is not valiad, set our state to default
+	if s == nil {
+		logging.Error("client/consul: the Consul session %s has expired, revoking from Replicator", *session)
+		*session = ""
+		return false
+	}
+
 	// On a fresh cluster the KV might not exist yet, so we need to check for nil
 	// return. If the leadership lock is tied to our session then we can exit and
 	// confirm we are running as the replicator leader without having to make on
 	// further calls.
-	if k != nil && k.Session == session {
+	if k != nil && k.Session == *session {
 		return true
 	}
 
 	kp := &consul.KVPair{
 		Key:     key,
-		Session: session,
+		Session: *session,
 	}
 
 	logging.Debug("client/consul: attempting to aquire leadership lock at %s", key)
@@ -246,7 +261,8 @@ func (c *consulClient) renewSession(ttl string, session string, renewChan chan s
 			case <-time.After(parsedTTL / 2):
 				entry, _, err := c.consul.Session().Renew(session, nil)
 				if err != nil {
-					continue
+					logging.Error("client/consul: unable to renew the Consul session %s: %v", session, err)
+					runtime.Goexit()
 				}
 				if entry == nil {
 					return

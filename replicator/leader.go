@@ -58,7 +58,7 @@ func (l *LeaderCandidate) leaderElection() (isLeader bool) {
 	}
 
 	// Attempt to acquire the leadership lock.
-	if isLeader = l.consulClient.AcquireLeadership(l.key, l.session); isLeader {
+	if isLeader = l.consulClient.AcquireLeadership(l.key, &l.session); isLeader {
 		logging.Debug("core/leader: currently running as Replicator leader")
 		l.leader = true
 		return true
@@ -72,7 +72,7 @@ func (l *LeaderCandidate) leaderElection() (isLeader bool) {
 // the replicator leadership locking, allowing other daemons to pick up the lock
 // without having to wait for the TTL to expire.
 func (l *LeaderCandidate) endCampaign() {
-	logging.Info("core/runner: gracefully cleaning up Consul sessions and locks")
+	logging.Info("core/leader: gracefully cleaning up Consul sessions and locks")
 
 	l.releaseSession()
 
