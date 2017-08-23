@@ -340,19 +340,6 @@ func (c *nomadClient) GetAllocationStats(allocation *nomad.Allocation, scalingPo
 		scalingPolicy.Tasks.Resources.MemoryMB)
 }
 
-// IsJobRunning checks to see whether the specified jobID has any currently
-// task groups on the cluster.
-func (c *nomadClient) IsJobRunning(jobID string) bool {
-
-	_, _, err := c.nomad.Jobs().Summary(jobID, &nomad.QueryOptions{})
-
-	if err != nil {
-		return false
-	}
-
-	return true
-}
-
 // MaxAllowedClusterUtilization calculates the maximum allowed cluster utilization after
 // taking into consideration node fault-tolerance and scaling overhead.
 func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {

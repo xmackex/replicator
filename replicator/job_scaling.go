@@ -1,6 +1,7 @@
 package replicator
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -26,6 +27,7 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 	// Scaling a Cluster Jobs requires access to both Consul and Nomad therefore
 	// we setup the clients here.
 	nomadClient := r.config.NomadClient
+	consulClient := r.config.ConsulClient
 
 	for job, groups := range jobScalingPolicies.Policies {
 
@@ -45,17 +47,23 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 			nomadClient.EvaluateJobScaling(job, groups)
 			jobScalingPolicies.Lock.Unlock()
 
-			// Due to the nested nature of the job and group Nomad definitions a dumb
-			// metric is used to determine whether the job has 1 or more groups which
-			// require scaling.
-			i := 0
-
 			jobScalingPolicies.Lock.RLock()
 			for _, group := range groups {
 
+				// Read or JobGroup state and check failsafe.
+				p := r.config.ConsulKeyLocation + "/state/jobs/" + job + "/" + group.GroupName
+				s := &structs.ScalingState{}
+				consulClient.ReadState(p, s)
+
+				if s.FailsafeMode {
+					logging.Error("core/job_scaling: job \"%v\" and group \"%v\" is in failsafe mode", job, group.GroupName)
+					continue
+				}
+
+				// Check the JobGroup scaling cooldown.
 				cd := time.Duration(group.Cooldown) * time.Second
 
-				if !group.LastScalingEvent.Before(time.Now().Add(-cd)) {
+				if !s.LastScalingEvent.Before(time.Now().Add(-cd)) {
 					logging.Debug("core/job_scaling: job \"%v\" and group \"%v\" has not reached scaling cooldown threshold of %s",
 						job, group.GroupName, cd)
 					continue
@@ -63,23 +71,26 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 
 				if group.ScaleDirection == client.ScalingDirectionOut || group.ScaleDirection == client.ScalingDirectionIn {
 					if group.Enabled && r.config.JobScaling.Enabled {
-						logging.Debug("core/job_scaling: scaling for job \"%v\" is enabled; a "+
-							"scaling operation (%v) will be requested for group \"%v\"",
-							job, group.ScaleDirection, group.GroupName)
-						i++
+						logging.Debug("core/job_scaling: scaling for job \"%v\" and group \"%v\" is enabled; a "+
+							"scaling operation (%v) will be requested", job, group.GroupName, group.ScaleDirection)
+
+						// Submit the job and group for scaling.
+						nomadClient.JobGroupScale(job, group, s)
+
 					} else {
 						logging.Debug("core/job_scaling: job scaling has been disabled; a "+
 							"scaling operation (%v) would have been requested for \"%v\" "+
 							"and group \"%v\"", group.ScaleDirection, job, group.GroupName)
 					}
 				}
-			}
 
-			// If 1 or more groups need to be scaled we submit the whole job for
-			// scaling as to scale you must submit the whole job file currently. The
-			// JobScale function takes care of scaling groups independently.
-			if i > 0 {
-				nomadClient.JobScale(job, groups)
+				if s.FailsafeMode {
+					sendFailsafeNotification(fmt.Sprintf("%s_%s", job, group.GroupName), jobType, group.UID, s, r.config)
+				}
+
+				// Persist our state to Consul.
+				consulClient.PersistState(p, s)
+
 			}
 			jobScalingPolicies.Lock.RUnlock()
 		}(job, groups)

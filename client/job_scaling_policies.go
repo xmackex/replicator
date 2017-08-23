@@ -1,6 +1,8 @@
 package client
 
 import (
+	"time"
+
 	"github.com/elsevier-core-engineering/replicator/helper"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
@@ -16,14 +18,19 @@ func (c *nomadClient) JobWatcher(jobScalingPolicies *structs.JobScalingPolicies)
 	for {
 		jobs, meta, err := c.nomad.Jobs().List(q)
 		if err != nil {
-			logging.Error("client/job_scaling_policies: unable to list Nomad jobs: %v", err)
-			return
+			logging.Error("client/job_scaling_policies: failed to retrieve jobs from the Nomad API: %v", err)
+
+			// Sleep as we don't want to retry the API call as fast as Go possibly can.
+			time.Sleep(20 * time.Second)
+			continue
 		}
 
 		// If the LastIndex is not greater than our stored LastChangeIndex, we don't
 		// need to do anything. On the initial run this will always result in a full
 		// run as the LastChangeIndex is initialized to 0.
 		if meta.LastIndex <= jobScalingPolicies.LastChangeIndex {
+			logging.Debug("client/job_scaling_policies: blocking query timed out, " +
+				"restarting job discovery watcher")
 			continue
 		}
 
@@ -45,10 +52,10 @@ func (c *nomadClient) JobWatcher(jobScalingPolicies *structs.JobScalingPolicies)
 		}
 
 		// Persist the LastIndex into our scaling policy struct.
-		logging.Debug("client/job_scaling_policies: updating LastChangeIndex from %v to %v",
-			jobScalingPolicies.LastChangeIndex, meta.LastIndex)
+		jobScalingPolicies.Lock.Lock()
 		jobScalingPolicies.LastChangeIndex = meta.LastIndex
 		q.WaitIndex = meta.LastIndex
+		jobScalingPolicies.Lock.Unlock()
 	}
 }
 
@@ -78,6 +85,7 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 		"replicator_scalein_cpu",
 		"replicator_scaleout_mem",
 		"replicator_scaleout_cpu",
+		"replicator_uid",
 	}
 
 	// Run the checkOrphanedGroup function.

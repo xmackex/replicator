@@ -5,6 +5,7 @@ IMPROVEMENTS:
 * Nomad JobScaling now uses meta parameters within the job file for configuration [GH-139]
 * Replicator now tracks scaling deployment to confirm success [GH-146]
 * Introduce Node Discovery With Dynamic Refresh [GH-148]
+* Replicator now supports setting failsafe per job group [GH-152]
 
 ## 0.0.2 (03 August 2017)
 

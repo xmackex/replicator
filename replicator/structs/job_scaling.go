@@ -16,17 +16,17 @@ type JobScalingPolicies struct {
 // GroupScalingPolicy represents all the information needed to make JobTaskGroup
 // scaling decisions.
 type GroupScalingPolicy struct {
-	Cooldown         time.Duration `mapstructure:"replicator_cooldown"`
-	Enabled          bool          `mapstructure:"replicator_enabled"`
-	GroupName        string
-	LastScalingEvent time.Time      `hash:"ignore"`
-	Max              int            `mapstructure:"replicator_max"`
-	Min              int            `mapstructure:"replicator_min"`
-	ScaleDirection   string         `hash:"ignore"`
-	ScaleInCPU       float64        `mapstructure:"replicator_scalein_cpu"`
-	ScaleInMem       float64        `mapstructure:"replicator_scalein_mem"`
-	ScalingMetric    string         `hash:"ignore"`
-	ScaleOutCPU      float64        `mapstructure:"replicator_scaleout_cpu"`
-	ScaleOutMem      float64        `mapstructure:"replicator_scaleout_mem"`
-	Tasks            TaskAllocation `hash:"ignore"`
+	Cooldown       time.Duration `mapstructure:"replicator_cooldown"`
+	Enabled        bool          `mapstructure:"replicator_enabled"`
+	GroupName      string
+	Max            int            `mapstructure:"replicator_max"`
+	Min            int            `mapstructure:"replicator_min"`
+	ScaleDirection string         `hash:"ignore"`
+	ScaleInCPU     float64        `mapstructure:"replicator_scalein_cpu"`
+	ScaleInMem     float64        `mapstructure:"replicator_scalein_mem"`
+	ScalingMetric  string         `hash:"ignore"`
+	ScaleOutCPU    float64        `mapstructure:"replicator_scaleout_cpu"`
+	ScaleOutMem    float64        `mapstructure:"replicator_scaleout_mem"`
+	Tasks          TaskAllocation `hash:"ignore"`
+	UID            string         `mapstructure:"replicator_uid"`
 }

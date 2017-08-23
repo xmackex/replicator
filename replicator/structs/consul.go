@@ -6,7 +6,7 @@ type ConsulClient interface {
 	// AcquireLeadership attempts to acquire a Consul leadersip lock using the
 	// provided session. If the lock is already taken this will return false in
 	// a show that there is already a leader.
-	AcquireLeadership(string, string) bool
+	AcquireLeadership(string, *string) bool
 
 	// CreateSession creates a Consul session for use in the Leadership locking
 	// process and will spawn off the renewing of the session in order to ensure
@@ -23,7 +23,8 @@ type ConsulClient interface {
 	// state information in the Consul Key/Value Store.
 	PersistState(*ScalingState) error
 
-	//ReadState does stuff and things.
+	// ReadState attempts to read state tracking information from the Consul
+	// Key/Value Store from the path provided.
 	ReadState(*ScalingState)
 
 	// ResignLeadership attempts to remove the leadership lock upon shutdown of the

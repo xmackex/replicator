@@ -2,6 +2,7 @@ package replicator
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/notifier"
@@ -9,7 +10,10 @@ import (
 )
 
 const (
-	failSafeMessage = "cluster_failsafe_mode"
+	clusterType    = "worker_pool"
+	jobType        = "job_group"
+	clusterMessage = "cluster_failsafe_mode"
+	jobMessage     = "job_group_failsafe_mode"
 )
 
 // FailsafeCheck implements the failsafe mode circuit breaker that will
@@ -55,7 +59,7 @@ func SetFailsafeMode(state *structs.State, config *structs.Config, enabled bool)
 				message := &notifier.FailureMessage{
 					AlertUID:          config.Notification.ClusterScalingUID,
 					ClusterIdentifier: config.Notification.ClusterIdentifier,
-					Reason:            failSafeMessage,
+					Reason:            clusterMessage,
 					FailedResource:    state.LastFailedNode,
 				}
 
@@ -89,4 +93,36 @@ func SetFailsafeMode(state *structs.State, config *structs.Config, enabled bool)
 	}
 
 	return nil
+}
+
+// sendFailsafeNotification is used to setup a notification for either jobscaling
+// or clusterscaling failure and send this to all configured backends.
+func sendFailsafeNotification(resourceID, resourceType, uid string, state *structs.ScalingState, config *structs.Config) {
+
+	var reason string
+
+	switch resourceType {
+	case clusterType:
+		reason = clusterMessage
+	case jobType:
+		reason = jobMessage
+	}
+
+	// If we have configured notification backends then lets send
+	if len(config.Notification.Notifiers) > 0 {
+
+		message := &notifier.FailureMessage{
+			AlertUID:          uid,
+			ClusterIdentifier: config.Notification.ClusterIdentifier,
+			Reason:            reason,
+			FailedResource:    resourceID,
+		}
+
+		for _, not := range config.Notification.Notifiers {
+			not.SendNotification(*message)
+		}
+	}
+
+	state.LastNotificationEvent = time.Now()
+
 }
