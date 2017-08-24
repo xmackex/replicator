@@ -13,12 +13,6 @@ type ConsulClient interface {
 	// leadership can be maintained.
 	CreateSession(int, chan struct{}) (string, error)
 
-	// LoadState attempts to read state tracking information from the Consul
-	// Key/Value Store. If state tracking information is present, it will be
-	// preferred. If no persistent data is available, the method returns the
-	// state tracking object unmodified.
-	LoadState(*Config, *State) *State
-
 	// PersistState is responsible for persistently storing scaling
 	// state information in the Consul Key/Value Store.
 	PersistState(*ScalingState) error
@@ -31,8 +25,4 @@ type ConsulClient interface {
 	// replicator daemon. If this is unsuccessful there is not too much we can do
 	// therefore there is no return.
 	ResignLeadership(string, string)
-
-	// WriteState is responsible for persistently storing state tracking
-	// information in the Consul Key/Value Store.
-	WriteState(*Config, *State) error
 }
