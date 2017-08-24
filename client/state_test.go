@@ -31,7 +31,7 @@ func TestClient_StateTracking(t *testing.T) {
 		t.Fatalf("error writing state to Consul: %v", err)
 	}
 
-	c.ConsulClient.ReadState(returnState)
+	c.ConsulClient.ReadState(returnState, true)
 	expected.LastUpdated = returnState.LastUpdated
 	if !reflect.DeepEqual(returnState, expected) {
 		t.Fatalf("expected \n%#v\n\n, got \n\n%#v\n\n", expected, returnState)

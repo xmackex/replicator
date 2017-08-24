@@ -1,8 +1,6 @@
 package structs
 
 import (
-	"time"
-
 	nomad "github.com/hashicorp/nomad/api"
 )
 
@@ -71,51 +69,6 @@ type NomadClient interface {
 	// VerifyNodeHealth evaluates whether a specified worker node is a healthy
 	// member of the Nomad cluster.
 	VerifyNodeHealth(string) bool
-}
-
-// State is the central object for managing and storing all cluster
-// scaling state information.
-type State struct {
-	// ClusterScaleInRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled in.
-	ClusterScaleInRequests int `json:"cluster_scalein_requests"`
-
-	// ClusterScaleOutRequests tracks the number of consecutive times replicator
-	// has indicated the cluster worker pool should be scaled out.
-	ClusterScaleOutRequests int `json:"cluster_scaleout_requests"`
-
-	// FailsafeMode tracks whether the daemon has exceeded the fault threshold
-	// while attempting to perform scaling operations. When operating in failsafe
-	// mode, the daemon will decline to take scaling actions of any type.
-	FailsafeMode bool `json:"failsafe_mode"`
-
-	// Tracks whether the last failsafe mode change was initiated by an
-	// operator via the CLI.
-	FailsafeModeAdmin bool `json:"failsafe_mode_admin"`
-
-	// LastFailedNode allows us to track the last node which was launched which
-	// failed to join the cluster.
-	LastFailedNode string `json:"last_failed_node"`
-
-	// LastNodeFailure represents the last time a new worker node was launched
-	// and failed to successfully join the worker pool.
-	LastNodeFailure time.Time `json:"last_node_failure"`
-
-	// LastScalingEvent represents the last time the daemon successfully
-	// completed a cluster scaling action.
-	LastScalingEvent time.Time `json:"last_scaling_event"`
-
-	// LastUpdated tracks the last time the state tracking data was updated.
-	LastUpdated time.Time `json:"last_updated"`
-
-	// NodeFailureCount tracks the number of worker nodes that have failed to
-	// successfully join the worker pool after a scale-out operation.
-	NodeFailureCount int `json:"node_failure_count"`
-
-	// ProtectedNode represents the Nomad agent node on which the Replicator
-	// leader is running. This node will be excluded when identifying an eligible
-	// node for termination during scaling actions.
-	ProtectedNode string `json:"protected_node"`
 }
 
 // ClusterCapacity is the central object used to track and evaluate cluster
