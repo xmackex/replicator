@@ -211,10 +211,11 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 
 // GetTaskGroupResources finds the defined resource requirements for a
 // given Job.
-func (c *nomadClient) GetTaskGroupResources(jobName string, groupPolicy *structs.GroupScalingPolicy) {
+func (c *nomadClient) GetTaskGroupResources(jobName string, groupPolicy *structs.GroupScalingPolicy) error {
 	jobs, _, err := c.nomad.Jobs().Info(jobName, &nomad.QueryOptions{})
+
 	if err != nil {
-		logging.Error("client/nomad: failed to retrieve job details for job %v: %v\n", jobName, err)
+		return err
 	}
 
 	for _, group := range jobs.TaskGroups {
@@ -223,18 +224,21 @@ func (c *nomadClient) GetTaskGroupResources(jobName string, groupPolicy *structs
 			groupPolicy.Tasks.Resources.MemoryMB += *task.Resources.MemoryMB
 		}
 	}
+	return nil
 }
 
 // EvaluateJobScaling identifies Nomad allocations representative of a Job group
 // and compares the consumed resource percentages against the scaling policy to
 // determine whether a scaling event is required.
-func (c *nomadClient) EvaluateJobScaling(jobName string, jobScalingPolicies []*structs.GroupScalingPolicy) {
+func (c *nomadClient) EvaluateJobScaling(jobName string, jobScalingPolicies []*structs.GroupScalingPolicy) (err error) {
 	for _, gsp := range jobScalingPolicies {
-		c.GetTaskGroupResources(jobName, gsp)
+		if err = c.GetTaskGroupResources(jobName, gsp); err != nil {
+			return
+		}
 
 		allocs, _, err := c.nomad.Jobs().Allocations(jobName, false, &nomad.QueryOptions{})
 		if err != nil {
-			logging.Error("client/nomad: failed to retrieve allocations for job %v: %v\n", jobName, err)
+			return err
 		}
 
 		c.GetJobAllocations(allocs, gsp)
@@ -256,6 +260,7 @@ func (c *nomadClient) EvaluateJobScaling(jobName string, jobScalingPolicies []*s
 			gsp.ScaleDirection = ScalingDirectionIn
 		}
 	}
+	return
 }
 
 // GetJobAllocations identifies all allocations for an active job.

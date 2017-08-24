@@ -1,8 +1,9 @@
 package structs
 
 import (
-	nomad "github.com/hashicorp/nomad/api"
 	"time"
+
+	nomad "github.com/hashicorp/nomad/api"
 )
 
 // Set of possible states for a node.
@@ -29,7 +30,7 @@ type NomadClient interface {
 	// EvaluateJobScaling compares the consumed resource percentages of a Job
 	// group against its scaling policy to determine whether a scaling event is
 	// required.
-	EvaluateJobScaling(string, []*GroupScalingPolicy)
+	EvaluateJobScaling(string, []*GroupScalingPolicy) error
 
 	// GetAllocationStats discovers the resources consumed by a particular Nomad
 	// allocation.

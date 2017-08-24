@@ -44,7 +44,7 @@ func (c *nomadClient) JobWatcher(jobScalingPolicies *structs.JobScalingPolicies)
 				case StateRunning:
 					go c.jobScalingPolicyProcessor(job.Name, jobScalingPolicies)
 				case StateDead:
-					go removeJobScalingPolicy(job.Name, jobScalingPolicies)
+					go RemoveJobScalingPolicy(job.Name, jobScalingPolicies)
 				default:
 					continue
 				}
@@ -219,8 +219,8 @@ func removeGroupScalingPolicy(jobName, groupName string, scaling *structs.JobSca
 	}
 }
 
-// removeJobScalingPolicy deletes the job entry within the the policies map.
-func removeJobScalingPolicy(jobName string, scaling *structs.JobScalingPolicies) {
+// RemoveJobScalingPolicy deletes the job entry within the the policies map.
+func RemoveJobScalingPolicy(jobName string, scaling *structs.JobScalingPolicies) {
 	if _, ok := scaling.Policies[jobName]; ok {
 		scaling.Lock.Lock()
 		delete(scaling.Policies, jobName)

@@ -2,6 +2,7 @@ package replicator
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,16 +37,28 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 			continue
 		}
 
+		// EvaluateJobScaling performs read/write to our map therefore we wrap it
+		// in a read/write lock and remove this as soon as possible as the
+		// remianing functions only need a read lock.
+		jobScalingPolicies.Lock.Lock()
+		err := nomadClient.EvaluateJobScaling(job, groups)
+		jobScalingPolicies.Lock.Unlock()
+
+		// Horrible but required for jobs that have been purged as the policy
+		// watcher will not get notified and such cannot remove the policy even
+		// though the job doesn't exist. The string check is due to
+		// github.com/hashicorp/nomad/issues/1849
+		if err != nil && strings.Contains(err.Error(), "404") {
+			client.RemoveJobScalingPolicy(job, jobScalingPolicies)
+			continue
+		} else if err != nil {
+			logging.Error("core/job_scaling: unable to perform job resource evaluation: %v", err)
+			continue
+		}
+
 		// Launch a routine for each job so that we can concurrantly run job scaling
 		// functions as much as a map will allow.
 		go func(job string, groups []*structs.GroupScalingPolicy) {
-
-			// EvaluateJobScaling performs read/write to our map therefore we wrap it
-			// in a read/write lock and remove this as soon as possible as the
-			// remianing functions only need a read lock.
-			jobScalingPolicies.Lock.Lock()
-			nomadClient.EvaluateJobScaling(job, groups)
-			jobScalingPolicies.Lock.Unlock()
 
 			jobScalingPolicies.Lock.RLock()
 			for _, group := range groups {
