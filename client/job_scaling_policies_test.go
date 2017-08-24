@@ -91,7 +91,7 @@ func TestJobScalingPolicies_removeScalingPolicy(t *testing.T) {
 
 func TestJobScalingPolicies_removeJobScalingPolicy(t *testing.T) {
 	scaling := exampleJobScalingPolicies()
-	removeJobScalingPolicy("example", scaling)
+	RemoveJobScalingPolicy("example", scaling)
 
 	if len(scaling.Policies) != 0 {
 		t.Fatalf("expected empty map return, got %v entries", len(scaling.Policies))
