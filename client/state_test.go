@@ -18,12 +18,12 @@ func TestClient_StateTracking(t *testing.T) {
 	c.ConsulClient = consul
 
 	returnState := &structs.ScalingState{}
-	returnState.StatePath = c.ConsulKeyLocation + "/state/nodes/example-pool"
+	returnState.StatePath = c.ConsulKeyRoot + "/state/nodes/example-pool"
 
 	expected := &structs.ScalingState{
 		FailsafeMode: false,
 		FailureCount: 0,
-		StatePath:    c.ConsulKeyLocation + "/state/nodes/example-pool",
+		StatePath:    c.ConsulKeyRoot + "/state/nodes/example-pool",
 	}
 
 	err := c.ConsulClient.PersistState(expected)

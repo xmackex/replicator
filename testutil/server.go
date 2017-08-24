@@ -13,9 +13,8 @@ func MakeClientWithConfig(t *testing.T) (*structs.Config, *testutil.TestServer) 
 	srv1 := testutil.NewTestServer(t)
 
 	config := &structs.Config{
-		ConsulKeyLocation: "replicator/config",
-		ClusterScaling:    &structs.ClusterScaling{},
-		Notification:      &structs.Notification{},
+		ConsulKeyRoot: "replicator/config",
+		Notification:  &structs.Notification{},
 	}
 
 	return config, srv1

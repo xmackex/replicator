@@ -36,7 +36,7 @@ func (r *Runner) Start() {
 	ticker := time.NewTicker(time.Second * time.Duration(r.config.ScalingInterval))
 
 	// Setup our LeaderCandidate object for leader elections and session renewl.
-	leaderKey := r.config.ConsulKeyLocation + "/" + "leader"
+	leaderKey := r.config.ConsulKeyRoot + "/" + "leader"
 	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey,
 		r.config.ScalingInterval)
 
@@ -80,11 +80,15 @@ func (r *Runner) Start() {
 					}
 				}
 
-				// Initiate cluster scaling for each known scaleable worker pool.
-				r.asyncClusterScaling(NodeRegistry, jobScalingPolicy)
+				if !r.config.ClusterScalingDisable {
+					// Initiate cluster scaling for each known scaleable worker pool.
+					r.asyncClusterScaling(NodeRegistry, jobScalingPolicy)
+				}
 
-				// Initiate job scaling for each known scaleable job.
-				r.jobScaling(jobScalingPolicy)
+				if !r.config.JobScalingDisable {
+					// Initiate job scaling for each known scaleable job.
+					r.jobScaling(jobScalingPolicy)
+				}
 			}
 
 		case <-r.doneChan:

@@ -22,22 +22,11 @@ const (
 func DefaultConfig() *structs.Config {
 
 	return &structs.Config{
-		Consul:            LocalConsulAddress,
-		ConsulKeyLocation: "replicator/config",
-		Nomad:             LocalNomadAddress,
-		LogLevel:          "INFO",
-		ScalingInterval:   10,
-
-		ClusterScaling: &structs.ClusterScaling{
-			MaxSize:            10,
-			MinSize:            5,
-			CoolDown:           600,
-			NodeFaultTolerance: 1,
-			RetryThreshold:     2,
-			ScalingThreshold:   3,
-		},
-
-		JobScaling: &structs.JobScaling{},
+		Consul:          LocalConsulAddress,
+		ConsulKeyRoot:   "replicator/config",
+		Nomad:           LocalNomadAddress,
+		LogLevel:        "INFO",
+		ScalingInterval: 10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
@@ -49,23 +38,11 @@ func DefaultConfig() *structs.Config {
 func DevConfig() *structs.Config {
 
 	return &structs.Config{
-		Consul:            LocalConsulAddress,
-		ConsulKeyLocation: "replicator/config",
-		Nomad:             LocalNomadAddress,
-		LogLevel:          "DEBUG",
-		ScalingInterval:   10,
-
-		ClusterScaling: &structs.ClusterScaling{
-			Enabled:            false,
-			MaxSize:            1,
-			MinSize:            1,
-			CoolDown:           0,
-			NodeFaultTolerance: 0,
-			RetryThreshold:     1,
-			ScalingThreshold:   1,
-		},
-
-		JobScaling: &structs.JobScaling{},
+		Consul:          LocalConsulAddress,
+		ConsulKeyRoot:   "replicator/config",
+		Nomad:           LocalNomadAddress,
+		LogLevel:        "DEBUG",
+		ScalingInterval: 10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},

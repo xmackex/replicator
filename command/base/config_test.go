@@ -34,16 +34,13 @@ func TestConfig_ParseConfigFile(t *testing.T) {
 	if _, err := fh.Seek(0, 0); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if _, err := fh.WriteString(`{"aws_region":"us-east-1"}`); err != nil {
+	if _, err := fh.WriteString(`{"consul_key_root":"ops/on/call"}`); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	config, err := ParseConfigFile(fh.Name())
+	_, err = ParseConfigFile(fh.Name())
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if config.Region != "us-east-1" {
-		t.Fatalf("bad aws region: %q", config.Region)
 	}
 }
 
@@ -70,7 +67,7 @@ func TestConfig_LoadConfigDir(t *testing.T) {
 	}
 
 	file1 := filepath.Join(dir, "replicator.hcl")
-	err = ioutil.WriteFile(file1, []byte(`{"aws_region":"us-east-1"}`), 0600)
+	err = ioutil.WriteFile(file1, []byte(`{"consul_key_root":"ops/on/call"}`), 0600)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -85,8 +82,5 @@ func TestConfig_LoadConfigDir(t *testing.T) {
 	config, err = LoadConfigDir(dir)
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if config.Region != "us-east-1" || config.ScalingInterval != 1 {
-		t.Fatalf("bad: %#v", config)
 	}
 }
