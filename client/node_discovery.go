@@ -36,8 +36,6 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 		}
 
 		for _, node := range nodes {
-			// BUG (e.westfall): We should check for drain mode and status ready.
-			// Deregister the node if it has been placed in drain mode.
 			if node.Drain == true && node.Status == nomadStructs.NodeStatusReady {
 				logging.Warning("client/node_discovery: node %v has been placed in "+
 					"drain mode, initiating deregistration of the node", node.ID)
