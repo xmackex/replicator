@@ -25,7 +25,7 @@ type ConsulClient interface {
 
 	// ReadState attempts to read state tracking information from the Consul
 	// Key/Value Store from the path provided.
-	ReadState(*ScalingState)
+	ReadState(*ScalingState, bool)
 
 	// ResignLeadership attempts to remove the leadership lock upon shutdown of the
 	// replicator daemon. If this is unsuccessful there is not too much we can do

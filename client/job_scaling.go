@@ -69,8 +69,8 @@ func (c *nomadClient) JobGroupScale(jobName string, group *structs.GroupScalingP
 	success := c.scaleConfirmation(resp.EvalID)
 
 	if !success {
-		state.FailsafeMode = true
 		state.FailureCount++
+
 		return
 	}
 

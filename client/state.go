@@ -11,7 +11,7 @@ import (
 )
 
 // ReadState does stuff and things.
-func (c *consulClient) ReadState(state *structs.ScalingState) {
+func (c *consulClient) ReadState(state *structs.ScalingState, force bool) {
 	logging.Debug("client/state: attempting to read state tracking "+
 		"information from Consul at location %v", state.StatePath)
 
@@ -29,11 +29,17 @@ func (c *consulClient) ReadState(state *structs.ScalingState) {
 		return
 	} else if pair == nil {
 		logging.Debug("client/state: no state tracking information is present "+
-			"in Consul at location %v, writing initial state object", state.StatePath)
+			"in Consul at location %v", state.StatePath)
 
 		// There was no pre-existing state tracking information in Consul,
-		// persist an initial state tracking object.
-		c.PersistState(state)
+		// persist an initial state tracking object if the caller has enabled
+		// initialization.
+		if force {
+			logging.Debug("client/state: initialization has been enabled, "+
+				"writing initial state object at location %v", state.StatePath)
+
+			c.PersistState(state)
+		}
 
 		// Return unmodified struct back to the caller.
 		return

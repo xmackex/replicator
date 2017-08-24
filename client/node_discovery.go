@@ -135,6 +135,7 @@ func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
 		"replicator_max",
 		"replicator_min",
 		"replicator_node_fault_tolerance",
+		"replicator_notification_uid",
 		"replicator_region",
 		"replicator_retry_threshold",
 		"replicator_scaling_threshold",
@@ -223,6 +224,7 @@ func Register(node *nomad.Node, workerPool *structs.WorkerPool,
 			existingPool.RetryThreshold = workerPool.RetryThreshold
 			existingPool.FaultTolerance = workerPool.FaultTolerance
 			existingPool.ScalingEnabled = workerPool.ScalingEnabled
+			existingPool.NotificationUID = workerPool.NotificationUID
 			existingPool.ScalingThreshold = workerPool.ScalingThreshold
 		}
 

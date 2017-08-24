@@ -85,7 +85,7 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 		"replicator_scalein_cpu",
 		"replicator_scaleout_mem",
 		"replicator_scaleout_cpu",
-		"replicator_uid",
+		"replicator_notification_uid",
 	}
 
 	// Run the checkOrphanedGroup function.

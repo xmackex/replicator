@@ -10,7 +10,9 @@ type FailureMessage struct {
 	AlertUID          string
 	ClusterIdentifier string
 	Reason            string
-	FailedResource    string
+	ResourceID        string
+	ResourceType      string
+	StatePath         string
 }
 
 // Notifier is the interface to the Notifiers functions. All notifers are

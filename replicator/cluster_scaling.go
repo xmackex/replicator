@@ -7,6 +7,7 @@ import (
 	metrics "github.com/armon/go-metrics"
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
+	"github.com/elsevier-core-engineering/replicator/notifier"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
@@ -116,17 +117,26 @@ func (r *Runner) workerPoolScaling(poolName string,
 	// Initialize a new disposable capacity object.
 	poolCapacity := &structs.ClusterCapacity{}
 
-	// Initialize a new scaling state object and set the state path.
+	// Initialize a new scaling state object and set helper fields.
 	poolState := &structs.ScalingState{}
+	poolState.ResourceType = ClusterType
+	poolState.ResourceName = workerPool.Name
 	poolState.StatePath = r.config.ConsulKeyRoot + "/state/nodes/" +
 		workerPool.Name
 
 	// Attempt to load state from persistent storage.
-	consulClient.ReadState(poolState)
+	consulClient.ReadState(poolState, true)
+
+	// Setup a failure message to pass to the failsafe check.
+	message := &notifier.FailureMessage{
+		AlertUID:     workerPool.NotificationUID,
+		ResourceID:   workerPool.Name,
+		ResourceType: ClusterType,
+	}
 
 	// If the worker pool is in failsafe mode, decline to perform any scaling
 	// evaluation or action.
-	if poolState.FailsafeMode {
+	if !FailsafeCheck(poolState, r.config, workerPool.RetryThreshold, message) {
 		logging.Warning("core/cluster_scaling: worker pool %v is in failsafe "+
 			"mode, no scaling evaluations will be performed", workerPool.Name)
 		return

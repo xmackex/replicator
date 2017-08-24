@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/elsevier-core-engineering/replicator/command/base"
+	"github.com/elsevier-core-engineering/replicator/notifier"
+	"github.com/elsevier-core-engineering/replicator/replicator"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
@@ -121,7 +123,14 @@ func (c *FailsafeCommand) Run(args []string) int {
 	}
 
 	// Attempt to load state tracking data from Consul.
-	consul.ReadState(state)
+	consul.ReadState(state, false)
+
+	// If there was no state object at the specified path, throw an error.
+	if state.LastUpdated.IsZero() {
+		c.UI.Error(fmt.Sprintf("No state object was found at the specified "+
+			"path %v, no action will be taken", c.statePath))
+		return 1
+	}
 
 	// If failsafe mode is already in the desired state, report and take no
 	// action.
@@ -133,8 +142,9 @@ func (c *FailsafeCommand) Run(args []string) int {
 
 	// If the user has not disabled confirmation prompts, ask for confirmation.
 	if !conf.Force {
-		question := fmt.Sprintf("Are you sure you want to %s the failsafe "+
-			"lock stored at %q?\n", conf.Verb, c.statePath)
+		question := fmt.Sprintf("Are you sure you want to %s failsafe mode for "+
+			"%v %v at location %q?\n", conf.Verb, state.ResourceType,
+			state.ResourceName, c.statePath)
 
 		// If we're enabling failsafe mode, give the user a clear warning about
 		// the implications.
@@ -165,15 +175,34 @@ func (c *FailsafeCommand) Run(args []string) int {
 		}
 	}
 
-	// Set desired failsafe mode.
-	state.FailsafeMode = conf.Enable
-	if err := consul.PersistState(state); err != nil {
-		c.UI.Error(fmt.Sprintf("An error occurred while attempting to %v "+
-			"failsafe mode: %v", conf.Verb, err))
+	// Indicate that failsafe mode was administratively updated.
+	state.FailsafeAdmin = true
+
+	// Setup a failure message to pass to the failsafe method.
+	message := &notifier.FailureMessage{
+		AlertUID:     "replicator-failsafe-admin-cli",
+		ResourceID:   state.ResourceName,
+		ResourceType: state.ResourceType,
 	}
 
-	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode on %s",
-		conf.Verb, c.statePath))
+	// Set desired failsafe mode.
+	err := replicator.SetFailsafeMode(state, conf.Config, conf.Enable, message)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("An error occurred while attempting to %v "+
+			"failsafe mode for %v %v: %v", conf.Verb, state.ResourceType,
+			state.ResourceName, err))
+		return 1
+	}
+
+	if err := consul.PersistState(state); err != nil {
+		c.UI.Error(fmt.Sprintf("An error occurred while attempting to %v "+
+			"failsafe mode for %v %v: %v", conf.Verb, state.ResourceType,
+			state.ResourceName, err))
+	}
+
+	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode on for %v %v at "+
+		"location %s", conf.Verb, state.ResourceType, state.ResourceName,
+		c.statePath))
 
 	return 0
 }
