@@ -51,9 +51,11 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 			for _, group := range groups {
 
 				// Read or JobGroup state and check failsafe.
-				p := r.config.ConsulKeyLocation + "/state/jobs/" + job + "/" + group.GroupName
-				s := &structs.ScalingState{}
-				consulClient.ReadState(p, s)
+				s := &structs.ScalingState{
+					StatePath: r.config.ConsulKeyLocation + "/state/jobs/" + job +
+						"/" + group.GroupName,
+				}
+				consulClient.ReadState(s)
 
 				if s.FailsafeMode {
 					logging.Error("core/job_scaling: job \"%v\" and group \"%v\" is in failsafe mode", job, group.GroupName)
@@ -89,7 +91,7 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 				}
 
 				// Persist our state to Consul.
-				consulClient.PersistState(p, s)
+				consulClient.PersistState(s)
 
 			}
 			jobScalingPolicies.Lock.RUnlock()
