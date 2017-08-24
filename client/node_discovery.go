@@ -8,6 +8,7 @@ import (
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	nomad "github.com/hashicorp/nomad/api"
+	nomadStructs "github.com/hashicorp/nomad/nomad/structs"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -20,7 +21,8 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 	for {
 		nodes, meta, err := c.nomad.Nodes().List(q)
 		if err != nil {
-			logging.Error("client/node_discovery: failed to retrieve nodes from the Nomad API: %v", err)
+			logging.Error("client/node_discovery: failed to retrieve nodes from "+
+				"the Nomad API: %v", err)
 
 			// Sleep as we don't want to retry the API call as fast as Go possibly can.
 			time.Sleep(20 * time.Second)
@@ -36,7 +38,7 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 		for _, node := range nodes {
 			// BUG (e.westfall): We should check for drain mode and status ready.
 			// Deregister the node if it has been placed in drain mode.
-			if node.Drain == true {
+			if node.Drain == true && node.Status == nomadStructs.NodeStatusReady {
 				logging.Warning("client/node_discovery: node %v has been placed in "+
 					"drain mode, initiating deregistration of the node", node.ID)
 
