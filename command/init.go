@@ -104,27 +104,29 @@ func (c *InitCommand) writeFile(file, content string) (err error) {
 
 var defaultJobScalingDocument = strings.TrimSpace(`
 meta {
-  "replicator_cooldown"     = 50
-  "replicator_enabled"      = true
-  "replicator_max"          = 10
-  "replicator_min"          = 1
-  "replicator_scalein_mem"  = 30
-  "replicator_scalein_cpu"  = 30
-  "replicator_scaleout_mem" = 80
-  "replicator_scaleout_cpu" = 80
-  "replicator_uid"          = "REP1"
+  "replicator_cooldown"         = 50
+  "replicator_enabled"          = true
+  "replicator_max"              = 10
+  "replicator_min"              = 1
+  "replicator_notification_uid" = "REP1"
+  "replicator_scalein_mem"      = 30
+  "replicator_scalein_cpu"      = 30
+  "replicator_scaleout_mem"     = 80
+  "replicator_scaleout_cpu"     = 80
 }
 `)
 
 var defaultClusterScalingDocument = strings.TrimSpace(`
 meta {
+  "replicator_cool_down"            = 400
   "replicator_enabled"              = true
   "replicator_max_size"             = 10
   "replicator_min_size"             = 5
-  "replicator_cool_down"            = 400
   "replicator_node_fault_tolerance" = 1
-  "replicator_autoscaling_group"    = "container-node-public-prod"
+  "replicator_notification_uid"     = "REP2"
+  "replicator_region"               = "us-east-1"
   "replicator_retry_threshold"      = 3
   "replicator_scaling_threshold"    = 3
+  "replicator_worker_pool"          = "container-node-public-prod"
 }
 `)

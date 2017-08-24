@@ -87,7 +87,7 @@ func (r *Runner) Start() {
 
 				if !r.config.JobScalingDisable {
 					// Initiate job scaling for each known scaleable job.
-					r.jobScaling(jobScalingPolicy)
+					r.asyncJobScaling(jobScalingPolicy)
 				}
 			}
 
