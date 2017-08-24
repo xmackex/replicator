@@ -1,8 +1,6 @@
 package structs
 
 import (
-	// "time"
-
 	nomad "github.com/hashicorp/nomad/api"
 )
 
