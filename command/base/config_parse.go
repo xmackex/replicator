@@ -71,16 +71,15 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 	valid := []string{
 		"nomad",
 		"consul",
-		"consul_key_location",
+		"consul_key_root",
 		"consul_token",
 		"log_level",
 		"log_level",
 		"scaling_interval",
-		"aws_region",
-		"cluster_scaling",
-		"job_scaling",
 		"telemetry",
 		"notification",
+		"cluster_scaling_disable",
+		"job_scaling_disable",
 	}
 	if err := checkHCLKeys(list, valid); err != nil {
 		return multierror.Prefix(err, "config:")
@@ -93,27 +92,11 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 		return err
 	}
 
-	delete(m, "cluster_scaling")
-	delete(m, "job_scaling")
 	delete(m, "telemetry")
 	delete(m, "notification")
 
 	if err := mapstructure.WeakDecode(m, result); err != nil {
 		return err
-	}
-
-	// Parse the nested configuration portions which currently is ClusterScaling,
-	// JobScaling and Telemetry.
-	if o := list.Filter("cluster_scaling"); len(o.Items) > 0 {
-		if err := parseClusterScaling(&result.ClusterScaling, o); err != nil {
-			return multierror.Prefix(err, "cluster_scaling ->")
-		}
-	}
-
-	if o := list.Filter("job_scaling"); len(o.Items) > 0 {
-		if err := parseJobScaling(&result.JobScaling, o); err != nil {
-			return multierror.Prefix(err, "job_scaling ->")
-		}
 	}
 
 	if o := list.Filter("telemetry"); len(o.Items) > 0 {
@@ -128,71 +111,6 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 		}
 	}
 
-	return nil
-}
-
-func parseClusterScaling(result **structs.ClusterScaling, list *ast.ObjectList) error {
-	list = list.Elem()
-	if len(list.Items) > 1 {
-		return fmt.Errorf("only one 'cluster_scaling' block allowed")
-	}
-
-	listVal := list.Items[0].Val
-
-	// Check for invalid keys
-	valid := []string{
-		"enabled",
-		"max_size",
-		"min_size",
-		"cool_down",
-		"node_fault_tolerance",
-		"autoscaling_group",
-		"retry_threshold",
-		"scaling_threshold",
-	}
-	if err := checkHCLKeys(listVal, valid); err != nil {
-		return err
-	}
-
-	var m map[string]interface{}
-	if err := hcl.DecodeObject(&m, listVal); err != nil {
-		return err
-	}
-
-	var cluster structs.ClusterScaling
-	if err := mapstructure.WeakDecode(m, &cluster); err != nil {
-		return err
-	}
-	*result = &cluster
-	return nil
-}
-
-func parseJobScaling(result **structs.JobScaling, list *ast.ObjectList) error {
-	list = list.Elem()
-	if len(list.Items) > 1 {
-		return fmt.Errorf("only one 'job_scaling' block allowed")
-	}
-
-	listVal := list.Items[0].Val
-
-	// Check for invalid keys
-	valid := []string{
-		"enabled",
-	}
-	if err := checkHCLKeys(listVal, valid); err != nil {
-		return err
-	}
-
-	var m map[string]interface{}
-	if err := hcl.DecodeObject(&m, listVal); err != nil {
-		return err
-	}
-
-	var job structs.JobScaling
-	if err := mapstructure.WeakDecode(m, &job); err != nil {
-		return err
-	}
-	*result = &job
 	return nil
 }
 

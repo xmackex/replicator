@@ -32,9 +32,9 @@ func FailsafeCheck(state *structs.State, config *structs.Config) (passing bool) 
 	// If attempts to launch new worker pool nodes have failed and we've
 	// reached or exceeded the retry threshold, we should put the daemon in
 	// failsafe mode.
-	if state.NodeFailureCount >= config.ClusterScaling.RetryThreshold {
-		passing = false
-	}
+	// if state.NodeFailureCount >= config.ClusterScaling.RetryThreshold {
+	// 	passing = false
+	// }
 
 	switch passing {
 	case true:

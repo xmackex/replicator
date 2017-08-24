@@ -12,25 +12,11 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 
 	configFile := test.CreateTempfile([]byte(`
     consul                 = "consul.com:8500"
-		consul_key_location    = "wosniak/jobs"
+		consul_key_root        = "wosniak/jobs"
 		consul_token           = "thisisafaketoken"
     nomad                  = "http://nomad.com:4646"
     log_level              = "info"
     scaling_interval       = 1
-    aws_region             = "us-east-1"
-
-    cluster_scaling {
-      enabled              = true
-      max_size             = 1000
-      min_size             = 700
-      cool_down            = 800
-      node_fault_tolerance = 50
-      autoscaling_group    = "nomad"
-    }
-
-    job_scaling {
-      enabled             = true
-    }
 
     telemetry {
       statsd_address = "10.0.0.10:8125"
@@ -51,26 +37,12 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 	}
 
 	expected := &structs.Config{
-		Consul:            "consul.com:8500",
-		ConsulKeyLocation: "wosniak/jobs",
-		ConsulToken:       "thisisafaketoken",
-		Nomad:             "http://nomad.com:4646",
-		LogLevel:          "info",
-		ScalingInterval:   1,
-		Region:            "us-east-1",
-
-		ClusterScaling: &structs.ClusterScaling{
-			Enabled:            true,
-			MaxSize:            1000,
-			MinSize:            700,
-			CoolDown:           800,
-			NodeFaultTolerance: 50,
-			AutoscalingGroup:   "nomad",
-		},
-
-		JobScaling: &structs.JobScaling{
-			Enabled: true,
-		},
+		Consul:          "consul.com:8500",
+		ConsulKeyRoot:   "wosniak/jobs",
+		ConsulToken:     "thisisafaketoken",
+		Nomad:           "http://nomad.com:4646",
+		LogLevel:        "info",
+		ScalingInterval: 1,
 
 		Telemetry: &structs.Telemetry{
 			StatsdAddress: "10.0.0.10:8125",

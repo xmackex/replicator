@@ -52,7 +52,7 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 
 				// Read or JobGroup state and check failsafe.
 				s := &structs.ScalingState{
-					StatePath: r.config.ConsulKeyLocation + "/state/jobs/" + job +
+					StatePath: r.config.ConsulKeyRoot + "/state/jobs/" + job +
 						"/" + group.GroupName,
 				}
 				consulClient.ReadState(s)
@@ -72,7 +72,7 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 				}
 
 				if group.ScaleDirection == client.ScalingDirectionOut || group.ScaleDirection == client.ScalingDirectionIn {
-					if group.Enabled && r.config.JobScaling.Enabled {
+					if group.Enabled {
 						logging.Debug("core/job_scaling: scaling for job \"%v\" and group \"%v\" is enabled; a "+
 							"scaling operation (%v) will be requested", job, group.GroupName, group.ScaleDirection)
 

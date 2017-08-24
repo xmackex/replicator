@@ -118,7 +118,7 @@ func (r *Runner) workerPoolScaling(poolName string,
 
 	// Initialize a new scaling state object and set the state path.
 	poolState := &structs.ScalingState{}
-	poolState.StatePath = r.config.ConsulKeyLocation + "/state/nodes/" +
+	poolState.StatePath = r.config.ConsulKeyRoot + "/state/nodes/" +
 		workerPool.Name
 
 	// Attempt to load state from persistent storage.

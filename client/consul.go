@@ -46,7 +46,7 @@ func NewConsulClient(addr, token string) (structs.ConsulClient, error) {
 // data is available, the method returns the state tracking object unmodified.
 func (c *consulClient) LoadState(config *structs.Config, state *structs.State) *structs.State {
 
-	stateKey := config.ConsulKeyLocation + "/" + "state"
+	stateKey := config.ConsulKeyRoot + "/" + "state"
 
 	logging.Debug("client/consul: attempting to load state tracking "+
 		"information from Consul at location %v", stateKey)
@@ -97,7 +97,7 @@ func (c *consulClient) LoadState(config *structs.Config, state *structs.State) *
 // information in the Consul Key/Value Store.
 func (c *consulClient) WriteState(config *structs.Config, state *structs.State) (err error) {
 
-	stateKey := config.ConsulKeyLocation + "/" + "state"
+	stateKey := config.ConsulKeyRoot + "/" + "state"
 
 	logging.Debug("client/consul: attempting to persistently store scaling "+
 		"state in Consul at location %v", stateKey)

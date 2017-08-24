@@ -47,8 +47,21 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
+	cVerb := "enabled"
+	jVerb := "enabled"
+
+	if conf.ClusterScalingDisable {
+		cVerb = "disabled"
+	}
+	if conf.JobScalingDisable {
+		jVerb = "disabled"
+	}
+
 	logging.Info("command/agent: running version %v", version.Get())
 	logging.Info("command/agent: starting replicator agent...")
+	logging.Info("command/agent: replicator is running with cluster scaling globally %s", cVerb)
+	logging.Info("command/agent: replicator is running with job scaling globally %s", jVerb)
+
 	go runner.Start()
 
 	signalCh := make(chan os.Signal, 1)
@@ -104,10 +117,8 @@ func (c *Command) parseFlags() *structs.Config {
 	// An empty new config is setup here to allow us to fill this with any passed
 	// cli flags for later merging.
 	cliConfig := &structs.Config{
-		ClusterScaling: &structs.ClusterScaling{},
-		JobScaling:     &structs.JobScaling{},
-		Telemetry:      &structs.Telemetry{},
-		Notification:   &structs.Notification{},
+		Telemetry:    &structs.Telemetry{},
+		Notification: &structs.Notification{},
 	}
 
 	flags := c.Meta.FlagSet("agent", command.FlagSetClient)
@@ -117,26 +128,14 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.BoolVar(&dev, "dev", false, "")
 
 	// Top level configuration flags
-	flags.StringVar(&cliConfig.Region, "aws-region", "", "")
 	flags.StringVar(&cliConfig.Consul, "consul", "", "")
-	flags.StringVar(&cliConfig.ConsulKeyLocation, "consul-key-location", "", "")
+	flags.StringVar(&cliConfig.ConsulKeyRoot, "consul-key-root", "", "")
 	flags.StringVar(&cliConfig.ConsulToken, "consul-token", "", "")
 	flags.StringVar(&cliConfig.LogLevel, "log-level", "", "")
 	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
 	flags.IntVar(&cliConfig.ScalingInterval, "scaling-interval", 0, "")
-
-	// Cluster scaling configuration flags
-	flags.BoolVar(&cliConfig.ClusterScaling.Enabled, "cluster-scaling-enabled", false, "")
-	flags.IntVar(&cliConfig.ClusterScaling.MaxSize, "cluster-max-size", 0, "")
-	flags.IntVar(&cliConfig.ClusterScaling.MinSize, "cluster-min-size", 0, "")
-	flags.Float64Var(&cliConfig.ClusterScaling.CoolDown, "cluster-scaling-cool-down", 0, "")
-	flags.IntVar(&cliConfig.ClusterScaling.NodeFaultTolerance, "cluster-node-fault-tolerance", 0, "")
-	flags.StringVar(&cliConfig.ClusterScaling.AutoscalingGroup, "cluster-autoscaling-group", "", "")
-	flags.IntVar(&cliConfig.ClusterScaling.RetryThreshold, "cluster-retry-threshold", 0, "")
-	flags.IntVar(&cliConfig.ClusterScaling.ScalingThreshold, "cluster-scaling-threshold", 0, "")
-
-	// Job scaling configuration flags
-	flags.BoolVar(&cliConfig.JobScaling.Enabled, "job-scaling-enabled", false, "")
+	flags.BoolVar(&cliConfig.ClusterScalingDisable, "cluster-scaling-disable", false, "")
+	flags.BoolVar(&cliConfig.JobScalingDisable, "job-scaling-disable", false, "")
 
 	// Telemetry configuration flags
 	flags.StringVar(&cliConfig.Telemetry.StatsdAddress, "statsd-address", "", "")
@@ -269,9 +268,8 @@ func (c *Command) Help() string {
 
   General Options:
 
-    -aws-region=<region>
-      The AWS region in which the cluster is running. If no region is
-      specified, Replicator attempts to dynamically determine the region.
+    -cluster-scaling-disable
+      Passing this flag will disable cluster scaling completly.
 
     -config=<path>
       The path to either a single config file or a directory of config
@@ -288,10 +286,9 @@ func (c *Command) Help() string {
       server and reduce the number of open HTTP connections. Additionally,
       it provides a "well-known" IP address for which clients can connect.
 
-    -consul-key-location=<key>
+    -consul-key-root=<key>
       The Consul Key/Value Store location that Replicator will use
-      for persistent configuration and job scaling policies. By default,
-      this is replicator/config.
+      for persistent configuration. By default, this is replicator/config.
 
     -consul-token=<token>
       The Consul ACL token to use when communicating with an ACL
@@ -301,6 +298,9 @@ func (c *Command) Help() string {
       Start the Replicator agent in development mode. This runs the
       Replicator agent with a configuration which is ideal for development
       or local testing.
+
+    -job-scaling-disable
+      Passing this flag will disable job scaling completly.
 
     -log-level=<level>
       Specify the verbosity level of Replicator's logs. The default is
@@ -314,55 +314,6 @@ func (c *Command) Help() string {
     -scaling-interval=<num>
       The time period in seconds between Replicator check runs. The
       default is 10.
-
-  Cluster Scaling Options:
-
-    -cluster-autoscaling-group=<name>
-      The name of the AWS autoscaling group that contains the worker
-      nodes. This should be a separate ASG from the one containing
-      the server nodes.
-
-    -cluster-max-size=<num>
-      Indicates the maximum number of worker nodes allowed in the cluster.
-      The default is 10.
-
-    -cluster-min-size=<num>
-      Indicates the minimum number of worker nodes allowed in the cluster.
-      The default is 5.
-
-    -cluster-node-fault-tolerance=<num>
-      The number of worker nodes the cluster can tolerate losing while
-      still maintaining sufficient operation capacity. This is used by
-      the scaling algorithm when calculating allowed capacity consumption.
-      The default is 1.
-
-    -cluster-retry-threshold=<num>
-      Replicator fully verifies cluster scale-out by confirming the node
-      joins the cluster. If it does not join after a certain period the
-      actioned is marked as failed. This retry is the number of times
-      Replicator will attempt to scale the cluster with new instances.
-
-    -cluster-scaling-cool-down=<num>
-      The number of seconds Replicator will wait between triggering
-      cluster scaling actions. The default is 600.
-
-    -cluster-scaling-enabled
-      Indicates whether the daemon should perform scaling actions. If
-      disabled, the actions that would have been taken will be reported
-      in the logs but skipped.
-
-    -cluster-scaling-threshold
-      This is the number of consecutive times Replicator must calculate
-      that a cluster scaling action should be invoked, before the action
-      is triggered. This used in conjunction with the scaling-interval
-      helps prevent trashing of the cluster to fleeting load changes.
-
-  Job Scaling Options:
-
-    -job-scaling-enabled
-      Indicates whether the daemon should perform scaling actions. If
-      disabled, the actions that would have been taken will be reported
-      in the logs but skipped.
 
   Telemetry Options:
 
