@@ -8,9 +8,13 @@ import (
 // ScalingState provides a state object that represents the state
 // of a scaleable worker pool or job group.
 type ScalingState struct {
-	// FailsafeMode tracks whether the daemon has exceeded the fault threshold
-	// while attempting to perform scaling operations. When operating in failsafe
-	// mode, the daemon will decline to take scaling actions of any type.
+	// FailsafeAdmin tracks whether failsafe mode is being toggled via the CLI
+	// tools.
+	FailsafeAdmin bool `json:"failsafe_admin"`
+
+	// FailsafeMode represents the status of the failsafe circuit breaker. This
+	// will be tripped automatically when enough consecutive failures are
+	// encountered.
 	FailsafeMode bool `json:"failsafe_mode"`
 
 	// FailureCount tracks the number of worker nodes that have failed to
@@ -36,6 +40,13 @@ type ScalingState struct {
 	// leader is running. This node will be excluded when identifying an eligible
 	// node for termination during scaling actions.
 	ProtectedNode string `json:"protected_node"`
+
+	// ResourceName provides a shortcut method for identifying the resource
+	// this state is associated with.
+	ResourceName string `json:"resource_name"`
+
+	// ResourceType represents the type of resource being tracked by this object.
+	ResourceType string `json:"resource_type"`
 
 	// ScaleInRequests tracks the number of consecutive times replicator
 	// has indicated the cluster worker pool should be scaled in.

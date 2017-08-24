@@ -36,7 +36,7 @@ func (p *PagerDutyProvider) SendNotification(message FailureMessage) {
 	// Format the message description.
 	d := fmt.Sprintf("%s %s_%s_%s",
 		message.AlertUID, message.ClusterIdentifier, message.Reason,
-		message.FailedResource)
+		message.ResourceID)
 
 	// Setup the PagerDuty event structure which will then be used to trigger
 	// the event call.

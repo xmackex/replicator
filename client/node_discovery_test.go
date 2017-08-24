@@ -22,6 +22,7 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 		"replicator_max",
 		"replicator_min",
 		"replicator_node_fault_tolerance",
+		"replicator_notification_uid",
 		"replicator_region",
 		"replicator_retry_threshold",
 		"replicator_scaling_threshold",
@@ -51,6 +52,7 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
 	meta["replicator_node_fault_tolerance"] = "1"
+	meta["replicator_notification_uid"] = "Test01"
 	meta["replicator_region"] = "us-east-1"
 	meta["replicator_retry_threshold"] = "3"
 	meta["replicator_scaling_threshold"] = "3"
@@ -172,6 +174,7 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 		FaultTolerance:   1,
 		Max:              3,
 		Min:              1,
+		NotificationUID:  "Test01",
 		Region:           "us-east-1",
 		RetryThreshold:   3,
 		ScalingEnabled:   true,
@@ -190,6 +193,7 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 					"replicator_max":                  "3",
 					"replicator_min":                  "1",
 					"replicator_node_fault_tolerance": "1",
+					"replicator_notification_uid":     "Test01",
 					"replicator_region":               "us-east-1",
 					"replicator_retry_threshold":      "3",
 					"replicator_scaling_threshold":    "3",
@@ -240,6 +244,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 		FaultTolerance:   1,
 		Max:              3,
 		Min:              1,
+		NotificationUID:  "Test01",
 		Region:           "us-east-1",
 		RetryThreshold:   3,
 		ScalingEnabled:   true,
@@ -258,6 +263,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 					"replicator_max":                  "3",
 					"replicator_min":                  "1",
 					"replicator_node_fault_tolerance": "1",
+					"replicator_notification_uid":     "Test01",
 					"replicator_region":               "us-east-1",
 					"replicator_retry_threshold":      "3",
 					"replicator_scaling_threshold":    "3",
@@ -313,6 +319,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 			"replicator_max":                  "3",
 			"replicator_min":                  "1",
 			"replicator_node_fault_tolerance": "1",
+			"replicator_notification_uid":     "Test01",
 			"replicator_region":               "us-east-1",
 			"replicator_retry_threshold":      "3",
 			"replicator_scaling_threshold":    "3",
@@ -424,6 +431,7 @@ func mockNode(node *api.NodeListStub) (nodeRecord *api.Node) {
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
 	meta["replicator_node_fault_tolerance"] = "1"
+	meta["replicator_notification_uid"] = "Test01"
 	meta["replicator_region"] = "us-east-1"
 	meta["replicator_retry_threshold"] = "3"
 	meta["replicator_scaling_threshold"] = "3"

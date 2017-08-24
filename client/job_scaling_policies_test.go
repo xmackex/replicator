@@ -26,7 +26,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	metaKeys["replicator_scalein_cpu"] = "40"
 	metaKeys["replicator_scaleout_mem"] = "90"
 	metaKeys["replicator_scaleout_cpu"] = "90"
-	metaKeys["replicator_uid"] = "ELS2"
+	metaKeys["replicator_notification_uid"] = "ELS2"
 
 	updateScalingPolicy(jobName1, groupName1, metaKeys, scaling)
 	updateScalingPolicy(jobName2, groupName2, metaKeys, scaling)

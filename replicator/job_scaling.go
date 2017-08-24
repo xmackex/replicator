@@ -7,6 +7,7 @@ import (
 
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
+	"github.com/elsevier-core-engineering/replicator/notifier"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
@@ -49,16 +50,25 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 
 			jobScalingPolicies.Lock.RLock()
 			for _, group := range groups {
+				// Setup a failure message to pass to the failsafe check.
+				message := &notifier.FailureMessage{
+					AlertUID:     group.UID,
+					ResourceID:   fmt.Sprintf("%s/%s", job, group.GroupName),
+					ResourceType: JobType,
+				}
 
 				// Read or JobGroup state and check failsafe.
 				s := &structs.ScalingState{
+					ResourceName: group.GroupName,
+					ResourceType: JobType,
 					StatePath: r.config.ConsulKeyRoot + "/state/jobs/" + job +
 						"/" + group.GroupName,
 				}
 				consulClient.ReadState(s)
 
-				if s.FailsafeMode {
-					logging.Error("core/job_scaling: job \"%v\" and group \"%v\" is in failsafe mode", job, group.GroupName)
+				if !FailsafeCheck(s, r.config, 1, message) {
+					logging.Error("core/job_scaling: job \"%v\" and group \"%v\" is in "+
+						"failsafe mode", job, group.GroupName)
 					continue
 				}
 
@@ -84,10 +94,6 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 							"scaling operation (%v) would have been requested for \"%v\" "+
 							"and group \"%v\"", group.ScaleDirection, job, group.GroupName)
 					}
-				}
-
-				if s.FailsafeMode {
-					sendFailsafeNotification(fmt.Sprintf("%s_%s", job, group.GroupName), jobType, group.UID, s, r.config)
 				}
 
 				// Persist our state to Consul.

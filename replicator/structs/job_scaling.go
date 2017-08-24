@@ -28,5 +28,5 @@ type GroupScalingPolicy struct {
 	ScaleOutCPU    float64        `mapstructure:"replicator_scaleout_cpu"`
 	ScaleOutMem    float64        `mapstructure:"replicator_scaleout_mem"`
 	Tasks          TaskAllocation `hash:"ignore"`
-	UID            string         `mapstructure:"replicator_uid"`
+	UID            string         `mapstructure:"replicator_notification_uid"`
 }

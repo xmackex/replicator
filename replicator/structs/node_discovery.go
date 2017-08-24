@@ -24,6 +24,7 @@ type WorkerPool struct {
 	Min              int                  `mapstructure:"replicator_min"`
 	Name             string               `mapstructure:"replicator_worker_pool"`
 	Nodes            map[string]*api.Node `hash:"ignore"`
+	NotificationUID  string               `mapstructure:"replicator_notification_uid"`
 	ProtectedNode    string               `hash:"ignore"`
 	Region           string               `mapstructure:"replicator_region"`
 	RetryThreshold   int                  `mapstructure:"replicator_retry_threshold"`
