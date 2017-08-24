@@ -36,18 +36,19 @@ func (c *nomadClient) JobWatcher(jobScalingPolicies *structs.JobScalingPolicies)
 
 		// Iterate jobs and find events that have changed since last run
 		for _, job := range jobs {
-			if job.ModifyIndex > jobScalingPolicies.LastChangeIndex {
+			if job.ModifyIndex <= jobScalingPolicies.LastChangeIndex {
+				continue
+			}
 
-				// Dpending on the status of the job, take different action on the scaling
-				// policy struct.
-				switch job.Status {
-				case StateRunning:
-					go c.jobScalingPolicyProcessor(job.Name, jobScalingPolicies)
-				case StateDead:
-					go RemoveJobScalingPolicy(job.Name, jobScalingPolicies)
-				default:
-					continue
-				}
+			// Dpending on the status of the job, take different action on the scaling
+			// policy struct.
+			switch job.Status {
+			case StateRunning:
+				go c.jobScalingPolicyProcessor(job.Name, jobScalingPolicies)
+			case StateDead:
+				go RemoveJobScalingPolicy(job.Name, jobScalingPolicies)
+			default:
+				continue
 			}
 		}
 
