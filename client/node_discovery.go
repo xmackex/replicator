@@ -34,6 +34,10 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 		}
 
 		for _, node := range nodes {
+			if node.ModifyIndex <= nodeRegistry.LastChangeIndex {
+				continue
+			}
+
 			// BUG (e.westfall): We should check for drain mode and status ready.
 			// Deregister the node if it has been placed in drain mode.
 			if node.Drain == true {
