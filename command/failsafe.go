@@ -123,7 +123,14 @@ func (c *FailsafeCommand) Run(args []string) int {
 	}
 
 	// Attempt to load state tracking data from Consul.
-	consul.ReadState(state)
+	consul.ReadState(state, false)
+
+	// If there was no state object at the specified path, throw an error.
+	if state.LastUpdated.IsZero() {
+		c.UI.Error(fmt.Sprintf("No state object was found at the specified "+
+			"path %v, no action will be taken", c.statePath))
+		return 1
+	}
 
 	// If failsafe mode is already in the desired state, report and take no
 	// action.

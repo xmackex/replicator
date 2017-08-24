@@ -125,7 +125,7 @@ func (r *Runner) workerPoolScaling(poolName string,
 		workerPool.Name
 
 	// Attempt to load state from persistent storage.
-	consulClient.ReadState(poolState)
+	consulClient.ReadState(poolState, true)
 
 	// Setup a failure message to pass to the failsafe check.
 	message := &notifier.FailureMessage{

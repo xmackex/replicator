@@ -64,7 +64,7 @@ func (r *Runner) jobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 					StatePath: r.config.ConsulKeyRoot + "/state/jobs/" + job +
 						"/" + group.GroupName,
 				}
-				consulClient.ReadState(s)
+				consulClient.ReadState(s, true)
 
 				if !FailsafeCheck(s, r.config, 1, message) {
 					logging.Error("core/job_scaling: job \"%v\" and group \"%v\" is in "+
