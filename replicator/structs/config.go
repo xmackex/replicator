@@ -11,6 +11,10 @@ type Config struct {
 	// Replicator from undertaking any cluster scaling evaluations.
 	ClusterScalingDisable bool `mapstructure:"cluster_scaling_disable"`
 
+	// ClusterScalingInterval is the period in seconds at which the ticker will
+	// run.
+	ClusterScalingInterval int `mapstructure:"cluster_scaling_interval"`
+
 	// Consul is the location of the Consul instance or cluster endpoint to query
 	// (may be an IP address or FQDN) with port.
 	Consul string `mapstructure:"consul"`
@@ -30,6 +34,10 @@ type Config struct {
 	// Replicator from undertaking any job scaling evaluations.
 	JobScalingDisable bool `mapstructure:"job_scaling_disable"`
 
+	// JobScalingInterval is the period in seconds at which the ticker will
+	// run.
+	JobScalingInterval int `mapstructure:"job_scaling_interval"`
+
 	// LogLevel is the level at which the application should log from.
 	LogLevel string `mapstructure:"log_level"`
 
@@ -43,10 +51,6 @@ type Config struct {
 	// Notification contains Replicators notification configuration params and
 	// initialized backends.
 	Notification *Notification `mapstructure:"notification"`
-
-	// ScalingInterval is the duration in seconds between Replicator runs and thus
-	// scaling requirement checks.
-	ScalingInterval int `mapstructure:"scaling_interval"`
 
 	// Telemetry is the configuration struct that controls the telemetry settings.
 	Telemetry *Telemetry `mapstructure:"telemetry"`
@@ -102,8 +106,12 @@ func (c *Config) Merge(b *Config) *Config {
 		config.LogLevel = b.LogLevel
 	}
 
-	if b.ScalingInterval > 0 {
-		config.ScalingInterval = b.ScalingInterval
+	if b.ClusterScalingInterval > 0 {
+		config.ClusterScalingInterval = b.ClusterScalingInterval
+	}
+
+	if b.JobScalingInterval > 0 {
+		config.JobScalingInterval = b.JobScalingInterval
 	}
 
 	if b.ClusterScalingDisable {

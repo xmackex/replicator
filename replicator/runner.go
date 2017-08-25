@@ -30,25 +30,47 @@ func NewRunner(config *structs.Config) (*Runner, error) {
 	return runner, nil
 }
 
-// Start creates a new runner and uses a ticker to block until the doneChan is
-// closed at which point the ticker is stopped.
+// Start is the main entry point into Replicator and launches processes based
+// on the configuration.
 func (r *Runner) Start() {
-	ticker := time.NewTicker(time.Second * time.Duration(r.config.ScalingInterval))
 
 	// Setup our LeaderCandidate object for leader elections and session renewl.
 	leaderKey := r.config.ConsulKeyRoot + "/" + "leader"
-	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey,
-		r.config.ScalingInterval)
+	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey, 10)
+	go r.leaderTicker()
 
-	defer ticker.Stop()
-
-	// Setup our JobScalingPolicy Watcher and start running this.
 	jobScalingPolicy := newJobScalingPolicy()
-	go r.config.NomadClient.JobWatcher(jobScalingPolicy)
 
-	// Setup the node registry and initiate worker pool and node discovery.
-	NodeRegistry := newNodeRegistry()
-	go r.config.NomadClient.NodeWatcher(NodeRegistry)
+	if !r.config.ClusterScalingDisable || !r.config.JobScalingDisable {
+		// Setup our JobScalingPolicy Watcher and start running this.
+		go r.config.NomadClient.JobWatcher(jobScalingPolicy)
+	}
+
+	if !r.config.ClusterScalingDisable {
+		// Setup the node registry and initiate worker pool and node discovery.
+		nodeRegistry := newNodeRegistry()
+		go r.config.NomadClient.NodeWatcher(nodeRegistry)
+
+		// Launch our cluster scaling main ticker function
+		go r.clusterScalingTicker(nodeRegistry, jobScalingPolicy)
+	}
+
+	// Launch our job scaling main ticker function
+	if !r.config.JobScalingDisable {
+		go r.jobScalingTicker(jobScalingPolicy)
+	}
+}
+
+// Stop halts the execution of this runner.
+func (r *Runner) Stop() {
+	r.candidate.endCampaign()
+	r.doneChan <- true
+	close(r.doneChan)
+}
+
+func (r *Runner) leaderTicker() {
+	ticker := time.NewTicker(time.Second * time.Duration(10))
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -56,6 +78,35 @@ func (r *Runner) Start() {
 			// Perform the leadership locking and continue if we have confirmed that
 			// we are running as the replicator leader.
 			r.candidate.leaderElection()
+		case <-r.doneChan:
+			return
+		}
+	}
+}
+
+func (r *Runner) jobScalingTicker(jobPol *structs.JobScalingPolicies) {
+	ticker := time.NewTicker(time.Second * time.Duration(r.config.JobScalingInterval))
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if r.candidate.isLeader() {
+				r.asyncJobScaling(jobPol)
+			}
+		case <-r.doneChan:
+			return
+		}
+	}
+}
+
+func (r *Runner) clusterScalingTicker(nodeReg *structs.NodeRegistry, jobPol *structs.JobScalingPolicies) {
+	ticker := time.NewTicker(time.Second * time.Duration(r.config.ClusterScalingInterval))
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
 			if r.candidate.isLeader() {
 				// If we're running as a Nomad job, perform a reverse lookup to
 				// identify the node on which we're running and register it as
@@ -68,38 +119,23 @@ func (r *Runner) Start() {
 					}
 
 					if len(host) > 0 {
-						NodeRegistry.Lock.Lock()
+						nodeReg.Lock.Lock()
 						// Reverse lookup our worker pool name by node ID and register
 						// the node as protected.
-						if pool, ok := NodeRegistry.RegisteredNodes[host]; ok {
+						if pool, ok := nodeReg.RegisteredNodes[host]; ok {
 							logging.Debug("core/runner: registering node %v in worker "+
 								"pool %v as protected", host, pool)
-							NodeRegistry.WorkerPools[pool].ProtectedNode = host
+							nodeReg.WorkerPools[pool].ProtectedNode = host
 						}
-						NodeRegistry.Lock.Unlock()
+						nodeReg.Lock.Unlock()
 					}
 				}
 
-				if !r.config.ClusterScalingDisable {
-					// Initiate cluster scaling for each known scaleable worker pool.
-					r.asyncClusterScaling(NodeRegistry, jobScalingPolicy)
-				}
+				r.asyncClusterScaling(nodeReg, jobPol)
 
-				if !r.config.JobScalingDisable {
-					// Initiate job scaling for each known scaleable job.
-					r.asyncJobScaling(jobScalingPolicy)
-				}
 			}
-
 		case <-r.doneChan:
 			return
 		}
 	}
-}
-
-// Stop halts the execution of this runner.
-func (r *Runner) Stop() {
-	r.candidate.endCampaign()
-	r.doneChan <- true
-	close(r.doneChan)
 }

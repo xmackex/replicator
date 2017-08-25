@@ -22,11 +22,12 @@ const (
 func DefaultConfig() *structs.Config {
 
 	return &structs.Config{
-		Consul:          LocalConsulAddress,
-		ConsulKeyRoot:   "replicator/config",
-		Nomad:           LocalNomadAddress,
-		LogLevel:        "INFO",
-		ScalingInterval: 10,
+		Consul:                 LocalConsulAddress,
+		ConsulKeyRoot:          "replicator/config",
+		Nomad:                  LocalNomadAddress,
+		LogLevel:               "INFO",
+		ClusterScalingInterval: 10,
+		JobScalingInterval:     10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
@@ -38,11 +39,12 @@ func DefaultConfig() *structs.Config {
 func DevConfig() *structs.Config {
 
 	return &structs.Config{
-		Consul:          LocalConsulAddress,
-		ConsulKeyRoot:   "replicator/config",
-		Nomad:           LocalNomadAddress,
-		LogLevel:        "DEBUG",
-		ScalingInterval: 10,
+		Consul:                 LocalConsulAddress,
+		ConsulKeyRoot:          "replicator/config",
+		Nomad:                  LocalNomadAddress,
+		LogLevel:               "DEBUG",
+		ClusterScalingInterval: 10,
+		JobScalingInterval:     10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
