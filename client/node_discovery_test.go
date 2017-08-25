@@ -17,15 +17,11 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 
 	// Define required meta configuration parameters.
 	requiredKeys := []string{
-		"replicator_cooldown",
 		"replicator_enabled",
 		"replicator_max",
 		"replicator_min",
-		"replicator_node_fault_tolerance",
 		"replicator_notification_uid",
 		"replicator_region",
-		"replicator_retry_threshold",
-		"replicator_scaling_threshold",
 		"replicator_worker_pool",
 	}
 
@@ -47,15 +43,11 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 	}
 
 	// Add the rest of the meta configuration parameters.
-	meta["replicator_cooldown"] = "300"
 	meta["replicator_enabled"] = "true"
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
-	meta["replicator_node_fault_tolerance"] = "1"
 	meta["replicator_notification_uid"] = "Test01"
 	meta["replicator_region"] = "us-east-1"
-	meta["replicator_retry_threshold"] = "3"
-	meta["replicator_scaling_threshold"] = "3"
 
 	// Test that a node with a complete and valid scaling configuration
 	// correctly indicates there are no required configuration parameters
@@ -97,10 +89,10 @@ func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
 
 		// Modify node record to remove required keys and confirm node
 		// processing throws an error.
-		delete(nodeRecord.Meta, "replicator_cooldown")
+		delete(nodeRecord.Meta, "replicator_max")
 		_, err = ProcessNodeConfig(nodeRecord)
 		if err == nil {
-			t.Fatalf("node with missing meta configuration paramaters failed to " +
+			t.Fatalf("node with missing meta configuration parameters failed to " +
 				"throw an exception where one was expected.")
 		}
 
@@ -188,16 +180,12 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 				Drain:      false,
 				Status:     structs.NodeStatusReady,
 				Meta: map[string]string{
-					"replicator_cooldown":             "300",
-					"replicator_enabled":              "true",
-					"replicator_max":                  "3",
-					"replicator_min":                  "1",
-					"replicator_node_fault_tolerance": "1",
-					"replicator_notification_uid":     "Test01",
-					"replicator_region":               "us-east-1",
-					"replicator_retry_threshold":      "3",
-					"replicator_scaling_threshold":    "3",
-					"replicator_worker_pool":          "example-group",
+					"replicator_enabled":          "true",
+					"replicator_max":              "3",
+					"replicator_min":              "1",
+					"replicator_notification_uid": "Test01",
+					"replicator_region":           "us-east-1",
+					"replicator_worker_pool":      "example-group",
 				},
 			},
 		},
@@ -258,16 +246,12 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 				Drain:      false,
 				Status:     structs.NodeStatusReady,
 				Meta: map[string]string{
-					"replicator_cooldown":             "300",
-					"replicator_enabled":              "true",
-					"replicator_max":                  "3",
-					"replicator_min":                  "1",
-					"replicator_node_fault_tolerance": "1",
-					"replicator_notification_uid":     "Test01",
-					"replicator_region":               "us-east-1",
-					"replicator_retry_threshold":      "3",
-					"replicator_scaling_threshold":    "3",
-					"replicator_worker_pool":          "example-group",
+					"replicator_enabled":          "true",
+					"replicator_max":              "3",
+					"replicator_min":              "1",
+					"replicator_notification_uid": "Test01",
+					"replicator_region":           "us-east-1",
+					"replicator_worker_pool":      "example-group",
 				},
 			},
 		},
@@ -314,16 +298,12 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 		Drain:      false,
 		Status:     structs.NodeStatusReady,
 		Meta: map[string]string{
-			"replicator_cooldown":             "300",
-			"replicator_enabled":              "true",
-			"replicator_max":                  "3",
-			"replicator_min":                  "1",
-			"replicator_node_fault_tolerance": "1",
-			"replicator_notification_uid":     "Test01",
-			"replicator_region":               "us-east-1",
-			"replicator_retry_threshold":      "3",
-			"replicator_scaling_threshold":    "3",
-			"replicator_worker_pool":          "example-group",
+			"replicator_enabled":          "true",
+			"replicator_max":              "3",
+			"replicator_min":              "1",
+			"replicator_notification_uid": "Test01",
+			"replicator_region":           "us-east-1",
+			"replicator_worker_pool":      "example-group",
 		},
 	}
 
@@ -426,15 +406,11 @@ func mockNode(node *api.NodeListStub) (nodeRecord *api.Node) {
 
 	// Build meta configuration parameters
 	meta := make(map[string]string)
-	meta["replicator_cooldown"] = "300"
 	meta["replicator_enabled"] = "true"
 	meta["replicator_max"] = "3"
 	meta["replicator_min"] = "1"
-	meta["replicator_node_fault_tolerance"] = "1"
 	meta["replicator_notification_uid"] = "Test01"
 	meta["replicator_region"] = "us-east-1"
-	meta["replicator_retry_threshold"] = "3"
-	meta["replicator_scaling_threshold"] = "3"
 	meta["replicator_worker_pool"] = "example-group"
 
 	// Add meta configuration parameters to node record.

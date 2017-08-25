@@ -18,7 +18,6 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	groupName3 := "hertzfeld"
 
 	metaKeys := make(map[string]string)
-	metaKeys["replicator_cooldown"] = "60"
 	metaKeys["replicator_enabled"] = "true"
 	metaKeys["replicator_max"] = "10000"
 	metaKeys["replicator_min"] = "7500"
@@ -134,6 +133,7 @@ func exampleJobScalingPolicies() *structs.JobScalingPolicies {
 	scaling := &structs.JobScalingPolicies{
 		Policies: make(map[string][]*structs.GroupScalingPolicy),
 	}
+
 	policy := &structs.GroupScalingPolicy{
 		GroupName:   "cache",
 		Cooldown:    60,

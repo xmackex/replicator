@@ -76,9 +76,8 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 		return
 	}
 
-	// These are our required key for Replicator
+	// These are our required keys for Replicator
 	requiredKeys := []string{
-		"replicator_cooldown",
 		"replicator_enabled",
 		"replicator_min",
 		"replicator_max",
@@ -134,7 +133,7 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 func updateScalingPolicy(jobName, groupName string, groupMeta map[string]string,
 	s *structs.JobScalingPolicies) (err error) {
 
-	result := &structs.GroupScalingPolicy{}
+	result := structs.NewGroupScalingPolicy()
 	found := false
 
 	// Make use of mapstructures WeaklyTypedInput and setup the decoder. We use

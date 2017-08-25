@@ -43,7 +43,7 @@ func Min(values ...float64) float64 {
 
 // ParseMetaConfig parses meta parameters from a Nomad agent or job
 // configuration and validates required keys are present. If any required
-// keys are found to be missing, these are returned otherwise, an empty
+// keys are found to be missing, these are returned. Otherwise, an empty
 // slice is returned.
 func ParseMetaConfig(meta map[string]string, reqKeys []string) (missing []string) {
 	// Iterate over the required configuration parameters and

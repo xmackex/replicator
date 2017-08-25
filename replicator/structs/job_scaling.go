@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+// NewGroupScalingPolicy is a constructor method that provides a pointer to a
+// new group scaling policy object.
+func NewGroupScalingPolicy() *GroupScalingPolicy {
+	// Return a new group scaling policy object with default values set.
+	return &GroupScalingPolicy{
+		Cooldown: 60,
+	}
+}
+
 // JobScalingPolicies tracks replicators view of Job scaling policies and states
 // with a Lock to safe guard read/write/deletes to the Policies map.
 type JobScalingPolicies struct {
@@ -13,8 +22,8 @@ type JobScalingPolicies struct {
 	Policies        map[string][]*GroupScalingPolicy
 }
 
-// GroupScalingPolicy represents all the information needed to make JobTaskGroup
-// scaling decisions.
+// GroupScalingPolicy represents all the information needed to make
+// JobTaskGroup scaling decisions.
 type GroupScalingPolicy struct {
 	Cooldown       time.Duration `mapstructure:"replicator_cooldown"`
 	Enabled        bool          `mapstructure:"replicator_enabled"`
