@@ -133,7 +133,8 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.StringVar(&cliConfig.ConsulToken, "consul-token", "", "")
 	flags.StringVar(&cliConfig.LogLevel, "log-level", "", "")
 	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
-	flags.IntVar(&cliConfig.ScalingInterval, "scaling-interval", 0, "")
+	flags.IntVar(&cliConfig.ClusterScalingInterval, "cluster-scaling-interval", 0, "")
+	flags.IntVar(&cliConfig.JobScalingInterval, "job-scaling-interval", 0, "")
 	flags.BoolVar(&cliConfig.ClusterScalingDisable, "cluster-scaling-disable", false, "")
 	flags.BoolVar(&cliConfig.JobScalingDisable, "job-scaling-disable", false, "")
 
@@ -271,6 +272,10 @@ func (c *Command) Help() string {
     -cluster-scaling-disable
       Passing this flag will disable cluster scaling completly.
 
+    -cluster-scaling-interval=<seconds>
+      The time period in seconds between Replicator cluster scaling
+      evaluation runs.
+
     -config=<path>
       The path to either a single config file or a directory of config
       files to use for configuring the Replicator agent. Replicator
@@ -302,6 +307,10 @@ func (c *Command) Help() string {
     -job-scaling-disable
       Passing this flag will disable job scaling completly.
 
+    -job-scaling-interval=<seconds>
+      The time period in seconds between Replicator job scaling evaluation
+      runs.
+
     -log-level=<level>
       Specify the verbosity level of Replicator's logs. The default is
       INFO.
@@ -310,10 +319,6 @@ func (c *Command) Help() string {
       The address and port Replicator will use when making connections
       to the Nomad API. By default, this http://localhost:4646, which
       is the default bind and port for a local Nomad server.
-
-    -scaling-interval=<num>
-      The time period in seconds between Replicator check runs. The
-      default is 10.
 
   Telemetry Options:
 

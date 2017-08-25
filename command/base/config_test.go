@@ -73,7 +73,7 @@ func TestConfig_LoadConfigDir(t *testing.T) {
 	}
 
 	file2 := filepath.Join(dir, "replicator_1.hcl")
-	err = ioutil.WriteFile(file2, []byte(`{"scaling_interval":1}`), 0600)
+	err = ioutil.WriteFile(file2, []byte(`{"job_scaling_interval":1}`), 0600)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

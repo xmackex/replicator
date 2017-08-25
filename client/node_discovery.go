@@ -36,10 +36,10 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 		}
 
 		for _, node := range nodes {
-      if node.ModifyIndex <= nodeRegistry.LastChangeIndex {
+			if node.ModifyIndex <= nodeRegistry.LastChangeIndex {
 				continue
 			}
-      
+
 			if node.Drain == true && node.Status == nomadStructs.NodeStatusReady {
 				logging.Warning("client/node_discovery: node %v has been placed in "+
 					"drain mode, initiating deregistration of the node", node.ID)

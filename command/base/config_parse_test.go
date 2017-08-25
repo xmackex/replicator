@@ -11,12 +11,13 @@ import (
 func TestConfigParse_LoadConfigFile(t *testing.T) {
 
 	configFile := test.CreateTempfile([]byte(`
-    consul                 = "consul.com:8500"
-		consul_key_root        = "wosniak/jobs"
-		consul_token           = "thisisafaketoken"
-    nomad                  = "http://nomad.com:4646"
-    log_level              = "info"
-    scaling_interval       = 1
+    consul                   = "consul.com:8500"
+    consul_key_root          = "wosniak/jobs"
+    consul_token             = "thisisafaketoken"
+    nomad                    = "http://nomad.com:4646"
+    log_level                = "info"
+    job_scaling_interval     = 1
+    cluster_scaling_interval = 2
 
     telemetry {
       statsd_address = "10.0.0.10:8125"
@@ -37,12 +38,13 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 	}
 
 	expected := &structs.Config{
-		Consul:          "consul.com:8500",
-		ConsulKeyRoot:   "wosniak/jobs",
-		ConsulToken:     "thisisafaketoken",
-		Nomad:           "http://nomad.com:4646",
-		LogLevel:        "info",
-		ScalingInterval: 1,
+		Consul:                 "consul.com:8500",
+		ConsulKeyRoot:          "wosniak/jobs",
+		ConsulToken:            "thisisafaketoken",
+		Nomad:                  "http://nomad.com:4646",
+		LogLevel:               "info",
+		JobScalingInterval:     1,
+		ClusterScalingInterval: 2,
 
 		Telemetry: &structs.Telemetry{
 			StatsdAddress: "10.0.0.10:8125",

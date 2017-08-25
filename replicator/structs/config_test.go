@@ -7,21 +7,22 @@ import (
 
 func TestStructs_Merge(t *testing.T) {
 	c := &Config{
-		Consul:          "localhost:8500",
-		ConsulKeyRoot:   "replicator/config",
-		Nomad:           "http://localhost:4646",
-		LogLevel:        "INFO",
-		ScalingInterval: 10,
-		Telemetry:       &Telemetry{},
-		Notification:    &Notification{},
+		Consul:                 "localhost:8500",
+		ConsulKeyRoot:          "replicator/config",
+		Nomad:                  "http://localhost:4646",
+		LogLevel:               "INFO",
+		ClusterScalingInterval: 10,
+		JobScalingInterval:     10,
+		Telemetry:              &Telemetry{},
+		Notification:           &Notification{},
 	}
 
 	partialConfig := &Config{
-		Consul:          "consul.rocks.systems",
-		ConsulToken:     "afb3bc3a-6acd-11e7-b70c-784f43a63381",
-		Nomad:           "http://nomad.rocks.systems:4646",
-		LogLevel:        "ERROR",
-		ScalingInterval: 20,
+		Consul:                 "consul.rocks.systems",
+		ConsulToken:            "afb3bc3a-6acd-11e7-b70c-784f43a63381",
+		Nomad:                  "http://nomad.rocks.systems:4646",
+		LogLevel:               "ERROR",
+		ClusterScalingInterval: 60,
 		Telemetry: &Telemetry{
 			StatsdAddress: "8.8.8.8:8125",
 		},
@@ -33,14 +34,15 @@ func TestStructs_Merge(t *testing.T) {
 	}
 
 	fullConfig := &Config{
-		Consul:                "consul.rocks.systems",
-		ConsulKeyRoot:         "jobs/woz",
-		ConsulToken:           "afb3bc3a-6acd-11e7-b70c-784f43a63381",
-		Nomad:                 "http://nomad.rocks.systems:4646",
-		LogLevel:              "ERROR",
-		ClusterScalingDisable: true,
-		JobScalingDisable:     true,
-		ScalingInterval:       20,
+		Consul:                 "consul.rocks.systems",
+		ConsulKeyRoot:          "jobs/woz",
+		ConsulToken:            "afb3bc3a-6acd-11e7-b70c-784f43a63381",
+		Nomad:                  "http://nomad.rocks.systems:4646",
+		LogLevel:               "ERROR",
+		ClusterScalingDisable:  true,
+		JobScalingDisable:      true,
+		JobScalingInterval:     5,
+		ClusterScalingInterval: 60,
 		Telemetry: &Telemetry{
 			StatsdAddress: "8.8.8.8:8125",
 		},
@@ -52,12 +54,13 @@ func TestStructs_Merge(t *testing.T) {
 	}
 
 	partialExpected := &Config{
-		Consul:          "consul.rocks.systems",
-		ConsulKeyRoot:   "replicator/config",
-		ConsulToken:     "afb3bc3a-6acd-11e7-b70c-784f43a63381",
-		Nomad:           "http://nomad.rocks.systems:4646",
-		LogLevel:        "ERROR",
-		ScalingInterval: 20,
+		Consul:                 "consul.rocks.systems",
+		ConsulKeyRoot:          "replicator/config",
+		ConsulToken:            "afb3bc3a-6acd-11e7-b70c-784f43a63381",
+		Nomad:                  "http://nomad.rocks.systems:4646",
+		LogLevel:               "ERROR",
+		ClusterScalingInterval: 60,
+		JobScalingInterval:     10,
 		Telemetry: &Telemetry{
 			StatsdAddress: "8.8.8.8:8125",
 		},
@@ -69,14 +72,15 @@ func TestStructs_Merge(t *testing.T) {
 	}
 
 	fullExpected := &Config{
-		Consul:                "consul.rocks.systems",
-		ConsulKeyRoot:         "jobs/woz",
-		ConsulToken:           "afb3bc3a-6acd-11e7-b70c-784f43a63381",
-		Nomad:                 "http://nomad.rocks.systems:4646",
-		LogLevel:              "ERROR",
-		ClusterScalingDisable: true,
-		JobScalingDisable:     true,
-		ScalingInterval:       20,
+		Consul:                 "consul.rocks.systems",
+		ConsulKeyRoot:          "jobs/woz",
+		ConsulToken:            "afb3bc3a-6acd-11e7-b70c-784f43a63381",
+		Nomad:                  "http://nomad.rocks.systems:4646",
+		LogLevel:               "ERROR",
+		ClusterScalingDisable:  true,
+		JobScalingDisable:      true,
+		JobScalingInterval:     5,
+		ClusterScalingInterval: 60,
 		Telemetry: &Telemetry{
 			StatsdAddress: "8.8.8.8:8125",
 		},
