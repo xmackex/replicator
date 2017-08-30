@@ -128,21 +128,15 @@ func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
 
 	// Create a new worker pool record to hold processed meta
 	// configuration parameters.
-	result := &structs.WorkerPool{
-		Nodes: make(map[string]*nomad.Node),
-	}
+	result := structs.NewWorkerPool()
 
 	// Required meta configuration keys.
 	requiredKeys := []string{
-		"replicator_cooldown",
 		"replicator_enabled",
 		"replicator_max",
 		"replicator_min",
-		"replicator_node_fault_tolerance",
 		"replicator_notification_uid",
 		"replicator_region",
-		"replicator_retry_threshold",
-		"replicator_scaling_threshold",
 		"replicator_worker_pool",
 	}
 
