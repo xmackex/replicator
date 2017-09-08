@@ -41,11 +41,6 @@ func (l *LeaderCandidate) isLeader() bool {
 // process and will create a Consul session for use in obtaining the leader
 // lock.
 func (l *LeaderCandidate) leaderElection() (isLeader bool) {
-
-	// Always set ourself to assume we are not the leader, so that even the
-	// current leader must confirm its status and not blindly assume leadership.
-	// l.leader = false
-
 	// Create our session and start the renew process if the candidate does not
 	// currently have one.
 	if l.session == "" {
