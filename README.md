@@ -85,19 +85,19 @@ Until Vault integration is added, the instance pool which is capable of running 
 
 ### Commands
 
-Replicator supports a number of commands (CLI) which allow for the easy control and manipulation of the replicator binary. In-depth documentation about each command can be found on the Replicator [command wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Commands).
+Replicator supports a number of commands (CLI) which allow for the easy control and manipulation of the replicator binary. In-depth documentation about each command can be found on the Replicator [commands wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Commands).
 
 #### Command: `agent`
 
 The `agent` command is the main entry point into Replicator. A subset of the available replicator agent configuration can optionally be passed in via CLI arguments and the configuration parameters passed via CLI flags will always take precedent over parameters specified in configuration files.
 
-Detailed information regarding the available CLI flags can be found in the Replicator [Agent Configuration wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Agent_Configuration#command-line-flags).
+Detailed information regarding the available CLI flags can be found in the Replicator [agent command wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Agent-Command).
 
 #### Command: `failsafe`
 
 The `failsafe` command is used to toggle failsafe mode across the pool of Replicator agents. Failsafe mode prevents any Replicator agent from taking any scaling actions on the resource placed into failsafe mode.
 
-Detailed information about failsafe mode operations and the available CLI options can be found in the Replicator [Failsafe Mode wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Failsafe_Mode).
+Detailed information about failsafe mode operations and the available CLI options can be found in the Replicator [failsafe command wiki page](https://github.com/elsevier-core-engineering/replicator/wiki/Failsafe-Command).
 
 #### Command: `init`
 
