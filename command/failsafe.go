@@ -200,7 +200,7 @@ func (c *FailsafeCommand) Run(args []string) int {
 			state.ResourceName, err))
 	}
 
-	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode on for %v %v at "+
+	c.UI.Info(fmt.Sprintf("Successfully %vd failsafe mode for %v %v at "+
 		"location %s", conf.Verb, state.ResourceType, state.ResourceName,
 		c.statePath))
 
