@@ -82,7 +82,7 @@ func (c *consulClient) AcquireLeadership(key string, session *string) (aquired b
 		return false
 	}
 
-	// If the session is not valiad, set our state to default
+	// If the session is not valid, set our state to default
 	if s == nil {
 		logging.Error("client/consul: the Consul session %s has expired, revoking from Replicator", *session)
 		*session = ""
