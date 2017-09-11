@@ -34,7 +34,7 @@ func NewRunner(config *structs.Config) (*Runner, error) {
 // on the configuration.
 func (r *Runner) Start() {
 
-	// Setup our LeaderCandidate object for leader elections and session renewl.
+	// Setup our LeaderCandidate object for leader elections and session renewal.
 	leaderKey := r.config.ConsulKeyRoot + "/" + "leader"
 	r.candidate = newLeaderCandidate(r.config.ConsulClient, leaderKey,
 		leaderLockTimeout)

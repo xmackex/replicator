@@ -64,11 +64,11 @@ func (l *LeaderCandidate) leaderElection() (isLeader bool) {
 		return true
 	}
 
-	logging.Debug("core/leader: failed to aquire leadership lock")
+	logging.Debug("core/leader: failed to acquire leadership lock")
 	return
 }
 
-// endCampaign attempts to gracefully remove sessions and locks assosiated with
+// endCampaign attempts to gracefully remove sessions and locks associated with
 // the replicator leadership locking, allowing other daemons to pick up the lock
 // without having to wait for the TTL to expire.
 func (l *LeaderCandidate) endCampaign() {
