@@ -9,7 +9,7 @@ job "replicator" {
   }
 
   meta {
-    VERSION = "v0.0.2"
+    VERSION = "v1.0.0"
   }
 
   group "replicator" {
@@ -27,9 +27,6 @@ job "replicator" {
         command = "${attr.kernel.name}-${attr.cpu.arch}-replicator"
         args    = [
           "agent",
-          "-aws-region=us-east-1",
-          "-consul-token=CONSUL_ACL_TOKEN",
-          "-cluster-autoscaling-group=WORKER_POOL_ASG_NAME",
         ]
       }
 
