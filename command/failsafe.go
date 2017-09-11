@@ -26,7 +26,7 @@ Usage: replicator failsafe [options]
   Allows an operator to administratively control the failsafe behavior
   of Replicator. When Replicator enters failsafe mode, all running
   copies of Replicator will prohibit any scaling operations on the
-	resource in question.
+  resource in question.
 
   Failsafe mode is intended to stabilize a cluster that has experienced
   critical failures while attempting to perform scaling operations.
