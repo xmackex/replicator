@@ -1,8 +1,9 @@
 package structs
 
 import (
-	nomad "github.com/hashicorp/nomad/api"
 	"sync"
+
+	nomad "github.com/hashicorp/nomad/api"
 )
 
 // NewWorkerPool is a constructor method that provides a pointer to a new
@@ -19,7 +20,7 @@ func NewWorkerPool() *WorkerPool {
 }
 
 // NodeRegistry tracks worker pools and nodes discovered by Replicator.
-// The object contains a lock to provide mutual exlcusion protection.
+// The object contains a lock to provide mutual exclusion protection.
 type NodeRegistry struct {
 	LastChangeIndex     uint64
 	Lock                sync.RWMutex
