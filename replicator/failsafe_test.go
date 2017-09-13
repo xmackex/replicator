@@ -84,6 +84,8 @@ func TestFailsafe_SetFailsafeMode(t *testing.T) {
 
 	// Setup our state object and set helper fields.
 	state := &structs.ScalingState{}
+	state.FailureCount = 3
+	state.FailsafeMode = true
 	state.ResourceType = ClusterType
 	state.ResourceName = workerPool.Name
 	state.StatePath = "replicator/config/state/nodes/" + workerPool.Name
@@ -95,12 +97,18 @@ func TestFailsafe_SetFailsafeMode(t *testing.T) {
 		ResourceType: state.ResourceType,
 	}
 
-	// Verify requesting to disable failsafe mode works.
+	// Verify a request to disable failsafe mode works.
 	enabled := false
 	SetFailsafeMode(state, c, enabled, message)
 
 	if state.FailsafeMode != enabled {
 		t.Fatalf("expected FailsafeMode to be %v but got %v", enabled,
 			state.FailsafeMode)
+	}
+
+	// Verify the failure count is reset when the failsafe circuit
+	// breaker is reset.
+	if state.FailureCount != 0 {
+		t.Fatalf("expected failure count to %v but got %v", 0, state.FailureCount)
 	}
 }
