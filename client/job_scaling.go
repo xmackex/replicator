@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -12,6 +13,7 @@ import (
 
 const (
 	deploymentTimeOut = 15 * time.Minute
+	evaluationTimeOut = 30 * time.Second
 )
 
 // JobGroupScale scales a particular job group, confirming that the action
@@ -82,28 +84,29 @@ func (c *nomadClient) JobGroupScale(jobName string, group *structs.GroupScalingP
 // via a timer and blocking queries that the resulting deployment completes
 // successfully.
 func (c *nomadClient) scaleConfirmation(evalID string) (success bool) {
-
-	eval, _, err := c.nomad.Evaluations().Info(evalID, nil)
+	depID, err := c.getDeploymentID(evalID)
 	if err != nil {
-		logging.Error("client/job_scaling: unable to obtain eval info for %s: %v", evalID, err)
+		logging.Error("client/job_scaling: unable to obtain evaluation info or "+
+			"deployment ID for evaluation %v: %v", evalID, err)
 		return
 	}
 
 	timeOut := time.After(deploymentTimeOut)
 	tick := time.Tick(500 * time.Millisecond)
-	depID := eval.DeploymentID
 	q := &nomad.QueryOptions{WaitIndex: 1, AllowStale: true}
 
 	for {
 		select {
 		case <-timeOut:
-			logging.Error("client/job_scaling: deployment %s reached timeout %v", depID, deploymentTimeOut)
+			logging.Error("client/job_scaling: deployment %s reached timeout %v",
+				depID, deploymentTimeOut)
 			return
 
 		case <-tick:
 			dep, meta, err := c.nomad.Deployments().Info(depID, q)
 			if err != nil {
-				logging.Error("client/job_scaling: unable to list Nomad deployment %s: %v", depID, err)
+				logging.Error("client/job_scaling: unable to list Nomad "+
+					"deployment %s: %v", depID, err)
 				return
 			}
 
@@ -123,6 +126,41 @@ func (c *nomadClient) scaleConfirmation(evalID string) (success bool) {
 			} else {
 				return false
 			}
+		}
+	}
+}
+
+// getDeploymentID retrieves the deployment ID for a given Nomad evaluation.
+func (c *nomadClient) getDeploymentID(evalID string) (depID string, err error) {
+	var eval *nomad.Evaluation
+
+	// Setup our retry ticker to keep polling the Nomad API until we get
+	// a deployment ID.
+	ticker := time.NewTicker(time.Millisecond * 500)
+	timeout := time.Tick(evaluationTimeOut)
+
+	for {
+		select {
+		case <-timeout:
+			return depID, fmt.Errorf("timeout reached while trying to retrieve the "+
+				"deployment ID for evaluation %v", evalID)
+
+		case <-ticker.C:
+			if eval, _, err = c.nomad.Evaluations().Info(evalID, nil); err != nil {
+				logging.Error("client/job_scaling: an error occurred while trying "+
+					"to retrieve the deployment ID for evaluation %v: %v", evalID, err)
+				continue
+			}
+
+			if eval.DeploymentID == "" {
+				logging.Debug("client/job_scaling: received an empty deployment for "+
+					"evaluation %v; pausing and retrying", evalID)
+				continue
+			}
+
+			logging.Debug("client/job_scaling: received deployment ID %v for "+
+				"evaluation %v", eval.DeploymentID, evalID)
+			return eval.DeploymentID, nil
 		}
 	}
 }
