@@ -1,6 +1,8 @@
 package replicator
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -164,16 +166,6 @@ func (r *Runner) workerPoolScaling(poolName string,
 		return
 	}
 
-	// TODO (e.westfall): Add a check here for the global cluster scaling
-	// enabled flag.
-	// If cluster scaling has been globally disabled, halt evaluation.
-	// if !r.config.ClusterScaling.Enabled {
-	// 	logging.Debug("core/cluster_scaling: cluster scaling has been globally "+
-	// 		"disabled, a scaling operation (%v) would have been initiated against "+
-	// 		"worker pool %v", poolCapacity.ScalingDirection, workerPool.Name)
-	// 	return
-	// }
-
 	// Setup session to AWS auto scaling service.
 	asgSess := client.NewAWSAsgService(workerPool.Region)
 
@@ -182,6 +174,7 @@ func (r *Runner) workerPoolScaling(poolName string,
 		// the scaling operation.
 		err = client.ScaleOutCluster(workerPool.Name, poolCapacity.NodeCount, asgSess)
 		if err != nil {
+			metrics.IncrCounter([]string{"cluster", workerPool.Name, "scale_out", "failure"}, 1)
 			logging.Error("core/cluster_scaling: unable to successfully initiate a "+
 				"scaling operation against worker pool %v: %v",
 				workerPool.Name, err)
@@ -189,7 +182,13 @@ func (r *Runner) workerPoolScaling(poolName string,
 		}
 
 		// Verify scaling operation has completed successfully.
-		r.verifyPoolScaling(workerPool, poolState, r.config)
+		if ok := r.verifyPoolScaling(workerPool, poolState, r.config); !ok {
+			metrics.IncrCounter([]string{"cluster", workerPool.Name, "scale_out", "failure"}, 1)
+			logging.Error("core/cluster_scaling: unable to successfully verify "+
+				"scaling operation against worker pool %v: %v",
+				workerPool.Name, err)
+			return
+		}
 	}
 
 	if poolCapacity.ScalingDirection == client.ScalingDirectionIn {
@@ -206,6 +205,7 @@ func (r *Runner) workerPoolScaling(poolName string,
 			logging.Error("core/cluster_scaling: an error occurred while "+
 				"attempting to place node %v from worker pool %v in drain mode: "+
 				"%v", nodeID, workerPool.Name, err)
+			metrics.IncrCounter([]string{"cluster", workerPool.Name, "scale_in", "failure"}, 1)
 			return
 		}
 
@@ -213,6 +213,7 @@ func (r *Runner) workerPoolScaling(poolName string,
 		logging.Info("core/cluster_scaling: terminating node %v from worker "+
 			"pool %v", nodeID, workerPool.Name)
 		if err = client.ScaleInCluster(workerPool.Name, nodeIP, asgSess); err != nil {
+			metrics.IncrCounter([]string{"cluster", workerPool.Name, "scale_in", "failure"}, 1)
 			logging.Error("core/cluster_scaling: attempt to terminate node %v from "+
 				"worker pool %v failed: %v", nodeID, workerPool.Name, err)
 			return
@@ -228,7 +229,9 @@ func (r *Runner) workerPoolScaling(poolName string,
 		}
 	}
 
-	metrics.IncrCounter([]string{"cluster", "scale_out_success"}, 1)
+	// Our metric counter to track successful cluster scaling activities.
+	m := fmt.Sprintf("scale_%s", strings.ToLower(poolCapacity.ScalingDirection))
+	metrics.IncrCounter([]string{"cluster", workerPool.Name, m, "success"}, 1)
 
 	return
 }
@@ -299,8 +302,6 @@ func (r *Runner) verifyPoolScaling(workerPool *structs.WorkerPool,
 		if err = consulClient.PersistState(state); err != nil {
 			logging.Error("core/cluster_scaling: %v", err)
 		}
-
-		metrics.IncrCounter([]string{"cluster", "scale_out_failed"}, 1)
 
 		// Translate the IP address of the most recently launched instance to the
 		// EC2 instance ID so we can terminate it.
