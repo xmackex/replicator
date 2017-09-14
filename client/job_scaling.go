@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -45,13 +46,11 @@ func (c *nomadClient) JobGroupScale(jobName string, group *structs.GroupScalingP
 		// Depending on the scaling direction decrement/incrament the count;
 		// currently replicator only supports addition/subtraction of 1.
 		if *taskGroup.Name == group.GroupName && group.ScaleDirection == ScalingDirectionOut {
-			metrics.IncrCounter([]string{"job", jobName, group.GroupName, "scale_out"}, 1)
 			*jobResp.TaskGroups[i].Count++
 			state.ScaleOutRequests++
 		}
 
 		if *taskGroup.Name == group.GroupName && group.ScaleDirection == ScalingDirectionIn {
-			metrics.IncrCounter([]string{"job", jobName, group.GroupName, "scale_in"}, 1)
 			*jobResp.TaskGroups[i].Count--
 			state.ScaleInRequests++
 		}
@@ -68,14 +67,19 @@ func (c *nomadClient) JobGroupScale(jobName string, group *structs.GroupScalingP
 		return
 	}
 
+	// Setup our metric scaling direction namespace.
+	m := fmt.Sprintf("scale_%s", strings.ToLower(group.ScaleDirection))
+
 	success := c.scaleConfirmation(resp.EvalID)
 
 	if !success {
+		metrics.IncrCounter([]string{"job", jobName, group.GroupName, m, "failure"}, 1)
 		state.FailureCount++
 
 		return
 	}
 
+	metrics.IncrCounter([]string{"job", jobName, group.GroupName, m, "success"}, 1)
 	logging.Info("client/job_scaling: scaling of job \"%v\" and group \"%v\" successfully completed",
 		jobName, group.GroupName)
 }
