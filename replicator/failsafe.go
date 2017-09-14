@@ -72,6 +72,10 @@ func SetFailsafeMode(state *structs.ScalingState, config *structs.Config,
 		}
 
 	case false:
+		// Reset the failure count to allow Replicator to start with a clean
+		// slate during the next evaluation.
+		state.FailureCount = 0
+
 		if !state.FailsafeAdmin {
 			logging.Info("core/failsafe: disabling failsafe mode for %v %v",
 				message.ResourceType, message.ResourceID)

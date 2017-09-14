@@ -23,12 +23,12 @@ func (c *FailsafeCommand) Help() string {
 	helpText := `
 Usage: replicator failsafe [options]
 
-  Allows an operator to administratively control the failsafe behavior
-  of Replicator. When Replicator enters failsafe mode, all running
-  copies of Replicator will prohibit any scaling operations on the
-  resource in question.
+  Allows an operator to administratively control the failsafe behavior of
+  Replicator. When Replicator places a job or worker pool in failsafe mode, 
+  all running copies of Replicator will prohibit any scaling operations
+  against the resource in question.
 
-  Failsafe mode is intended to stabilize a cluster that has experienced
+  Failsafe mode is intended to stabilize a respource that has experienced
   critical failures while attempting to perform scaling operations.
 
   To exit failsafe mode, an operator must explicitly remove the failsafe
@@ -52,14 +52,15 @@ Usage: replicator failsafe [options]
       it provides a "well-known" IP address for which clients can connect.
 
     -consul-token=<token>
-      The Consul ACL token to use when communicating with an ACL
-      protected Consul cluster.
+      The Consul ACL token to use when communicating with an ACL protected
+      Consul cluster.
 
     -state-path=<key>
-      The Consul Key/Value Store where the state object is stored for the
-      resource which failsafe will be manipulated for. The default base is
-      replicator/config/state; cluster worker pools live at worker/<pool_name>
-      and job group state at jobs/<job_name>/<group_name>.
+      The full Consul Key/Value path where the state object for the resource
+      is stored. By default, Replicator stores all state objects at a common
+      base path, replicator/config/state; within this base context, worker
+      pools state is stored at nodes/<pool_name> and jobs at
+      jobs/<job_name>/<group_name>.
 
   Failsafe Mode Options:
 
