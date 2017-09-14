@@ -5,6 +5,11 @@ BUG FIXES:
 * Reset failure count when exiting failsafe [GH-190]
 * Retry when Nomad returns an empty deployment ID [GH-191]
 
+IMPROVEMENTS:
+
+* Improve accuracy and detail of cluster_scaling telemetry metrics. [GH-194]
+* Improve accuracy and detail of job_scaling telemetry metrics. [GH-193]
+
 ## 1.0.0 (11 September 2017)
 
 IMPROVEMENTS:
