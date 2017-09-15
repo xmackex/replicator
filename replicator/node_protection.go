@@ -35,9 +35,11 @@ func (r *Runner) nodeProtectionCheck(nodeReg *structs.NodeRegistry) error {
 	}
 
 	// Register the node as protected in the node registry.
-	logging.Debug("core/node_protection: registering node %v from worker "+
-		"pool %v as protected", host, pool)
-	nodeReg.WorkerPools[pool].ProtectedNode = host
+	if nodeReg.WorkerPools[pool].ProtectedNode != host {
+		logging.Debug("core/node_protection: registering node %v from worker "+
+			"pool %v as protected", host, pool)
+		nodeReg.WorkerPools[pool].ProtectedNode = host
+	}
 	nodeReg.Lock.Unlock()
 
 	return nil
