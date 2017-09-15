@@ -110,16 +110,16 @@ func TestNomad_MostUtilizedResource(t *testing.T) {
 	client.MostUtilizedResource(diskCap)
 	client.MostUtilizedResource(zeroCap)
 
-	if cpuCap.ScalingMetric != ScalingMetricProcessor {
+	if cpuCap.ScalingMetric.Type != ScalingMetricProcessor {
 		t.Fatalf("expected scaling metric %v but got %v", ScalingMetricProcessor, cpuCap.ScalingMetric)
 	}
-	if memCap.ScalingMetric != ScalingMetricMemory {
+	if memCap.ScalingMetric.Type != ScalingMetricMemory {
 		t.Fatalf("expected scaling metric %v but got %v", ScalingMetricMemory, memCap.ScalingMetric)
 	}
-	if diskCap.ScalingMetric != ScalingMetricDisk {
+	if diskCap.ScalingMetric.Type != ScalingMetricDisk {
 		t.Fatalf("expected scaling metric %v but got %v", ScalingMetricDisk, diskCap.ScalingMetric)
 	}
-	if zeroCap.ScalingMetric != ScalingMetricNone {
+	if zeroCap.ScalingMetric.Type != ScalingMetricNone {
 		t.Fatalf("expected scaling metric %v but got %v", ScalingMetricNone, zeroCap.ScalingMetric)
 	}
 }
@@ -160,8 +160,10 @@ func TestNomad_MaxAllowedClusterUtilization(t *testing.T) {
 	scaleIn := true
 
 	cap := &structs.ClusterCapacity{
-		ScalingMetric: ScalingMetricMemory,
-		NodeCount:     4,
+		ScalingMetric: structs.ScalingMetric{
+			Type: ScalingMetricMemory,
+		},
+		NodeCount: 4,
 		TaskAllocation: structs.AllocationResources{
 			MemoryMB: 2048,
 			CPUMHz:   2400,
@@ -173,7 +175,7 @@ func TestNomad_MaxAllowedClusterUtilization(t *testing.T) {
 	}
 	memCap := MaxAllowedClusterUtilization(cap, nodeFaultTolerance, scaleIn)
 
-	cap.ScalingMetric = ScalingMetricProcessor
+	cap.ScalingMetric.Type = ScalingMetricProcessor
 	cpuCap := MaxAllowedClusterUtilization(cap, nodeFaultTolerance, scaleIn)
 
 	if memCap != 2048 {

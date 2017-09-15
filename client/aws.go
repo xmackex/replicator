@@ -80,7 +80,8 @@ func ScaleOutCluster(asgName string, nodeCount int, svc *autoscaling.AutoScaling
 		TerminationPolicies:  terminationPolicies,
 	}
 
-	logging.Info("client/aws: cluster scaling (scale-out) will now be initiated")
+	logging.Info("client/aws: increasing the size of worker pool autoscaling "+
+		"group %v", asgName)
 
 	// Currently it is assumed that no error received from the API means that the
 	// increase in ASG size has been successful, or at least will be. This may
@@ -95,8 +96,8 @@ func ScaleOutCluster(asgName string, nodeCount int, svc *autoscaling.AutoScaling
 	ticker := time.NewTicker(time.Millisecond * 500)
 	timeout := time.Tick(time.Minute * 3)
 
-	logging.Info("client/aws: attempting to verify the autoscaling group " +
-		"operation has completed successfully")
+	logging.Info("client/aws: attempting to verify the autoscaling group "+
+		"operation for worker pool %v has completed successfully", asgName)
 
 	for {
 		select {
@@ -112,8 +113,8 @@ func ScaleOutCluster(asgName string, nodeCount int, svc *autoscaling.AutoScaling
 					err)
 			} else {
 				if len(asg.AutoScalingGroups[0].Instances) == int(newDesiredCapacity) {
-					logging.Info("client/aws: verified the autoscaling operation has " +
-						"completed successfully")
+					logging.Info("client/aws: verified the autoscaling operation for "+
+						"worker pool %v has completed successfully", asgName)
 					return nil
 				}
 			}
@@ -243,7 +244,8 @@ func GetMostRecentInstance(autoscalingGroup, region string) (node string, err er
 		},
 	}
 
-	logging.Info("client/aws: determining most recently launched worker node")
+	logging.Info("client/aws: determining the most recently launched node in "+
+		"worker pool autoscaling group %v", autoscalingGroup)
 
 	for {
 		select {
@@ -285,8 +287,8 @@ func GetMostRecentInstance(autoscalingGroup, region string) (node string, err er
 			// If the most recent node was launched within the last 90 seconds,
 			// we've found what we were looking for otherwise, pause and recheck.
 			if instanceTracking.MostRecentLaunch.After(launchThreshold) {
-				logging.Debug("client/aws: instance %v is the newest worker node",
-					instanceTracking.InstanceID)
+				logging.Info("client/aws: determined instance %v is the newest node "+
+					"in worker pool %v", instanceTracking.InstanceID, autoscalingGroup)
 				return instanceTracking.InstanceIP, nil
 			}
 
@@ -394,7 +396,7 @@ func TerminateInstance(instanceID, region string) error {
 			}
 
 			if *resp.InstanceStatuses[0].InstanceState.Name == "terminated" {
-				logging.Info("client/aws: successful termination of %s confirmed",
+				logging.Info("client/aws: confirmed successful termination of %s",
 					instanceID)
 
 				return nil

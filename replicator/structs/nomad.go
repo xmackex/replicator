@@ -83,7 +83,7 @@ type ClusterCapacity struct {
 	// ScalingMetric indicates the most-utilized allocation resource across the
 	// cluster. The most-utilized resource is prioritized when making scaling
 	// decisions like identifying the least-allocated worker node.
-	ScalingMetric string
+	ScalingMetric ScalingMetric
 
 	// MaxAllowedUtilization represents the max allowed cluster utilization after
 	// considering node fault-tolerance and task group scaling overhead.
@@ -146,4 +146,11 @@ type AllocationResources struct {
 	MemoryPercent float64
 	CPUPercent    float64
 	DiskPercent   float64
+}
+
+// ScalingMetric tracks information about the prioritized scaling metric.
+type ScalingMetric struct {
+	Type        string
+	Capacity    int
+	Utilization int
 }
