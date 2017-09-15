@@ -7,6 +7,7 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+
 	"github.com/elsevier-core-engineering/replicator/client"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/notifier"
@@ -169,6 +170,17 @@ func (r *Runner) workerPoolScaling(poolName string,
 	// Setup session to AWS auto scaling service.
 	asgSess := client.NewAWSAsgService(workerPool.Region)
 
+	if poolCapacity.ScalingDirection != client.ScalingDirectionNone {
+		scaleMetric := poolCapacity.ScalingMetric
+
+		logging.Info("core/cluster_scaling: worker pool %v requires a scaling "+
+			"operation: (Direction: %v, Nodes: %v, Metric: %v, Capacity: %v, "+
+			"Utilization: %v, Max Allowed: %v)", workerPool.Name,
+			poolCapacity.ScalingDirection, len(workerPool.Nodes), scaleMetric.Type,
+			scaleMetric.Capacity, scaleMetric.Utilization,
+			poolCapacity.MaxAllowedUtilization)
+	}
+
 	if poolCapacity.ScalingDirection == client.ScalingDirectionOut {
 		// If we've determined the worker pool should be scaled out, initiate
 		// the scaling operation.
@@ -185,7 +197,7 @@ func (r *Runner) workerPoolScaling(poolName string,
 		if ok := r.verifyPoolScaling(workerPool, poolState, r.config); !ok {
 			metrics.IncrCounter([]string{"cluster", workerPool.Name, "scale_out", "failure"}, 1)
 			logging.Error("core/cluster_scaling: unable to successfully verify "+
-				"scaling operation against worker pool %v: %v",
+				"scaling operation completed successfully against worker pool %v: %v",
 				workerPool.Name, err)
 			return
 		}
@@ -199,8 +211,12 @@ func (r *Runner) workerPoolScaling(poolName string,
 				"allocated node in worker pool %v", workerPool.Name)
 			return
 		}
+		logging.Info("client/nomad: identified node %v as the least allocated "+
+			"node in worker pool %v", nodeID, workerPool.Name)
 
 		// Place the least allocated noded in drain mode.
+		logging.Info("client/nomad: placing node %v from worker pool %v in drain "+
+			"mode", nodeID, workerPool.Name)
 		if err = nomadClient.DrainNode(nodeID); err != nil {
 			logging.Error("core/cluster_scaling: an error occurred while "+
 				"attempting to place node %v from worker pool %v in drain mode: "+
@@ -288,7 +304,7 @@ func (r *Runner) verifyPoolScaling(workerPool *structs.WorkerPool,
 				logging.Error("core/cluster_scaling: %v", err)
 			}
 
-			return
+			return true
 		}
 
 		// Increment failure count and write state object.
@@ -356,7 +372,7 @@ func checkCooldownThreshold(interval int, workerPool string,
 	cooldown := state.LastScalingEvent.Add(time.Duration(interval) * time.Second)
 
 	if time.Now().Before(cooldown) {
-		logging.Info("core/cluster_scaling: cluster scaling cooldown threshold "+
+		logging.Debug("core/cluster_scaling: cluster scaling cooldown threshold "+
 			"has not been reached: %v, scaling operations for worker pool %v should "+
 			"not be permitted", cooldown, workerPool)
 		return false

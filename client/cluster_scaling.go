@@ -1,10 +1,6 @@
 package client
 
 import (
-	// "fmt"
-	// "math"
-	// "time"
-
 	"github.com/dariubs/percent"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
@@ -69,20 +65,19 @@ func (c *nomadClient) EvaluatePoolScaling(capacity *structs.ClusterCapacity,
 // worker pool.
 func clusterScalingRequired(capacity *structs.ClusterCapacity,
 	workerPool *structs.WorkerPool) (scale bool) {
-	var poolUtilization, poolCapacity int
 
 	// Set the pool utilization and capacity values based on the prioritized
 	// scaling metric.
-	switch capacity.ScalingMetric {
+	switch capacity.ScalingMetric.Type {
 	case ScalingMetricProcessor:
-		poolCapacity = capacity.TotalCapacity.CPUMHz
-		poolUtilization = capacity.UsedCapacity.CPUMHz
+		capacity.ScalingMetric.Capacity = capacity.TotalCapacity.CPUMHz
+		capacity.ScalingMetric.Utilization = capacity.UsedCapacity.CPUMHz
 	case ScalingMetricMemory:
-		poolCapacity = capacity.TotalCapacity.MemoryMB
-		poolUtilization = capacity.UsedCapacity.MemoryMB
+		capacity.ScalingMetric.Capacity = capacity.TotalCapacity.MemoryMB
+		capacity.ScalingMetric.Utilization = capacity.UsedCapacity.MemoryMB
 	default:
-		poolCapacity = capacity.TotalCapacity.CPUMHz
-		poolUtilization = capacity.UsedCapacity.CPUMHz
+		capacity.ScalingMetric.Capacity = capacity.TotalCapacity.CPUMHz
+		capacity.ScalingMetric.Utilization = capacity.UsedCapacity.CPUMHz
 	}
 
 	logging.Debug("client/cluster_scaling: computing scaling requirements for "+
@@ -92,16 +87,16 @@ func clusterScalingRequired(capacity *structs.ClusterCapacity,
 
 	// If the worker pool utilization is below the computed maximum threshold,
 	// set the scaling direction inward.
-	if (poolUtilization < capacity.MaxAllowedUtilization) ||
-		(capacity.ScalingMetric == ScalingMetricNone) {
+	if (capacity.ScalingMetric.Utilization < capacity.MaxAllowedUtilization) ||
+		(capacity.ScalingMetric.Type == ScalingMetricNone) {
 
 		capacity.ScalingDirection = ScalingDirectionIn
 	}
 
 	// If the worker pool utilization is above or equal to the computed maximum
 	// threshold, check to see if we should scale the cluster out.
-	if (poolUtilization >= capacity.MaxAllowedUtilization) &&
-		(capacity.ScalingMetric != ScalingDirectionNone) {
+	if (capacity.ScalingMetric.Utilization >= capacity.MaxAllowedUtilization) &&
+		(capacity.ScalingMetric.Type != ScalingDirectionNone) {
 
 		capacity.ScalingDirection = ScalingDirectionOut
 	}
@@ -109,8 +104,8 @@ func clusterScalingRequired(capacity *structs.ClusterCapacity,
 	logging.Debug("client/cluster_scaling: scaling requirements for worker pool "+
 		"%v: (Metric: %v, Direction: %v, Capacity: %v, Utilization: %v, Max "+
 		"Allowed: %v)", workerPool.Name, capacity.ScalingMetric,
-		capacity.ScalingDirection, poolCapacity, poolUtilization,
-		capacity.MaxAllowedUtilization)
+		capacity.ScalingDirection, capacity.ScalingMetric.Capacity,
+		capacity.ScalingMetric.Utilization, capacity.MaxAllowedUtilization)
 
 	if capacity.ScalingDirection != ScalingDirectionNone {
 		return true
@@ -249,7 +244,7 @@ func (c *nomadClient) ClusterScalingSafe(capacity *structs.ClusterCapacity,
 
 	var poolUsedCapacity int
 
-	switch capacity.ScalingMetric {
+	switch capacity.ScalingMetric.Type {
 	case ScalingMetricProcessor:
 		poolUsedCapacity = capacity.UsedCapacity.CPUMHz
 	case ScalingMetricMemory:

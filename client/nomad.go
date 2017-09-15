@@ -87,13 +87,13 @@ func (c *nomadClient) MostUtilizedResource(alloc *structs.ClusterCapacity) {
 	// Set the compute cluster scaling metric to the most-utilized resource.
 	switch max {
 	case 0:
-		alloc.ScalingMetric = ScalingMetricNone
+		alloc.ScalingMetric.Type = ScalingMetricNone
 	case alloc.UsedCapacity.CPUPercent:
-		alloc.ScalingMetric = ScalingMetricProcessor
+		alloc.ScalingMetric.Type = ScalingMetricProcessor
 	case alloc.UsedCapacity.DiskPercent:
-		alloc.ScalingMetric = ScalingMetricDisk
+		alloc.ScalingMetric.Type = ScalingMetricDisk
 	case alloc.UsedCapacity.MemoryPercent:
-		alloc.ScalingMetric = ScalingMetricMemory
+		alloc.ScalingMetric.Type = ScalingMetricMemory
 	}
 }
 
@@ -127,7 +127,7 @@ func (c *nomadClient) LeastAllocatedNode(capacity *structs.ClusterCapacity,
 			continue
 		}
 
-		switch capacity.ScalingMetric {
+		switch capacity.ScalingMetric.Type {
 		case ScalingMetricProcessor:
 			if (lowest == 0) || (alloc.UsedCapacity.CPUPercent < lowest) {
 				nodeID = alloc.NodeID
@@ -169,7 +169,7 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 	if (err != nil) || (resp.Drain != true) {
 		return err
 	}
-	logging.Info("client/nomad: node %v has been placed in drain mode\n", nodeID)
+	logging.Info("client/nomad: node %v has been placed in drain mode", nodeID)
 
 	// Setup a ticker to poll the node allocations and report when all existing
 	// allocations have been migrated to other worker nodes.
@@ -282,7 +282,8 @@ func (c *nomadClient) VerifyNodeHealth(nodeIP string) (healthy bool) {
 	ticker := time.NewTicker(time.Second * 10)
 	timeout := time.Tick(time.Minute * 5)
 
-	logging.Debug("client/nomad: verifying health of node %v", nodeIP)
+	logging.Info("client/nomad: waiting for node %v to successfully join "+
+		"the worker pool", nodeIP)
 
 	for {
 		select {
@@ -314,8 +315,8 @@ func (c *nomadClient) VerifyNodeHealth(nodeIP string) (healthy bool) {
 				// If the healthy worker node matches the specified worker node,
 				// set the response to healthy and exit.
 				if resp.Attributes["unique.network.ip-address"] == nodeIP {
-					logging.Info("client/nomad: successfully verified the health of "+
-						"node %v", nodeIP)
+					logging.Info("client/nomad: node %v successfully joined the worker "+
+						"pool", nodeIP)
 					healthy = true
 					return
 				}
@@ -353,7 +354,7 @@ func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTo
 
 	// Use the cluster scaling metric when determining total cluster capacity
 	// and task group scaling overhead.
-	switch capacity.ScalingMetric {
+	switch capacity.ScalingMetric.Type {
 	case ScalingMetricMemory:
 		internalScalingMetric = ScalingMetricMemory
 		allocTotal = capacity.TaskAllocation.MemoryMB
