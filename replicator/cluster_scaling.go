@@ -205,7 +205,8 @@ func (r *Runner) workerPoolScaling(poolName string,
 
 	if poolCapacity.ScalingDirection == client.ScalingDirectionIn {
 		// Identify the least allocated node in the worker pool.
-		nodeID, nodeIP := nomadClient.LeastAllocatedNode(poolCapacity, poolState)
+		nodeID, nodeIP := nomadClient.LeastAllocatedNode(poolCapacity,
+			workerPool.ProtectedNode)
 		if nodeIP == "" || nodeID == "" {
 			logging.Error("core/cluster_scaling: unable to identify the least "+
 				"allocated node in worker pool %v", workerPool.Name)

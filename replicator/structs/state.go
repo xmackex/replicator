@@ -36,11 +36,6 @@ type ScalingState struct {
 	// access to the object.
 	Lock sync.RWMutex `json:"-"`
 
-	// ProtectedNode represents the Nomad agent node on which the Replicator
-	// leader is running. This node will be excluded when identifying an eligible
-	// node for termination during scaling actions.
-	ProtectedNode string `json:"protected_node"`
-
 	// ResourceName provides a shortcut method for identifying the resource
 	// this state is associated with.
 	ResourceName string `json:"resource_name"`

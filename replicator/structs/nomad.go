@@ -51,7 +51,7 @@ type NomadClient interface {
 
 	// LeastAllocatedNode determines which worker pool node is consuming the
 	// least amount of the cluster's most-utilized resource.
-	LeastAllocatedNode(*ClusterCapacity, *ScalingState) (string, string)
+	LeastAllocatedNode(*ClusterCapacity, string) (string, string)
 
 	// NodeReverseLookup provides a method to get the ID of the worker pool node
 	// running a given allocation.

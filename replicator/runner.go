@@ -1,7 +1,6 @@
 package replicator
 
 import (
-	"os"
 	"time"
 
 	"github.com/elsevier-core-engineering/replicator/logging"
@@ -115,27 +114,10 @@ func (r *Runner) clusterScalingTicker(nodeReg *structs.NodeRegistry, jobPol *str
 		select {
 		case <-ticker.C:
 			if r.candidate.isLeader() {
-				// If we're running as a Nomad job, perform a reverse lookup to
-				// identify the node on which we're running and register it as
-				// protected.
-				if allocID := os.Getenv("NOMAD_ALLOC_ID"); len(allocID) > 0 {
-					host, err := r.config.NomadClient.NodeReverseLookup(allocID)
-					if err != nil {
-						logging.Error("core/runner: Running as a Nomad job but unable "+
-							"to determine the ID of our host node: %v", err)
-					}
-
-					if len(host) > 0 {
-						nodeReg.Lock.Lock()
-						// Reverse lookup our worker pool name by node ID and register
-						// the node as protected.
-						if pool, ok := nodeReg.RegisteredNodes[host]; ok {
-							logging.Debug("core/runner: registering node %v in worker "+
-								"pool %v as protected", host, pool)
-							nodeReg.WorkerPools[pool].ProtectedNode = host
-						}
-						nodeReg.Lock.Unlock()
-					}
+				err := r.nodeProtectionCheck(nodeReg)
+				if err != nil {
+					logging.Error("core/runner: an error occurred while trying to "+
+						"protect the node running the Replicator leader: %v", err)
 				}
 
 				r.asyncClusterScaling(nodeReg, jobPol)
