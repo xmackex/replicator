@@ -115,15 +115,15 @@ func (c *nomadClient) MostUtilizedGroupResource(gsp *structs.GroupScalingPolicy)
 // amount of the cluster's most-utilized resource. If Replicator is running as
 // a Nomad job, the worker node running the Replicator leader will be excluded.
 func (c *nomadClient) LeastAllocatedNode(capacity *structs.ClusterCapacity,
-	state *structs.ScalingState) (nodeID, nodeIP string) {
+	protectedNode string) (nodeID, nodeIP string) {
 	var lowest float64
 
 	for _, alloc := range capacity.NodeAllocations {
 		// If we've encountered a protected worker pool node, exclude it from
 		// least-allocated node discovery.
-		if alloc.NodeID == state.ProtectedNode {
+		if alloc.NodeID == protectedNode {
 			logging.Debug("client/nomad: Node %v will be excluded when calculating "+
-				"eligible worker pool nodes to be removed", state.ProtectedNode)
+				"eligible worker pool nodes to be removed", protectedNode)
 			continue
 		}
 
