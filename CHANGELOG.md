@@ -1,4 +1,4 @@
-## 1.0.1 (Unreleased)
+## 1.0.1 (14 September 2017)
 
 BUG FIXES:
 
@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
 * Improve accuracy and detail of cluster_scaling telemetry metrics. [GH-194]
 * Improve accuracy and detail of job_scaling telemetry metrics. [GH-193]
+* Improve logging output of cluster scaling operations when logging set to `INFO`. [GH-195]
 
 ## 1.0.0 (11 September 2017)
 
