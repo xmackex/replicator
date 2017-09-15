@@ -1,3 +1,9 @@
+## 1.0.2 (Unreleased)
+
+BUG FIXES:
+
+* Improve and fix node protection mechanism. [GH-197]
+
 ## 1.0.1 (14 September 2017)
 
 BUG FIXES:
