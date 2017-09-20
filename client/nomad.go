@@ -247,6 +247,9 @@ func (c *nomadClient) EvaluateJobScaling(jobName string, jobScalingPolicies []*s
 		c.GetJobAllocations(allocs, gsp)
 		c.MostUtilizedGroupResource(gsp)
 
+		// Reset the direction
+		gsp.ScaleDirection = ScalingDirectionNone
+
 		switch gsp.ScalingMetric {
 		case ScalingMetricProcessor:
 			if gsp.Tasks.Resources.CPUPercent > gsp.ScaleOutCPU {
