@@ -23,22 +23,22 @@ Replicator is fully capable of running as a distributed service; using [Consul s
 An example Nomad client configuration that can be used to enable autoscaling on the worker pool:
 ```json
 {
-	"bind_addr": "0.0.0.0",
-	"client": {
-		"enabled": true,
-		"meta": {
-			"replicator_cooldown": 300,
-			"replicator_enabled": "true",
-			"replicator_max": 3,
-			"replicator_min": 2,
-			"replicator_node_fault_tolerance": 1,
-			"replicator_notification_uid": "REP2",
-			"replicator_region": "us-east-1",
-			"replicator_retry_threshold": 3,
-			"replicator_scaling_threshold": 3,
-			"replicator_worker_pool": "container-node-private-nonprod"
-		}
-	}
+    "bind_addr": "0.0.0.0",
+    "client": {
+        "enabled": true,
+        "meta": {
+            "replicator_cooldown": 300,
+            "replicator_enabled": "true",
+            "replicator_max": 3,
+            "replicator_min": 2,
+            "replicator_node_fault_tolerance": 1,
+            "replicator_notification_uid": "REP2",
+            "replicator_region": "us-east-1",
+            "replicator_retry_threshold": 3,
+            "replicator_scaling_threshold": 3,
+            "replicator_worker_pool": "container-node-private-nonprod"
+        }
+    }
 }
 ```
 
