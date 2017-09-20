@@ -217,6 +217,9 @@ func (c *nomadClient) GetTaskGroupResources(jobName string, groupPolicy *structs
 	if err != nil {
 		return err
 	}
+	// Make sure the values are zeroed
+	groupPolicy.Tasks.Resources.CPUMHz = 0
+	groupPolicy.Tasks.Resources.MemoryMB = 0
 
 	for _, group := range jobs.TaskGroups {
 		for _, task := range group.Tasks {
