@@ -18,7 +18,84 @@ Pre-compiled releases for a number of platforms are available on the [GitHub rel
 
 Replicator can be run in a number of ways; the recommended way is as a Nomad service job either using the [Docker driver](https://www.nomadproject.io/docs/drivers/docker.html) or the [exec driver](https://www.nomadproject.io/docs/drivers/exec.html). There are example Nomad [job specification files](https://github.com/elsevier-core-engineering/replicator/tree/master/example-jobs) available as a starting point.
 
-Replicator is fully capable in running as a distributed service; using [Consul sessions](https://www.consul.io/docs/internals/sessions.html) to provide leadership locking and exclusion. State is also written by Replicator to the Consul KV store, allowing Replicator failures to be handled quickly and efficiently.
+Replicator is fully capable of running as a distributed service; using [Consul sessions](https://www.consul.io/docs/internals/sessions.html) to provide leadership locking and exclusion. State is also written by Replicator to the Consul KV store, allowing Replicator failures to be handled quickly and efficiently.
+
+An example Nomad client configuration that can be used to enable autoscaling on the worker pool:
+```json
+{
+	"bind_addr": "0.0.0.0",
+	"client": {
+		"enabled": true,
+		"meta": {
+			"replicator_cooldown": 300,
+			"replicator_enabled": "true",
+			"replicator_max": 3,
+			"replicator_min": 2,
+			"replicator_node_fault_tolerance": 1,
+			"replicator_notification_uid": "REP2",
+			"replicator_region": "us-east-1",
+			"replicator_retry_threshold": 3,
+			"replicator_scaling_threshold": 3,
+			"replicator_worker_pool": "container-node-private-nonprod"
+		}
+	}
+}
+```
+
+An example job which has autoscaling enabled:
+```hcl
+job "example" {
+  datacenters = ["dc1"]
+  type        = "service"
+
+  group "cache" {
+    count = 3
+
+    meta {
+      "replicator_max"               = 10
+      "replicator_cooldown"          = 50
+      "replicator_enabled"           = true
+      "replicator_min"               = 1
+      "replicator_scalein_mem"       = 30
+      "replicator_scalein_cpu"       = 30
+      "replicator_scaleout_mem"      = 80
+      "replicator_scaleout_cpu"      = 80
+      "replicator_notification_uid"  = "REP1"
+    }
+
+    task "redis" {
+      driver = "docker"
+      config {
+        image = "redis:3.2"
+        port_map {
+          db = 6379
+        }
+      }
+
+      resources {
+        cpu    = 500 # 500 MHz
+        memory = 256 # 256MB
+        network {
+          mbits = 10
+          port "db" {}
+        }
+      }
+
+      service {
+        name = "global-redis-check"
+        tags = ["global", "cache"]
+        port = "db"
+        check {
+          name     = "alive"
+          type     = "tcp"
+          interval = "10s"
+          timeout  = "2s"
+        }
+      }
+    }
+  }
+}
+```
 
 ### Permissions
 
