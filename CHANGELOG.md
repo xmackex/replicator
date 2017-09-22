@@ -1,3 +1,10 @@
+## 1.0.3 (22 September 2017)
+
+BUG FIXES:
+
+* Reset accumulated job scaling values during each scaling evaluation. Thank you to @comebackoneyear and @lifesum. [GH-202]
+* Average job utilization from all allocations, not just the last one processed. Thank you to @comebackoneyear and @lifesum. [GH-202]
+
 ## 1.0.2 (15 September 2017)
 
 BUG FIXES:
