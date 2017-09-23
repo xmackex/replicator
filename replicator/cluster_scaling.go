@@ -278,7 +278,7 @@ func checkCooldownThreshold(workerPool *structs.WorkerPool) bool {
 		time.Duration(workerPool.Cooldown) * time.Second)
 
 	if time.Now().Before(cooldown) {
-		logging.Info("core/cluster_scaling: cluster scaling cooldown threshold "+
+		logging.Debug("core/cluster_scaling: cluster scaling cooldown threshold "+
 			"has not been reached: %v, scaling operations for worker pool %v should "+
 			"not be permitted", cooldown, workerPool.Name)
 		return false
