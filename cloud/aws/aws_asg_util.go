@@ -73,13 +73,13 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 		},
 	}
 
-	logging.Info("provider/aws: determining most recently launched instance "+
+	logging.Info("cloud/aws: determining most recently launched instance "+
 		"in autoscaling group %v", asg)
 
 	for {
 		select {
 		case <-timeout:
-			err = fmt.Errorf("provider/aws: timeout reached while attempting to "+
+			err = fmt.Errorf("cloud/aws: timeout reached while attempting to "+
 				"determine the most recently launched instance in autoscaling "+
 				"group %v", asg)
 			logging.Error("%v", err)
@@ -88,14 +88,14 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 			// Query the AWS API for worker nodes.
 			resp, err := svc.DescribeInstances(params)
 			if err != nil {
-				logging.Error("provider/aws: an error occurred while attempting to "+
+				logging.Error("cloud/aws: an error occurred while attempting to "+
 					"retrieve EC2 instance details: %v", err)
 				continue
 			}
 
 			// If our query returns no instances, raise an error.
 			if len(resp.Reservations) == 0 {
-				logging.Error("provider/aws: failed to retrieve a list of EC2 "+
+				logging.Error("cloud/aws: failed to retrieve a list of EC2 "+
 					"instances in autoscaling group %v", asg)
 				continue
 			}
@@ -103,7 +103,7 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 			// Iterate over and determine the most recent instance.
 			for _, res := range resp.Reservations {
 				for _, instance := range res.Instances {
-					logging.Debug("provider/aws: discovered worker node %v which was "+
+					logging.Debug("cloud/aws: discovered worker node %v which was "+
 						"launched on %v", *instance.InstanceId, instance.LaunchTime)
 
 					if instance.LaunchTime.After(instanceTracking.MostRecentLaunch) {
@@ -117,13 +117,13 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 			// If the most recent node was launched after our launch threshold
 			// we've found what we were looking for otherwise, pause and recheck.
 			if instanceTracking.MostRecentLaunch.After(launchThreshold) {
-				logging.Info("provider/aws: instance %v is the newest instance in "+
+				logging.Info("cloud/aws: instance %v is the newest instance in "+
 					"autoscaling group %v and was launched after the threshold %v",
 					instanceTracking.InstanceID, asg, launchThreshold)
 				return instanceTracking.InstanceIP, nil
 			}
 
-			logging.Debug("provider/aws: instance %v is the most recent instance "+
+			logging.Debug("cloud/aws: instance %v is the most recent instance "+
 				"launched in autoscaling group %v but its launch time %v is not "+
 				"after the launch threshold %v", instanceTracking.InstanceID, asg,
 				instanceTracking.MostRecentLaunch, launchThreshold)
@@ -146,7 +146,7 @@ func detachInstance(asg, instanceID string,
 		},
 	}
 
-	logging.Info("provider/aws: attempting to detach instance %v from "+
+	logging.Info("cloud/aws: attempting to detach instance %v from "+
 		"autoscaling group %v", instanceID, asg)
 
 	// Detach specified instance from the ASG. Note, this also strips the
@@ -164,7 +164,7 @@ func detachInstance(asg, instanceID string,
 		err = checkClusterScalingResult(resp.Activities[0].ActivityId, svc)
 	}
 	if err == nil {
-		logging.Info("provider/aws: successfully detached instance %v from "+
+		logging.Info("cloud/aws: successfully detached instance %v from "+
 			"autoscaling group %v", instanceID, asg)
 	}
 
@@ -223,7 +223,7 @@ func verifyAsgUpdate(workerPool string, capacity int64,
 	ticker := time.NewTicker(time.Millisecond * 500)
 	timeout := time.Tick(time.Minute * 3)
 
-	logging.Info("provider/aws: attempting to verify the autoscaling group "+
+	logging.Info("cloud/aws: attempting to verify the autoscaling group "+
 		"scaling operation for worker pool %v has completed successfully",
 		workerPool)
 
@@ -238,13 +238,13 @@ func verifyAsgUpdate(workerPool string, capacity int64,
 		case <-ticker.C:
 			asg, err := describeScalingGroup(workerPool, svc)
 			if err != nil {
-				logging.Error("provider/aws: an error occurred while attempting to "+
+				logging.Error("cloud/aws: an error occurred while attempting to "+
 					"verify the autoscaling group operation for worker pool %v: %v",
 					workerPool, err)
 
 			} else {
 				if int64(len(asg.AutoScalingGroups[0].Instances)) == capacity {
-					logging.Info("provider/aws: verified the autoscaling operation "+
+					logging.Info("cloud/aws: verified the autoscaling operation "+
 						"for worker pool %v has completed successfully", workerPool)
 
 					return nil

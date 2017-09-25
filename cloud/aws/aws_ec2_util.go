@@ -31,7 +31,7 @@ func translateIptoID(ip, region string) (id string) {
 	resp, err := svc.DescribeInstances(params)
 
 	if err != nil {
-		logging.Error("provider/aws: unable to convert node IP to AWS EC2 "+
+		logging.Error("cloud/aws: unable to convert node IP to AWS EC2 "+
 			"instance ID: %v", err)
 		return
 	}
@@ -54,7 +54,7 @@ func terminateInstance(instanceID, region string) error {
 	}
 
 	// Call the API to terminate the instance.
-	logging.Info("provider/aws: terminating instance %s", instanceID)
+	logging.Info("cloud/aws: terminating instance %s", instanceID)
 	if _, err := svc.TerminateInstances(tparams); err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func terminateInstance(instanceID, region string) error {
 	ticker := time.NewTicker(time.Second * time.Duration(10))
 	timeOut := time.Tick(time.Minute * 3)
 
-	logging.Info("provider/aws: confirming successful termination of "+
+	logging.Info("cloud/aws: confirming successful termination of "+
 		"instance %v", instanceID)
 
 	for {
@@ -89,7 +89,7 @@ func terminateInstance(instanceID, region string) error {
 			}
 
 			if *resp.InstanceStatuses[0].InstanceState.Name == "terminated" {
-				logging.Info("provider/aws: successfully confirmed the termination "+
+				logging.Info("cloud/aws: successfully confirmed the termination "+
 					"of instance %v", instanceID)
 
 				metrics.IncrCounter([]string{"cluster", "aws",
