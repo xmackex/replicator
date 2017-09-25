@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -249,7 +247,6 @@ func verifyAsgUpdate(workerPool string, capacity int64,
 					logging.Info("provider/aws: verified the autoscaling operation "+
 						"for worker pool %v has completed successfully", workerPool)
 
-					metrics.IncrCounter([]string{"cluster", "aws", "scale_out"}, 1)
 					return nil
 				}
 			}

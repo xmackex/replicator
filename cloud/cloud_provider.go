@@ -53,7 +53,7 @@ func NewScalingProvider(conf map[string]string) (structs.ScalingProvider, error)
 			"provider %v: %v", providerName, err)
 	}
 
-	logging.Debug("provider/scaling_provider: initialized scaling provider %v "+
+	logging.Debug("cloud/scaling_provider: initialized scaling provider %v "+
 		"for worker pool %v", providerName, conf["replicator_worker_pool"])
 
 	return scalingProvider, nil

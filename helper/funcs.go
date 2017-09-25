@@ -127,7 +127,6 @@ func FindNodeByAddress(nodeRegistry *structs.NodeRegistry,
 	}
 }
 
-//FindNodeByRegistrationTime does stuff and things.
 // FindNodeByRegistrationTime is a helper method that watches a worker pool
 // in the node registry for a newly launched node.
 //

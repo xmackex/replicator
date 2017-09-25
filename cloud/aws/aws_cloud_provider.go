@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -102,7 +100,7 @@ func (sp *AwsScalingProvider) scaleOut(workerPool *structs.WorkerPool) error {
 		TerminationPolicies:  terminationPolicies,
 	}
 
-	logging.Info("provider/aws: initiating cluster scale-out operation for "+
+	logging.Info("cloud/aws: initiating cluster scale-out operation for "+
 		"worker pool %v", workerPool.Name)
 
 	// Send autoscaling group API request to increase the desired count.
@@ -121,13 +119,11 @@ func (sp *AwsScalingProvider) scaleOut(workerPool *structs.WorkerPool) error {
 
 // scaleIn is the internal method used to initiate a scale in operation
 // against a worker pool autoscaling group.
-func (sp *AwsScalingProvider) scaleIn(workerPool *structs.WorkerPool,
-	config *structs.Config) error {
-
+func (sp *AwsScalingProvider) scaleIn(workerPool *structs.WorkerPool, config *structs.Config) error {
 	// If no nodes have been registered as eligible for targeted scaling
 	// operations, throw an error and exit.
 	if len(workerPool.State.EligibleNodes) == 0 {
-		return fmt.Errorf("provider/aws: no nodes are marked as eligible for " +
+		return fmt.Errorf("cloud/aws: no nodes are marked as eligible for " +
 			"scaling action, unable to detach and terminate")
 	}
 
@@ -180,10 +176,8 @@ func (sp *AwsScalingProvider) scaleIn(workerPool *structs.WorkerPool,
 
 	// Attempt to update state tracking information in Consul.
 	if err = consulClient.PersistState(workerPool.State); err != nil {
-		logging.Error("provider/aws: %v", err)
+		logging.Error("cloud/aws: %v", err)
 	}
-
-	metrics.IncrCounter([]string{"cluster", "aws", "scale_in"}, 1)
 
 	return nil
 }
@@ -196,7 +190,7 @@ func (sp *AwsScalingProvider) verifyScaledNode(workerPool *structs.WorkerPool,
 
 	for workerPool.State.FailureCount <= workerPool.RetryThreshold {
 		if workerPool.State.FailureCount > 0 {
-			logging.Info("provider/aws: attempting to launch a new node in worker "+
+			logging.Info("cloud/aws: attempting to launch a new node in worker "+
 				"pool %v, previous node failures: %v", workerPool.Name,
 				workerPool.State.FailureCount)
 		}
@@ -204,13 +198,13 @@ func (sp *AwsScalingProvider) verifyScaledNode(workerPool *structs.WorkerPool,
 		// Identify the most recently launched instance in the worker pool.
 		instanceIP, err := getMostRecentInstance(workerPool.Name, workerPool.Region)
 		if err != nil {
-			logging.Error("provider/aws: failed to identify the most recently "+
+			logging.Error("cloud/aws: failed to identify the most recently "+
 				"launched instance in worker pool %v: %v", workerPool.Name, err)
 
 			// Increment the failure count and persist the state object.
 			workerPool.State.FailureCount++
 			if err = consulClient.PersistState(workerPool.State); err != nil {
-				logging.Error("provider/aws: %v", err)
+				logging.Error("cloud/aws: %v", err)
 			}
 			continue
 		}
@@ -227,7 +221,7 @@ func (sp *AwsScalingProvider) verifyScaledNode(workerPool *structs.WorkerPool,
 
 			// Persist the state tracking object to Consul.
 			if err = consulClient.PersistState(workerPool.State); err != nil {
-				logging.Error("provider/aws: %v", err)
+				logging.Error("cloud/aws: %v", err)
 			}
 
 			return true
@@ -239,19 +233,16 @@ func (sp *AwsScalingProvider) verifyScaledNode(workerPool *structs.WorkerPool,
 
 		// Persist the state tracking object to Consul.
 		if err = consulClient.PersistState(workerPool.State); err != nil {
-			logging.Error("provider/aws: %v", err)
+			logging.Error("cloud/aws: %v", err)
 		}
 
-		logging.Error("provider/aws: new node %v failed to successfully "+
-			"join worker pool %v, incrementing node failure count to %v and "+
-			"taking cleanup actions", instanceIP, workerPool.Name,
-			workerPool.State.FailureCount)
-
-		metrics.IncrCounter([]string{"cluster", "scale_out_failed"}, 1)
+		logging.Error("cloud/aws: new node %v failed to successfully join worker "+
+			"pool %v, incrementing node failure count to %v and taking cleanup "+
+			"actions", instanceIP, workerPool.Name, workerPool.State.FailureCount)
 
 		// Perform post-failure cleanup tasks.
 		if err = sp.failedEventCleanup(instanceIP, workerPool); err != nil {
-			logging.Error("provider/aws: %v", err)
+			logging.Error("cloud/aws: %v", err)
 		}
 	}
 
@@ -285,7 +276,7 @@ func (sp *AwsScalingProvider) failedEventCleanup(workerNode string,
 	// Attempt to terminate the most recently launched instance to allow the
 	// autoscaling group a chance to launch a new one.
 	if err := terminateInstance(instanceID, workerPool.Region); err != nil {
-		logging.Error("provider/aws: an error occurred while attempting to "+
+		logging.Error("cloud/aws: an error occurred while attempting to "+
 			"terminate instance %v from worker pool %v: %v", instanceID,
 			workerPool.Name, err)
 		return err
@@ -302,7 +293,7 @@ func (sp *AwsScalingProvider) SafetyCheck(workerPool *structs.WorkerPool) bool {
 	// against the desired scaling action.
 	asg, err := describeScalingGroup(workerPool.Name, sp.AsgService)
 	if err != nil {
-		logging.Error("provider/aws: unable to retrieve worker pool autoscaling "+
+		logging.Error("cloud/aws: unable to retrieve worker pool autoscaling "+
 			"group configuration to evaluate constraints: %v", err)
 		return false
 	}
@@ -313,7 +304,7 @@ func (sp *AwsScalingProvider) SafetyCheck(workerPool *structs.WorkerPool) bool {
 	minSize := *asg.AutoScalingGroups[0].MinSize
 
 	if int64(len(workerPool.Nodes)) != desiredCap {
-		logging.Debug("provider/aws: the number of healthy nodes %v registered "+
+		logging.Debug("cloud/aws: the number of healthy nodes %v registered "+
 			"with worker pool %v does not match the current desired capacity of "+
 			"the autoscaling group %v, no scaling action should be permitted",
 			len(workerPool.Nodes), workerPool.Name, desiredCap)
@@ -323,8 +314,8 @@ func (sp *AwsScalingProvider) SafetyCheck(workerPool *structs.WorkerPool) bool {
 	if workerPool.State.ScalingDirection == structs.ScalingDirectionIn {
 		// If scaling in would violate the ASG min count, fail the safety check.
 		if desiredCap-1 < minSize {
-			logging.Debug("provider/aws: cluster scale-in operation "+
-				"would violate the worker pool ASG min count: %v", minSize)
+			logging.Debug("cloud/aws: cluster scale-in operation would violate the "+
+				"worker pool ASG min count: %v", minSize)
 			return false
 		}
 	}
@@ -332,8 +323,8 @@ func (sp *AwsScalingProvider) SafetyCheck(workerPool *structs.WorkerPool) bool {
 	if workerPool.State.ScalingDirection == structs.ScalingDirectionOut {
 		// If scaling out would violate the ASG max count, fail the safety check.
 		if desiredCap+1 > maxSize {
-			logging.Debug("provider/aws: cluster scale-out operation would "+
-				"violate the worker pool ASG max count: %v", maxSize)
+			logging.Debug("cloud/aws: cluster scale-out operation would violate "+
+				"the worker pool ASG max count: %v", maxSize)
 			return false
 		}
 	}
