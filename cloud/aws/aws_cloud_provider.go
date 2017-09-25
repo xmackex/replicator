@@ -14,12 +14,6 @@ import (
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
-const (
-	awsOperationFailed     = "Failed"
-	awsOperationCancelled  = "Cancelled"
-	awsOperationSuccessful = "Successful"
-)
-
 // AwsScalingProvider implements the ScalingProvider interface and provides
 // a provider that is capable of performing scaling operations against
 // Nomad worker pools running on AWS autoscaling groups.
@@ -165,7 +159,7 @@ func (sp *AwsScalingProvider) scaleIn(workerPool *structs.WorkerPool,
 	}
 
 	// Monitor the scaling activity result.
-	if *resp.Activities[0].StatusCode != awsOperationSuccessful {
+	if *resp.Activities[0].StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful {
 		err = checkClusterScalingResult(resp.Activities[0].ActivityId, sp.AsgService)
 		if err != nil {
 			return err

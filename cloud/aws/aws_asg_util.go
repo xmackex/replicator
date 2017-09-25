@@ -162,7 +162,7 @@ func detachInstance(asg, instanceID string,
 	// If the immediate API response does not indicate the detachment has
 	// completed successfully, call the checkClusterScalingResult() method which
 	// will poll the ASG until it can verify the status.
-	if *resp.Activities[0].StatusCode != awsOperationSuccessful {
+	if *resp.Activities[0].StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful {
 		err = checkClusterScalingResult(resp.Activities[0].ActivityId, svc)
 	}
 	if err == nil {
@@ -201,14 +201,14 @@ func checkClusterScalingResult(activityID *string,
 				return err
 			}
 
-			if *resp.Activities[0].StatusCode == awsOperationFailed ||
-				*resp.Activities[0].StatusCode == awsOperationCancelled {
+			if *resp.Activities[0].StatusCode == autoscaling.ScalingActivityStatusCodeFailed ||
+				*resp.Activities[0].StatusCode == autoscaling.ScalingActivityStatusCodeCancelled {
 
 				return fmt.Errorf("scaling activity %v failed to complete "+
 					"successfully", activityID)
 			}
 
-			if *resp.Activities[0].StatusCode == awsOperationSuccessful {
+			if *resp.Activities[0].StatusCode == autoscaling.ScalingActivityStatusCodeSuccessful {
 				return nil
 			}
 		}
