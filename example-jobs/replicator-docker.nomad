@@ -12,6 +12,10 @@ job "replicator" {
     VERSION = "v1.0.3"
   }
 
+  constraint {
+    distinct_hosts = true
+  }
+
   group "replicator" {
     count = 2
 
