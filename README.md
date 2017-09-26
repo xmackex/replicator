@@ -48,6 +48,11 @@ job "example" {
   datacenters = ["dc1"]
   type        = "service"
 
+   update {
+      max_parallel = 1
+      stagger      = "10s"
+    }
+
   group "cache" {
     count = 3
 
