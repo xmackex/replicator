@@ -140,7 +140,7 @@ Until Vault integration is added, the instance pool which is capable of running 
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "Authorize AutoScaling Actions",
+      "Sid": "AuthorizeAutoScalingActions",
       "Action": [
         "autoscaling:DescribeAutoScalingGroups",
         "autoscaling:DescribeAutoScalingInstances",
@@ -152,7 +152,7 @@ Until Vault integration is added, the instance pool which is capable of running 
       "Resource": "*"
     },
     {
-      "Sid": "Authorize EC2 Actions",
+      "Sid": "AuthorizeEC2Actions",
       "Action": [
         "ec2:DescribeInstances",
         "ec2:DescribeRegions",
