@@ -7,6 +7,7 @@ NEW FEATURES:
 BUG FIXES:
 
 * Filter out Nomad jobs that do not include an `update` stanza to prevent segmentation violations when attempting to verify job scaling activities. Thank you to @burdandrei. [GH-209]
+* Update init command to generate correct cluster_scaling meta tags. Thank you to @burdandrei. [GH-210]
 
 ## 1.0.3 (22 September 2017)
 
