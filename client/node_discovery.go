@@ -138,8 +138,6 @@ func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
 	// Required meta configuration keys.
 	requiredKeys := []string{
 		"replicator_enabled",
-		"replicator_max",
-		"replicator_min",
 		"replicator_notification_uid",
 		"replicator_provider",
 		"replicator_region",
@@ -221,8 +219,6 @@ func Register(node *nomad.Node, workerPool *structs.WorkerPool,
 		if changed {
 			logging.Debug("client/node_discovery: worker pool configuration has " +
 				"changed, updating.")
-			existingPool.Max = workerPool.Max
-			existingPool.Min = workerPool.Min
 			existingPool.Region = workerPool.Region
 			existingPool.Cooldown = workerPool.Cooldown
 			existingPool.RetryThreshold = workerPool.RetryThreshold
