@@ -120,8 +120,6 @@ var defaultClusterScalingDocument = strings.TrimSpace(`
 meta {
   "replicator_cool_down"            = 400
   "replicator_enabled"              = true
-  "replicator_max"                  = 10
-  "replicator_min"                  = 5
   "replicator_node_fault_tolerance" = 1
   "replicator_notification_uid"     = "REP2"
   "replicator_region"               = "us-east-1"
