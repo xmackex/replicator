@@ -315,8 +315,7 @@ func (sp *AwsScalingProvider) SafetyCheck(workerPool *structs.WorkerPool) bool {
 		// If scaling in would violate the ASG min count, fail the safety check.
 		if desiredCap-1 < minSize {
 			logging.Debug("cloud/aws: cluster scale-in operation would violate the "+
-				"worker pool ASG min count (desired: %v, min: %v)",
-				desiredCap-1, minSize)
+				"worker pool ASG min count (desired: %v, min: %v)", desiredCap-1, minSize)
 			return false
 		}
 	}
@@ -325,8 +324,7 @@ func (sp *AwsScalingProvider) SafetyCheck(workerPool *structs.WorkerPool) bool {
 		// If scaling out would violate the ASG max count, fail the safety check.
 		if desiredCap+1 > maxSize {
 			logging.Debug("cloud/aws: cluster scale-out operation would violate "+
-				"the worker pool ASG max count (desired: %v, max: %v)",
-				desiredCap+1, maxSize)
+				"the worker pool ASG max count (desired: %v, max: %v)", desiredCap+1, maxSize)
 			return false
 		}
 	}
