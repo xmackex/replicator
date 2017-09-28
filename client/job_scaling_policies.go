@@ -44,9 +44,9 @@ func (c *nomadClient) JobWatcher(jobScalingPolicies *structs.JobScalingPolicies)
 			// policy struct.
 			switch job.Status {
 			case StateRunning:
-				go c.jobScalingPolicyProcessor(job.Name, jobScalingPolicies)
+				go c.jobScalingPolicyProcessor(job.ID, jobScalingPolicies)
 			case StateDead:
-				go RemoveJobScalingPolicy(job.Name, jobScalingPolicies)
+				go RemoveJobScalingPolicy(job.ID, jobScalingPolicies)
 			default:
 				continue
 			}
