@@ -29,8 +29,6 @@ An example Nomad client configuration that can be used to enable autoscaling on 
         "meta": {
             "replicator_cooldown": 300,
             "replicator_enabled": "true",
-            "replicator_max": 3,
-            "replicator_min": 2,
             "replicator_node_fault_tolerance": 1,
             "replicator_notification_uid": "REP2",
             "replicator_region": "us-east-1",
