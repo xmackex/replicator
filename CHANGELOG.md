@@ -13,6 +13,10 @@ IMPROVEMENTS:
 
 * Remove explicit min/max thresholds for cluster scaling in favor of dynamic threshold discovery in the cloud provider.
 
+IMPROVEMENTS:
+
+* Remove explicit min/max thresholds for cluster scaling in favor of dynamic threshold discovery in the cloud provider.
+
 ## 1.0.3 (22 September 2017)
 
 BUG FIXES:
