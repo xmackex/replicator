@@ -81,9 +81,8 @@ func clusterScalingRequired(capacity *structs.ClusterCapacity,
 	}
 
 	logging.Debug("client/cluster_scaling: computing scaling requirements for "+
-		"worker pool %v: (Min: %v, Max: %v, Fault Tolerance: %v, Current: %v)",
-		workerPool.Name, workerPool.Min, workerPool.Max, workerPool.FaultTolerance,
-		len(workerPool.Nodes))
+		"worker pool %v: (Current Nodes: %v, Fault Tolerance: %v)",
+		workerPool.Name, len(workerPool.Nodes), workerPool.FaultTolerance)
 
 	// If the worker pool utilization is below the computed maximum threshold,
 	// set the scaling direction inward.
@@ -252,14 +251,6 @@ func (c *nomadClient) ClusterScalingSafe(capacity *structs.ClusterCapacity,
 	}
 
 	if capacity.ScalingDirection == ScalingDirectionIn {
-		// Determine if removing a node would violate safety thresholds or
-		// declared minimums.
-		if (capacity.NodeCount <= 1) || ((capacity.NodeCount - 1) < workerPool.Min) {
-			logging.Debug("client/cluster_scaling: cluster scale-in operation " +
-				"would violate safety thresholds or declared minimums")
-			return
-		}
-
 		// Compute the new maximum allowed utilization after simulating the removal
 		// of a worker node from the pool.
 		newMaxAllowedUtilization := MaxAllowedClusterUtilization(capacity,
@@ -283,14 +274,6 @@ func (c *nomadClient) ClusterScalingSafe(capacity *structs.ClusterCapacity,
 			logging.Debug("client/cluster_scaling: cluster scale-in operation " +
 				"would violate or is too close to the maximum allowed cluster " +
 				"utilization threshold")
-			return
-		}
-	} else if capacity.ScalingDirection == ScalingDirectionOut {
-		// If scaling out would violate the Replicator max count, fail the safety
-		// check.
-		if (capacity.NodeCount + 1) > workerPool.Max {
-			logging.Debug("client/cluster_scaling: cluster scale-out operation " +
-				"would violate the scaling maximum threshold")
 			return
 		}
 	}

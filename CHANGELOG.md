@@ -2,11 +2,15 @@
 
 NEW FEATURES:
 
-* **Scaling Provider**: Replicator now implements a cloud provider model to support cluster scaling operations across multiple cloud providers. [GH-203] 
+* **Scaling Provider**: Replicator now implements a cloud provider model to support cluster scaling operations across multiple cloud providers. [GH-203]
 
 BUG FIXES:
 
 * Filter out Nomad jobs that do not include an `update` stanza to prevent segmentation violations when attempting to verify job scaling activities. Thank you to @burdandrei. [GH-209]
+
+IMPROVEMENTS:
+
+* Remove explicit min/max thresholds for cluster scaling in favor of dynamic threshold discovery in the cloud provider.
 
 ## 1.0.3 (22 September 2017)
 
