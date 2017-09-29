@@ -3,11 +3,13 @@ package client
 import (
 	"time"
 
+	nomad "github.com/hashicorp/nomad/api"
+	nomadStructs "github.com/hashicorp/nomad/nomad/structs"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/elsevier-core-engineering/replicator/helper"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
-	nomad "github.com/hashicorp/nomad/api"
-	"github.com/mitchellh/mapstructure"
 )
 
 // JobWatcher is the main entry point into Replicators process of reading and
@@ -43,9 +45,9 @@ func (c *nomadClient) JobWatcher(jobScalingPolicies *structs.JobScalingPolicies)
 			// Dpending on the status of the job, take different action on the scaling
 			// policy struct.
 			switch job.Status {
-			case StateRunning:
+			case nomadStructs.JobStatusRunning:
 				go c.jobScalingPolicyProcessor(job.ID, jobScalingPolicies)
-			case StateDead:
+			case nomadStructs.JobStatusDead:
 				go RemoveJobScalingPolicy(job.ID, jobScalingPolicies)
 			default:
 				continue
@@ -72,7 +74,7 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 	// It seems when a job is stopped Nomad notifies twice; once indicates the job
 	// is in running state, the second time is that the job is dead. This check
 	// is to catch that.
-	if *jobInfo.Status != StateRunning {
+	if *jobInfo.Status != nomadStructs.JobStatusRunning {
 		return
 	}
 
