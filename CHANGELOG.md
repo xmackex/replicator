@@ -12,7 +12,7 @@ BUG FIXES:
 
 IMPROVEMENTS:
 
-* Remove explicit min/max thresholds for cluster scaling in favor of dynamic threshold discovery in the cloud provider.
+* Remove explicit min/max thresholds for cluster scaling in favor of dynamic threshold discovery in the cloud provider. [GH-211]
 
 ## 1.0.3 (22 September 2017)
 
