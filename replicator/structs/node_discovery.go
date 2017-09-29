@@ -46,8 +46,6 @@ type NodeRegistry struct {
 type WorkerPool struct {
 	Cooldown          int                    `mapstructure:"replicator_cooldown"`
 	FaultTolerance    int                    `mapstructure:"replicator_node_fault_tolerance"`
-	Max               int                    `mapstructure:"replicator_max"`
-	Min               int                    `mapstructure:"replicator_min"`
 	Name              string                 `mapstructure:"replicator_worker_pool"`
 	NodeRegistrations map[string]time.Time   `hash:"ignore"`
 	Nodes             map[string]*nomad.Node `hash:"ignore"`

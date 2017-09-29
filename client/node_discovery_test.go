@@ -166,8 +166,6 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 	expectedRegistry.WorkerPools["example-group"] = &structs.WorkerPool{
 		Cooldown:         300,
 		FaultTolerance:   1,
-		Max:              3,
-		Min:              1,
 		NotificationUID:  "Test01",
 		Region:           "us-east-1",
 		RetryThreshold:   3,
@@ -241,8 +239,6 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 	expected.WorkerPools["example-group"] = &structs.WorkerPool{
 		Cooldown:         300,
 		FaultTolerance:   1,
-		Max:              3,
-		Min:              1,
 		NotificationUID:  "Test01",
 		Region:           "us-east-1",
 		RetryThreshold:   3,
@@ -350,7 +346,6 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 	}
 
 	// Update expected state.
-	expected.WorkerPools["example-group"].Max = 5
 	workerPoolNodes = expected.WorkerPools["example-group"].Nodes
 	workerPoolNode := workerPoolNodes["ec282e52-4fb6-5950-ef5b-257fced6313c"]
 	workerPoolNode.Meta["replicator_max"] = "5"
