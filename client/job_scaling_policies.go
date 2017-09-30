@@ -3,11 +3,13 @@ package client
 import (
 	"time"
 
+	nomad "github.com/hashicorp/nomad/api"
+	nomadStructs "github.com/hashicorp/nomad/nomad/structs"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/elsevier-core-engineering/replicator/helper"
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
-	nomad "github.com/hashicorp/nomad/api"
-	"github.com/mitchellh/mapstructure"
 )
 
 // JobWatcher is the main entry point into Replicators process of reading and
@@ -67,6 +69,12 @@ func (c *nomadClient) jobScalingPolicyProcessor(jobID string, scaling *structs.J
 	jobInfo, _, err := c.nomad.Jobs().Info(jobID, &nomad.QueryOptions{})
 	if err != nil {
 		logging.Error("client/job_scaling_policies: unable to call Nomad job info: %v", err)
+	}
+
+	// If the job type is incompatible with scaling, there is no need to
+	// process the configuration.
+	if *jobInfo.Type == nomadStructs.JobTypeSystem {
+		return
 	}
 
 	// It seems when a job is stopped Nomad notifies twice; once indicates the job
