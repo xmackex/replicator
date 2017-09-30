@@ -9,6 +9,7 @@ BUG FIXES:
 * Filter out Nomad jobs that do not include an `update` stanza to prevent segmentation violations when attempting to verify job scaling activities. Thank you to @burdandrei. [GH-209]
 * Update init command to generate correct cluster_scaling meta tags. Thank you to @burdandrei. [GH-210]
 * Pass job scaling verification and processing methods the job ID rather than name to handle jobs where the name differs from the ID. Thank you to @burdandrei. [GH-212]
+* Prevent processing of Nomad system jobs [GH-220]
 
 IMPROVEMENTS:
 
