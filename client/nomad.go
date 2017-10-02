@@ -143,8 +143,9 @@ func (c *nomadClient) LeastAllocatedNode(capacity *structs.ClusterCapacity,
 	resp, _, err := c.nomad.Nodes().Info(nodeID, &nomad.QueryOptions{})
 	if err != nil {
 		logging.Error("client/nomad: unable to determine nomad node IP address: %v", err)
+	} else {
+		nodeIP = resp.Attributes["unique.network.ip-address"]
 	}
-	nodeIP = resp.Attributes["unique.network.ip-address"]
 
 	return
 }
