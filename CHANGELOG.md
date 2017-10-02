@@ -10,6 +10,7 @@ BUG FIXES:
 * Update init command to generate correct cluster_scaling meta tags. Thank you to @burdandrei. [GH-210]
 * Pass job scaling verification and processing methods the job ID rather than name to handle jobs where the name differs from the ID. Thank you to @burdandrei. [GH-212]
 * Prevent processing of Nomad system jobs. [GH-220]
+* Prevent panic when Replicator fails to determine the IP address of a node during worker pool scale-in operations. Thank you to @burdandrei. [GH-222]
 
 IMPROVEMENTS:
 
