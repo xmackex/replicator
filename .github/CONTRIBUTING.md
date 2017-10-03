@@ -48,7 +48,7 @@ All Go code in your pull request must pass `lint` checks. You can run lint on al
 
 ## Formatting
 
-All Go code must be formatted using the `go fmt` tool. You can run `fmt` on all Golang files using the `make fmt` target. All format checks are automatically enforced by CI tests.
+**Do your best to follow existing conventions you see in the codebase**, and ensure your code is formatted with `go fmt`. You can run `fmt` on all Golang files using the `make fmt` target. All format checks are automatically enforced by CI tests.
 
 ## Testing
 
