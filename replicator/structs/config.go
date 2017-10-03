@@ -74,6 +74,9 @@ type Notification struct {
 	// PagerDutyServiceKey is the PD integration key for the Events API v1.
 	PagerDutyServiceKey string `mapstructure:"pagerduty_service_key"`
 
+	// OpsGenieAPIKey is the OpsGenie integration key for the Alerts API v2.
+	OpsGenieAPIKey string `mapstructure:"opsgenie_service_key"`
+
 	// Notifiers is where our initialize notification backends are stored so they
 	// can be used on the fly when required.
 	Notifiers []notifier.Notifier
@@ -159,6 +162,10 @@ func (n *Notification) Merge(b *Notification) *Notification {
 
 	if b.PagerDutyServiceKey != "" {
 		config.PagerDutyServiceKey = b.PagerDutyServiceKey
+	}
+
+	if b.OpsGenieAPIKey != "" {
+		config.OpsGenieAPIKey = b.OpsGenieAPIKey
 	}
 
 	return &config

@@ -144,6 +144,7 @@ func (c *Command) parseFlags() *structs.Config {
 	// Notification configuration flags
 	flags.StringVar(&cliConfig.Notification.ClusterIdentifier, "cluster-identifier", "", "")
 	flags.StringVar(&cliConfig.Notification.PagerDutyServiceKey, "pagerduty-service-key", "", "")
+	flags.StringVar(&cliConfig.Notification.OpsGenieAPIKey, "opsgenie-api-key", "", "")
 
 	if err := flags.Parse(c.args); err != nil {
 		return nil
@@ -226,6 +227,19 @@ func (c *Command) setupNotifier(config *structs.Notification) (err error) {
 			return err
 		}
 		config.Notifiers = append(config.Notifiers, pd)
+	}
+
+	// Configure the OpsGenie notifier.
+	if config.OpsGenieAPIKey != "" {
+
+		ogConfig := make(map[string]string)
+		ogConfig["OpsGenieAPIKey"] = config.OpsGenieAPIKey
+		og, err := notifier.NewProvider("opsgenie", ogConfig)
+
+		if err != nil {
+			return err
+		}
+		config.Notifiers = append(config.Notifiers, og)
 	}
 
 	return nil

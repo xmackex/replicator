@@ -47,6 +47,7 @@ func TestStructs_Merge(t *testing.T) {
 		},
 		Notification: &Notification{
 			ClusterIdentifier:   "nomad-rocks",
+			OpsGenieAPIKey:      "onlygenieoncall",
 			PagerDutyServiceKey: "onlyopsoncall",
 		},
 	}
@@ -83,6 +84,7 @@ func TestStructs_Merge(t *testing.T) {
 		},
 		Notification: &Notification{
 			ClusterIdentifier:   "nomad-rocks",
+			OpsGenieAPIKey:      "onlygenieoncall",
 			PagerDutyServiceKey: "onlyopsoncall",
 		},
 	}

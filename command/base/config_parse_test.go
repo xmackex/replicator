@@ -25,6 +25,7 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 
     notification {
       pagerduty_service_key = "thistooisafakekey"
+      opsgenie_service_key  = "thisisafakeapikey"
       cluster_identifier    = "nomad-prod"
     }
 
@@ -51,6 +52,7 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 
 		Notification: &structs.Notification{
 			PagerDutyServiceKey: "thistooisafakekey",
+			OpsGenieAPIKey:      "thisisafakeapikey",
 			ClusterIdentifier:   "nomad-prod",
 		},
 	}

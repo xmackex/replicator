@@ -31,6 +31,8 @@ func NewProvider(t string, c map[string]string) (Notifier, error) {
 	switch t {
 	case "pagerduty":
 		n, err = NewPagerDutyProvider(c)
+	case "opsgenie":
+		n, err = NewOpsGenieProvider(c)
 	default:
 		err = fmt.Errorf("the notifications provider %s is not supported", t)
 	}
