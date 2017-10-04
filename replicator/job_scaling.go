@@ -23,17 +23,30 @@ func newJobScalingPolicy() *structs.JobScalingPolicies {
 }
 
 func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
+	// Setup our wait group to ensure we block until all worker pool scaling
+	// operations have completed.
+	var wg sync.WaitGroup
+
+	// Register an entry to the wait group for each scalable job.
+	wg.Add(len(jobScalingPolicies.Policies))
 
 	for job := range jobScalingPolicies.Policies {
 		if r.config.NomadClient.IsJobInDeployment(job) {
 			logging.Debug("core/job_scaling: job %s is in deployment, no scaling evaluation will be triggerd", job)
 			continue
 		}
-		go r.jobScaling(job, jobScalingPolicies)
+		go r.jobScaling(job, jobScalingPolicies, &wg)
 	}
+
+	// Block on all job scaling threads.
+	wg.Wait()
 }
 
-func (r *Runner) jobScaling(jobName string, jobScalingPolicies *structs.JobScalingPolicies) {
+func (r *Runner) jobScaling(jobName string,
+	jobScalingPolicies *structs.JobScalingPolicies, wg *sync.WaitGroup) {
+
+	// Inform the wait group we have finished our task upon completion.
+	defer wg.Done()
 
 	g := jobScalingPolicies.Policies[jobName]
 
