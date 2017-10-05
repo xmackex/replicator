@@ -51,10 +51,16 @@ func NewNomadClient(addr string) (structs.NomadClient, error) {
 	return &nomadClient{nomad: c}, nil
 }
 
+// queryOptions sets Replicators default QueryOptions for making GET calls to
+// the API.
+func (c *nomadClient) queryOptions() (queryOptions *nomad.QueryOptions) {
+	return &nomad.QueryOptions{AllowStale: true}
+}
+
 // NodeReverseLookup provides a method to get the ID of the worker pool node
 // running a given allocation.
 func (c *nomadClient) NodeReverseLookup(allocID string) (node string, err error) {
-	resp, _, err := c.nomad.Allocations().Info(allocID, &nomad.QueryOptions{})
+	resp, _, err := c.nomad.Allocations().Info(allocID, c.queryOptions())
 	if err != nil {
 		return
 	}
@@ -209,7 +215,7 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 // GetTaskGroupResources finds the defined resource requirements for a
 // given Job.
 func (c *nomadClient) GetTaskGroupResources(jobName string, groupPolicy *structs.GroupScalingPolicy) error {
-	jobs, _, err := c.nomad.Jobs().Info(jobName, &nomad.QueryOptions{})
+	jobs, _, err := c.nomad.Jobs().Info(jobName, c.queryOptions())
 
 	if err != nil {
 		return err
@@ -236,7 +242,7 @@ func (c *nomadClient) EvaluateJobScaling(jobName string, jobScalingPolicies []*s
 			return
 		}
 
-		allocs, _, err := c.nomad.Jobs().Allocations(jobName, false, &nomad.QueryOptions{})
+		allocs, _, err := c.nomad.Jobs().Allocations(jobName, false, c.queryOptions())
 		if err != nil {
 			return err
 		}
@@ -276,7 +282,7 @@ func (c *nomadClient) GetJobAllocations(allocs []*nomad.AllocationListStub, gsp 
 		if (allocationStub.ClientStatus == nomadStructs.AllocClientStatusRunning) &&
 			(allocationStub.DesiredStatus == nomadStructs.AllocDesiredStatusRun) {
 
-			if alloc, _, err := c.nomad.Allocations().Info(allocationStub.ID, &nomad.QueryOptions{}); err == nil && alloc != nil {
+			if alloc, _, err := c.nomad.Allocations().Info(allocationStub.ID, c.queryOptions()); err == nil && alloc != nil {
 				cpuPercent, memPercent := c.GetAllocationStats(alloc, gsp)
 				cpuPercentAll += cpuPercent
 				memPercentAll += memPercent
@@ -352,7 +358,7 @@ func (c *nomadClient) VerifyNodeHealth(nodeIP string) (healthy bool) {
 // GetAllocationStats discovers the resources consumed by a particular Nomad
 // allocation.
 func (c *nomadClient) GetAllocationStats(allocation *nomad.Allocation, scalingPolicy *structs.GroupScalingPolicy) (float64, float64) {
-	stats, err := c.nomad.Allocations().Stats(allocation, &nomad.QueryOptions{})
+	stats, err := c.nomad.Allocations().Stats(allocation, c.queryOptions())
 	if err != nil {
 		logging.Error("client/nomad: failed to retrieve allocation statistics from client %v: %v\n", allocation.NodeID, err)
 		return 0, 0
