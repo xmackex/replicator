@@ -80,6 +80,7 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 		"notification",
 		"cluster_scaling_disable",
 		"job_scaling_disable",
+		"scaling_concurrency",
 	}
 	if err := checkHCLKeys(list, valid); err != nil {
 		return multierror.Prefix(err, "config:")

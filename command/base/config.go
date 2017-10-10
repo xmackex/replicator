@@ -28,6 +28,7 @@ func DefaultConfig() *structs.Config {
 		LogLevel:               "INFO",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
+		ScalingConcurrency:     10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
@@ -45,6 +46,7 @@ func DevConfig() *structs.Config {
 		LogLevel:               "DEBUG",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
+		ScalingConcurrency:     10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},

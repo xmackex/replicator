@@ -52,6 +52,10 @@ type Config struct {
 	// initialized backends.
 	Notification *Notification `mapstructure:"notification"`
 
+	// ScalingConcurrency sets the maximum number of concurrent scaling
+	// operations allowed for both job and worker pool scaling.
+	ScalingConcurrency int `mapstructure:"scaling_concurrency"`
+
 	// Telemetry is the configuration struct that controls the telemetry settings.
 	Telemetry *Telemetry `mapstructure:"telemetry"`
 }
@@ -117,6 +121,10 @@ func (c *Config) Merge(b *Config) *Config {
 
 	if b.JobScalingDisable {
 		config.JobScalingDisable = b.JobScalingDisable
+	}
+
+	if b.ScalingConcurrency > 0 {
+		config.ScalingConcurrency = b.ScalingConcurrency
 	}
 
 	// Apply the Telemetry config

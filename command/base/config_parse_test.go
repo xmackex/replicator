@@ -18,6 +18,7 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
     log_level                = "info"
     job_scaling_interval     = 1
     cluster_scaling_interval = 2
+    scaling_concurrency      = 5
 
     telemetry {
       statsd_address = "10.0.0.10:8125"
@@ -44,6 +45,7 @@ func TestConfigParse_LoadConfigFile(t *testing.T) {
 		LogLevel:               "info",
 		JobScalingInterval:     1,
 		ClusterScalingInterval: 2,
+		ScalingConcurrency:     5,
 
 		Telemetry: &structs.Telemetry{
 			StatsdAddress: "10.0.0.10:8125",
