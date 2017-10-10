@@ -22,7 +22,7 @@ func newJobScalingPolicy() *structs.JobScalingPolicies {
 	}
 }
 
-func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
+func (r *Server) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 
 	for job := range jobScalingPolicies.Policies {
 		if r.config.NomadClient.IsJobInDeployment(job) {
@@ -33,7 +33,7 @@ func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies)
 	}
 }
 
-func (r *Runner) jobScaling(jobName string, jobScalingPolicies *structs.JobScalingPolicies) {
+func (r *Server) jobScaling(jobName string, jobScalingPolicies *structs.JobScalingPolicies) {
 
 	g := jobScalingPolicies.Policies[jobName]
 

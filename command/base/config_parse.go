@@ -69,6 +69,9 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 
 	// Check for invalid keys
 	valid := []string{
+		"bind_address",
+		"http_port",
+		"rpc_port",
 		"nomad",
 		"consul",
 		"consul_key_root",

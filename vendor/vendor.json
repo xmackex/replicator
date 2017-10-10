@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "jktW57+vJsziNVPeXMCoujTzdW4=",
+			"path": "github.com/NYTimes/gziphandler",
+			"revision": "97ae7fbaf81620fe97840685304a78a306a39c64",
+			"revisionTime": "2017-09-16T00:36:49Z"
+		},
+		{
 			"checksumSHA1": "PG30dtT9CbNdJGSdhzKG3fxpPnw=",
 			"path": "github.com/PagerDuty/go-pagerduty",
 			"revision": "75111a5661c69cbd8df4d091f96571cc005b6655",
@@ -274,8 +280,8 @@
 			"checksumSHA1": "cdOCt0Yb+hdErz8NAQqayxPmRsY=",
 			"origin": "github.com/hashicorp/consul-template/vendor/github.com/hashicorp/errwrap",
 			"path": "github.com/hashicorp/errwrap",
-			"revision": "1395a2e527f1c240f92c30f5c376f56a50b7bda3",
-			"revisionTime": "2017-03-07T21:44:13Z"
+			"revision": "16b6f8c417d88c88e9b88af6235da2582397c709",
+			"revisionTime": "2017-10-03T21:31:50Z"
 		},
 		{
 			"checksumSHA1": "Uzyon2091lmwacNsl1hCytjhHtg=",
@@ -288,15 +294,15 @@
 			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
 			"origin": "github.com/hashicorp/nomad/vendor/github.com/hashicorp/go-msgpack/codec",
 			"path": "github.com/hashicorp/go-msgpack/codec",
-			"revision": "e943b953c19b862e3e4c4ba5fd311d52e9058499",
-			"revisionTime": "2017-03-15T18:30:28Z"
+			"revision": "52bc3706d4619ccf92ad03afb7e2771b992b68ef",
+			"revisionTime": "2017-10-06T01:00:51Z"
 		},
 		{
-			"checksumSHA1": "4fgV2vzKKVyIlQ9nMyXIP5muq9E=",
+			"checksumSHA1": "g7uHECbzuaWwdxvwoyxBwgeERPk=",
 			"origin": "github.com/hashicorp/consul-template/vendor/github.com/hashicorp/go-multierror",
 			"path": "github.com/hashicorp/go-multierror",
-			"revision": "1395a2e527f1c240f92c30f5c376f56a50b7bda3",
-			"revisionTime": "2017-03-07T21:44:13Z"
+			"revision": "16b6f8c417d88c88e9b88af6235da2582397c709",
+			"revisionTime": "2017-10-03T21:31:50Z"
 		},
 		{
 			"checksumSHA1": "A1PcINvF3UiwHRKn8UcgARgvGRs=",
@@ -377,6 +383,12 @@
 			"path": "github.com/hashicorp/hcl/json/token",
 			"revision": "630949a3c5fa3c613328e1b8256052cbc2327c9b",
 			"revisionTime": "2017-02-17T16:47:38Z"
+		},
+		{
+			"checksumSHA1": "qnlqWJYV81ENr61SZk9c65R1mDo=",
+			"path": "github.com/hashicorp/net-rpc-msgpackrpc",
+			"revision": "a14192a58a694c123d8fe5481d4a4727d6ae82f3",
+			"revisionTime": "2015-11-16T02:03:38Z"
 		},
 		{
 			"checksumSHA1": "o4WnZLWfSGYHnMkQwMybG0mvI2E=",

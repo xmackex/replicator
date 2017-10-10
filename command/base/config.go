@@ -3,6 +3,7 @@ package base
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,22 +13,31 @@ import (
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
-// Define default local addresses for Consul and Nomad
+// Define default local addresses for Consul and Nomad.
 const (
 	LocalConsulAddress = "localhost:8500"
 	LocalNomadAddress  = "http://localhost:4646"
+)
+
+var (
+	// DefaultRPCAddr is the default bind address and port for the Replicator RPC
+	// listener.
+	DefaultRPCAddr = &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1314}
 )
 
 // DefaultConfig returns a default configuration struct with sane defaults.
 func DefaultConfig() *structs.Config {
 
 	return &structs.Config{
+		BindAddress:            "127.0.0.1",
 		Consul:                 LocalConsulAddress,
 		ConsulKeyRoot:          "replicator/config",
 		Nomad:                  LocalNomadAddress,
 		LogLevel:               "INFO",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
+		HTTPPort:               "1313",
+		RPCAddr:                DefaultRPCAddr,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
@@ -39,12 +49,15 @@ func DefaultConfig() *structs.Config {
 func DevConfig() *structs.Config {
 
 	return &structs.Config{
+		BindAddress:            "127.0.0.1",
 		Consul:                 LocalConsulAddress,
 		ConsulKeyRoot:          "replicator/config",
 		Nomad:                  LocalNomadAddress,
 		LogLevel:               "DEBUG",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
+		HTTPPort:               "1313",
+		RPCAddr:                DefaultRPCAddr,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},

@@ -16,7 +16,7 @@ import (
 
 // asyncClusterScaling triggers concurrent cluster scaling operations for
 // each worker pool in the node registry.
-func (r *Runner) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
+func (r *Server) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 	jobRegistry *structs.JobScalingPolicies) {
 
 	// Setup our wait group to ensure we block until all worker pool scaling
@@ -38,7 +38,7 @@ func (r *Runner) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 
 // workerPoolScaling is a thread safe method for scaling an individual
 // worker pool.
-func (r *Runner) workerPoolScaling(poolName string,
+func (r *Server) workerPoolScaling(poolName string,
 	nodeRegistry *structs.NodeRegistry, jobs *structs.JobScalingPolicies,
 	wg *sync.WaitGroup) {
 
