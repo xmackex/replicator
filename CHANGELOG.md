@@ -3,6 +3,7 @@
 NEW FEATURES:
 
 * **Scaling Provider**: Replicator now implements a cloud provider model to support cluster scaling operations across multiple cloud providers. [GH-203]
+* **OpsGenie Notifier**: Replicator now supports OpsGenie as a backend notifier. Thank you to @vladshub. [GH-225]
 
 BUG FIXES:
 
