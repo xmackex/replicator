@@ -155,6 +155,7 @@ func parseNotification(result **structs.Notification, list *ast.ObjectList) erro
 	valid := []string{
 		"cluster_identifier",
 		"pagerduty_service_key",
+		"opsgenie_service_key",
 	}
 	if err := checkHCLKeys(listVal, valid); err != nil {
 		return err
