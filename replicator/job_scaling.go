@@ -56,6 +56,8 @@ func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies)
 		if r.config.NomadClient.IsJobInDeployment(job) {
 			logging.Debug("core/job_scaling: job %s is in deployment, no scaling "+
 				"evaluation will be triggered", job)
+
+			wg.Done()
 			continue
 		}
 

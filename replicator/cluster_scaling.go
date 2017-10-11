@@ -52,10 +52,6 @@ func (r *Runner) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 		pools <- pool
 	}
 
-	// for _, workerPool := range nodeRegistry.WorkerPools {
-	// 	go r.workerPoolScaling(workerPool.Name, nodeRegistry, jobRegistry, &wg)
-	// }
-
 	// Block on all worker pool scaling threads.
 	wg.Wait()
 }
