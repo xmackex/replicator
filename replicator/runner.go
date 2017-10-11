@@ -95,7 +95,7 @@ func (r *Runner) jobScalingTicker(jobPol *structs.JobScalingPolicies) {
 	for {
 		select {
 		case <-ticker.C:
-			if r.candidate.isLeader() {
+			if r.candidate.isLeader() && len(jobPol.Policies) > 0 {
 				r.asyncJobScaling(jobPol)
 			}
 		case <-r.doneChan:
@@ -113,7 +113,7 @@ func (r *Runner) clusterScalingTicker(nodeReg *structs.NodeRegistry, jobPol *str
 	for {
 		select {
 		case <-ticker.C:
-			if r.candidate.isLeader() {
+			if r.candidate.isLeader() && len(nodeReg.WorkerPools) > 0 {
 				err := r.nodeProtectionCheck(nodeReg)
 				if err != nil {
 					logging.Error("core/runner: an error occurred while trying to "+

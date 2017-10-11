@@ -135,6 +135,7 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.StringVar(&cliConfig.Nomad, "nomad", "", "")
 	flags.IntVar(&cliConfig.ClusterScalingInterval, "cluster-scaling-interval", 0, "")
 	flags.IntVar(&cliConfig.JobScalingInterval, "job-scaling-interval", 0, "")
+	flags.IntVar(&cliConfig.ScalingConcurrency, "scaling-concurrency", 0, "")
 	flags.BoolVar(&cliConfig.ClusterScalingDisable, "cluster-scaling-disable", false, "")
 	flags.BoolVar(&cliConfig.JobScalingDisable, "job-scaling-disable", false, "")
 
