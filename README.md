@@ -18,6 +18,8 @@ Pre-compiled releases for a number of platforms are available on the [GitHub rel
 
 Replicator can be run in a number of ways; the recommended way is as a Nomad service job either using the [Docker driver](https://www.nomadproject.io/docs/drivers/docker.html) or the [exec driver](https://www.nomadproject.io/docs/drivers/exec.html). There are example Nomad [job specification files](https://github.com/elsevier-core-engineering/replicator/tree/master/example-jobs) available as a starting point.
 
+It's recommended to take a look at the agent [configuration options](https://github.com/elsevier-core-engineering/replicator/wiki/Agent-Command) to configure Replicator to run best in your environment.
+
 Replicator is fully capable of running as a distributed service; using [Consul sessions](https://www.consul.io/docs/internals/sessions.html) to provide leadership locking and exclusion. State is also written by Replicator to the Consul KV store, allowing Replicator failures to be handled quickly and efficiently.
 
 An example Nomad client configuration that can be used to enable autoscaling on the worker pool:
