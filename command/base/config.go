@@ -3,6 +3,7 @@ package base
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"sort"
@@ -12,22 +13,35 @@ import (
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
-// Define default local addresses for Consul and Nomad
+// Define default local addresses for Consul and Nomad.
 const (
+	DefaultBindAddr    = "127.0.0.1"
+	DefaultRPCPort     = 1314
+	DefaultHTTPPort    = "1313"
 	LocalConsulAddress = "localhost:8500"
 	LocalNomadAddress  = "http://localhost:4646"
+)
+
+var (
+	// DefaultRPCAddr is the default bind address and port for the Replicator RPC
+	// listener.
+	DefaultRPCAddr = &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1314}
 )
 
 // DefaultConfig returns a default configuration struct with sane defaults.
 func DefaultConfig() *structs.Config {
 
 	return &structs.Config{
+		BindAddress:            DefaultBindAddr,
 		Consul:                 LocalConsulAddress,
 		ConsulKeyRoot:          "replicator/config",
 		Nomad:                  LocalNomadAddress,
 		LogLevel:               "INFO",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
+		HTTPPort:               DefaultHTTPPort,
+		RPCPort:                DefaultRPCPort,
+		RPCAddr:                DefaultRPCAddr,
 		ScalingConcurrency:     10,
 
 		Telemetry:    &structs.Telemetry{},
@@ -40,12 +54,16 @@ func DefaultConfig() *structs.Config {
 func DevConfig() *structs.Config {
 
 	return &structs.Config{
+		BindAddress:            DefaultBindAddr,
 		Consul:                 LocalConsulAddress,
 		ConsulKeyRoot:          "replicator/config",
 		Nomad:                  LocalNomadAddress,
 		LogLevel:               "DEBUG",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
+		HTTPPort:               DefaultHTTPPort,
+		RPCPort:                DefaultRPCPort,
+		RPCAddr:                DefaultRPCAddr,
 		ScalingConcurrency:     10,
 
 		Telemetry:    &structs.Telemetry{},

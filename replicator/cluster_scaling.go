@@ -16,7 +16,7 @@ import (
 
 // asyncClusterScaling triggers concurrent cluster scaling operations for
 // each worker pool in the node registry.
-func (r *Runner) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
+func (s *Server) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 	jobRegistry *structs.JobScalingPolicies) {
 
 	// Setup our wait group to ensure we block until all worker pool scaling
@@ -33,7 +33,7 @@ func (r *Runner) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 	pools := make(chan string, poolCount)
 
 	// Calculate the number of worker threads to initiate.
-	maxConcurrency := r.config.ScalingConcurrency
+	maxConcurrency := s.config.ScalingConcurrency
 
 	if poolCount < maxConcurrency {
 		maxConcurrency = poolCount
@@ -44,7 +44,7 @@ func (r *Runner) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 
 	// Initiate workers to implement worker pool scaling.
 	for w := 1; w <= maxConcurrency; w++ {
-		go r.workerPoolScaling(w, pools, nodeRegistry, jobRegistry, &wg)
+		go s.workerPoolScaling(w, pools, nodeRegistry, jobRegistry, &wg)
 	}
 
 	// Add worker pools to the worker channel.
@@ -58,13 +58,13 @@ func (r *Runner) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 
 // workerPoolScaling is a thread safe method for scaling an individual
 // worker pool.
-func (r *Runner) workerPoolScaling(id int, pools <-chan string,
+func (s *Server) workerPoolScaling(id int, pools <-chan string,
 	nodeRegistry *structs.NodeRegistry, jobs *structs.JobScalingPolicies,
 	wg *sync.WaitGroup) {
 
 	// Setup references to clients for Nomad and Consul.
-	nomadClient := r.config.NomadClient
-	consulClient := r.config.ConsulClient
+	nomadClient := s.config.NomadClient
+	consulClient := s.config.ConsulClient
 
 	// Inform the wait group we have finished our task upon completion.
 	// defer wg.Done()
@@ -86,7 +86,7 @@ func (r *Runner) workerPoolScaling(id int, pools <-chan string,
 		workerPool.State = &structs.ScalingState{}
 		workerPool.State.ResourceType = ClusterType
 		workerPool.State.ResourceName = workerPool.Name
-		workerPool.State.StatePath = r.config.ConsulKeyRoot + "/state/nodes/" +
+		workerPool.State.StatePath = s.config.ConsulKeyRoot + "/state/nodes/" +
 			workerPool.Name
 
 		// Attempt to load state from persistent storage.
@@ -101,7 +101,7 @@ func (r *Runner) workerPoolScaling(id int, pools <-chan string,
 
 		// If the worker pool is in failsafe mode, decline to perform any scaling
 		// evaluation or action.
-		if !FailsafeCheck(workerPool.State, r.config, workerPool.RetryThreshold, msg) {
+		if !FailsafeCheck(workerPool.State, s.config, workerPool.RetryThreshold, msg) {
 			logging.Warning("core/cluster_scaling: worker pool %v is in failsafe "+
 				"mode, no scaling evaluations will be performed", workerPool.Name)
 
@@ -146,7 +146,7 @@ func (r *Runner) workerPoolScaling(id int, pools <-chan string,
 
 		// Determine if we've reached the required number of consecutive scaling
 		// requests.
-		ok = checkPoolScalingThreshold(workerPool, r.config)
+		ok = checkPoolScalingThreshold(workerPool, s.config)
 		if !ok {
 			wg.Done()
 			continue
@@ -165,7 +165,7 @@ func (r *Runner) workerPoolScaling(id int, pools <-chan string,
 
 		if poolCapacity.ScalingDirection == structs.ScalingDirectionOut {
 			// Initiate cluster scaling operation by calling the scaling provider.
-			err = workerPool.ScalingProvider.Scale(workerPool, r.config, nodeRegistry)
+			err = workerPool.ScalingProvider.Scale(workerPool, s.config, nodeRegistry)
 			if err != nil {
 				logging.Error("core/cluster_scaling: an error occurred while "+
 					"attempting a scaling operation against worker pool %v: %v",
@@ -218,7 +218,7 @@ func (r *Runner) workerPoolScaling(id int, pools <-chan string,
 			}
 
 			// Initiate cluster scaling operation by calling the scaling provider.
-			err := workerPool.ScalingProvider.Scale(workerPool, r.config, nodeRegistry)
+			err := workerPool.ScalingProvider.Scale(workerPool, s.config, nodeRegistry)
 			if err != nil {
 				logging.Error("core/cluster_scaling: an error occurred while "+
 					"attempting a scaling operation against worker pool %v: %v",

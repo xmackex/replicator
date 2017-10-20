@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,8 +22,11 @@ import (
 // Command is the agent command structure used to track passed args as well as
 // the CLI meta.
 type Command struct {
-	command.Meta
 	args []string
+	command.Meta
+	httpServer   *HTTPServer
+	server       *replicator.Server
+	shutdownChan chan struct{}
 }
 
 // Run triggers a run of the replicator agent by setting up and parsing the
@@ -41,12 +45,6 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	// Create the initial runner with the merged configuration parameters.
-	runner, err := replicator.NewRunner(conf)
-	if err != nil {
-		return 1
-	}
-
 	cVerb := "enabled"
 	jVerb := "enabled"
 
@@ -62,7 +60,21 @@ func (c *Command) Run(args []string) int {
 	logging.Info("command/agent: replicator is running with cluster scaling globally %s", cVerb)
 	logging.Info("command/agent: replicator is running with job scaling globally %s", jVerb)
 
-	go runner.Start()
+	// Create the initial runner with the merged configuration parameters.
+	server, err := replicator.NewServer(conf)
+	if err != nil {
+		return 1
+	}
+
+	c.server = server
+
+	http, err := NewHTTPServer(c, conf)
+	if err != nil {
+		logging.Error("command/agent: unable to start HTTP server: %s", err)
+		return 1
+	}
+
+	c.httpServer = http
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh,
@@ -78,12 +90,14 @@ func (c *Command) Run(args []string) int {
 			switch s {
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				logging.Info("command/agent: caught signal %v", s)
-				runner.Stop()
+				server.Shutdown()
+				c.httpServer.Shutdown()
 				return 1
 
 			case syscall.SIGHUP:
 				logging.Info("command/agent: caught signal %v", s)
-				runner.Stop()
+				server.Shutdown()
+				c.httpServer.Shutdown()
 
 				// Reload the configuration in order to make proper use of SIGHUP.
 				config := c.parseFlags()
@@ -97,13 +111,20 @@ func (c *Command) Run(args []string) int {
 					return 1
 				}
 
-				// Setup a new runner with the new configuration.
-				runner, err = replicator.NewRunner(config)
+				server, err := replicator.NewServer(conf)
 				if err != nil {
 					return 1
 				}
 
-				go runner.Start()
+				c.server = server
+
+				http, err := NewHTTPServer(c, conf)
+				if err != nil {
+					logging.Error("command/agent: unable to start HTTP server: %s", err)
+					return 1
+				}
+
+				c.httpServer = http
 			}
 		}
 	}
@@ -128,6 +149,7 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.BoolVar(&dev, "dev", false, "")
 
 	// Top level configuration flags
+	flags.StringVar(&cliConfig.BindAddress, "bind-address", "", "")
 	flags.StringVar(&cliConfig.Consul, "consul", "", "")
 	flags.StringVar(&cliConfig.ConsulKeyRoot, "consul-key-root", "", "")
 	flags.StringVar(&cliConfig.ConsulToken, "consul-token", "", "")
@@ -138,6 +160,8 @@ func (c *Command) parseFlags() *structs.Config {
 	flags.IntVar(&cliConfig.ScalingConcurrency, "scaling-concurrency", 0, "")
 	flags.BoolVar(&cliConfig.ClusterScalingDisable, "cluster-scaling-disable", false, "")
 	flags.BoolVar(&cliConfig.JobScalingDisable, "job-scaling-disable", false, "")
+	flags.StringVar(&cliConfig.HTTPPort, "http-port", "", "")
+	flags.IntVar(&cliConfig.RPCPort, "rpc-port", 0, "")
 
 	// Telemetry configuration flags
 	flags.StringVar(&cliConfig.Telemetry.StatsdAddress, "statsd-address", "", "")
@@ -250,6 +274,10 @@ func (c *Command) setupNotifier(config *structs.Notification) (err error) {
 // the merged configuration.
 func (c *Command) initialzeAgent(config *structs.Config) (err error) {
 
+	if config.BindAddress != base.DefaultBindAddr || config.RPCPort != base.DefaultRPCPort {
+		config.RPCAddr = &net.TCPAddr{IP: net.ParseIP(config.BindAddress), Port: config.RPCPort}
+	}
+
 	// Setup telemetry
 	if err = c.setupTelemetry(config.Telemetry); err != nil {
 		return
@@ -271,6 +299,11 @@ func (c *Command) initialzeAgent(config *structs.Config) (err error) {
 	return nil
 }
 
+// RPC is used to make an RPC call to Replicator.
+func (c *Command) RPC(method string, reply interface{}) error {
+	return c.server.RPC(method, reply)
+}
+
 // Help provides the help information for the agent command.
 func (c *Command) Help() string {
 	helpText := `
@@ -282,6 +315,10 @@ func (c *Command) Help() string {
     used.
 
   General Options:
+
+    -bind-address=<addr>
+      Specifies which address the Replicator agent will bind to for HTTP API and
+      RPC network  services.
 
     -cluster-scaling-disable
       Passing this flag will disable cluster scaling completly.
@@ -318,6 +355,9 @@ func (c *Command) Help() string {
       Replicator agent with a configuration which is ideal for development
       or local testing.
 
+    -http-port=<port>
+      The port used to run the HTTP server.
+
     -job-scaling-disable
       Passing this flag will disable job scaling completly.
 
@@ -333,6 +373,9 @@ func (c *Command) Help() string {
       The address and port Replicator will use when making connections
       to the Nomad API. By default, this http://localhost:4646, which
       is the default bind and port for a local Nomad server.
+
+    -rpc-port=<port>
+       The port used for RPC listening.
 
   Telemetry Options:
 

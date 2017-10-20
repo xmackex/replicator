@@ -1,12 +1,18 @@
 package structs
 
 import (
+	"net"
+
 	"github.com/elsevier-core-engineering/replicator/notifier"
 )
 
 // Config is the main configuration struct used to configure the replicator
 // application.
 type Config struct {
+	// BindAddress is the TCP IP address which Replicator will bind to for both
+	// HTTP and RPC.
+	BindAddress string `mapstructure:"bind_address"`
+
 	// ClusterScalingDisable is a global parameter that can be used to disable
 	// Replicator from undertaking any cluster scaling evaluations.
 	ClusterScalingDisable bool `mapstructure:"cluster_scaling_disable"`
@@ -30,6 +36,9 @@ type Config struct {
 	// secure Consul installation.
 	ConsulToken string `mapstructure:"consul_token"`
 
+	// HTTPPort is the port to which the HPPT API will bind and listen.
+	HTTPPort string `mapstructure:"http_port"`
+
 	// JobScalingDisable is a global parameter that can be used to disable
 	// Replicator from undertaking any job scaling evaluations.
 	JobScalingDisable bool `mapstructure:"job_scaling_disable"`
@@ -51,6 +60,12 @@ type Config struct {
 	// Notification contains Replicators notification configuration params and
 	// initialized backends.
 	Notification *Notification `mapstructure:"notification"`
+
+	RPCAddr      *net.TCPAddr
+	RPCAdvertise *net.TCPAddr
+
+	// RPCPort is the RPC port on which Replicator will run and advertise.
+	RPCPort int `mapstructure:"rpc_port"`
 
 	// ScalingConcurrency sets the maximum number of concurrent scaling
 	// operations allowed for both job and worker pool scaling.
@@ -90,6 +105,10 @@ type Notification struct {
 func (c *Config) Merge(b *Config) *Config {
 	config := *c
 
+	if b.BindAddress != "" {
+		config.BindAddress = b.BindAddress
+	}
+
 	if b.Nomad != "" {
 		config.Nomad = b.Nomad
 	}
@@ -124,6 +143,14 @@ func (c *Config) Merge(b *Config) *Config {
 
 	if b.JobScalingDisable {
 		config.JobScalingDisable = b.JobScalingDisable
+	}
+
+	if b.HTTPPort != "" {
+		config.HTTPPort = b.HTTPPort
+	}
+
+	if b.RPCPort > 0 {
+		config.RPCPort = b.RPCPort
 	}
 
 	if b.ScalingConcurrency > 0 {

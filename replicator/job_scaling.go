@@ -22,7 +22,7 @@ func newJobScalingPolicy() *structs.JobScalingPolicies {
 	}
 }
 
-func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
+func (s *Server) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies) {
 	// Setup our wait group to ensure we block until all worker pool scaling
 	// operations have completed.
 	var wg sync.WaitGroup
@@ -37,7 +37,7 @@ func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies)
 	jobs := make(chan string, jobCount)
 
 	// Calculate the number of worker threads to initiate.
-	maxConcurrency := r.config.ScalingConcurrency
+	maxConcurrency := s.config.ScalingConcurrency
 
 	if jobCount < maxConcurrency {
 		maxConcurrency = jobCount
@@ -48,12 +48,12 @@ func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies)
 
 	// Initiate workers to implement job scaling.
 	for w := 1; w <= maxConcurrency; w++ {
-		go r.jobScaling(w, jobs, jobScalingPolicies, &wg)
+		go s.jobScaling(w, jobs, jobScalingPolicies, &wg)
 	}
 
 	// Add jobs to the worker channel.
 	for job := range jobScalingPolicies.Policies {
-		if r.config.NomadClient.IsJobInDeployment(job) {
+		if s.config.NomadClient.IsJobInDeployment(job) {
 			logging.Debug("core/job_scaling: job %s is in deployment, no scaling "+
 				"evaluation will be triggered", job)
 
@@ -63,17 +63,14 @@ func (r *Runner) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies)
 
 		jobs <- job
 	}
-
-	// Block on all job scaling threads.
-	wg.Wait()
 }
 
-func (r *Runner) jobScaling(id int, jobs <-chan string,
+func (s *Server) jobScaling(id int, jobs <-chan string,
 	jobScalingPolicies *structs.JobScalingPolicies, wg *sync.WaitGroup) {
 
 	// Setup references to clients for Nomad and Consul.
-	nomadClient := r.config.NomadClient
-	consulClient := r.config.ConsulClient
+	nomadClient := s.config.NomadClient
+	consulClient := s.config.ConsulClient
 
 	for jobName := range jobs {
 		logging.Debug("core/job_scaling: scaling thread %v evaluating scaling "+
@@ -120,15 +117,15 @@ func (r *Runner) jobScaling(id int, jobs <-chan string,
 			}
 
 			// Read our JobGroup state and check failsafe.
-			s := &structs.ScalingState{
+			state := &structs.ScalingState{
 				ResourceName: group.GroupName,
 				ResourceType: JobType,
-				StatePath: r.config.ConsulKeyRoot + "/state/jobs/" + jobName +
+				StatePath: s.config.ConsulKeyRoot + "/state/jobs/" + jobName +
 					"/" + group.GroupName,
 			}
-			consulClient.ReadState(s, true)
+			consulClient.ReadState(state, true)
 
-			if !FailsafeCheck(s, r.config, 1, message) {
+			if !FailsafeCheck(state, s.config, 1, message) {
 				logging.Error("core/job_scaling: job \"%v\" and group \"%v\" is in "+
 					"failsafe mode", jobName, group.GroupName)
 				continue
@@ -137,7 +134,7 @@ func (r *Runner) jobScaling(id int, jobs <-chan string,
 			// Check the JobGroup scaling cooldown.
 			cd := time.Duration(group.Cooldown) * time.Second
 
-			if !s.LastScalingEvent.Before(time.Now().Add(-cd)) {
+			if !state.LastScalingEvent.Before(time.Now().Add(-cd)) {
 				logging.Debug("core/job_scaling: job \"%v\" and group \"%v\" has not reached scaling cooldown threshold of %s",
 					jobName, group.GroupName, cd)
 				continue
@@ -149,7 +146,7 @@ func (r *Runner) jobScaling(id int, jobs <-chan string,
 						"scaling operation (%v) will be requested", jobName, group.GroupName, group.ScaleDirection)
 
 					// Submit the job and group for scaling.
-					nomadClient.JobGroupScale(jobName, group, s)
+					nomadClient.JobGroupScale(jobName, group, state)
 
 				} else {
 					logging.Debug("core/job_scaling: job scaling has been disabled; a "+
@@ -159,7 +156,7 @@ func (r *Runner) jobScaling(id int, jobs <-chan string,
 			}
 
 			// Persist our state to Consul.
-			consulClient.PersistState(s)
+			consulClient.PersistState(state)
 		}
 
 		// Release our read-only lock.

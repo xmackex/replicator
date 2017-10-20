@@ -8,7 +8,7 @@ import (
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
-func (r *Runner) nodeProtectionCheck(nodeReg *structs.NodeRegistry) error {
+func (r *Server) nodeProtectionCheck(nodeReg *structs.NodeRegistry) error {
 	// Check our runtime environment to see if we have a Nomad allocation.
 	allocID := os.Getenv("NOMAD_ALLOC_ID")
 
