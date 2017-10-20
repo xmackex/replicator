@@ -124,7 +124,7 @@ func (s *HTTPServer) registerHandlers() {
 
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
 	f := func(resp http.ResponseWriter, req *http.Request) {
-		// setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
+
 		// Invoke the handler
 		reqURL := req.URL.String()
 		start := time.Now()
@@ -136,7 +136,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Check for an error
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %v, error: %v", reqURL, err)
+			logging.Error("command/http: request %v, error: %v", reqURL, err)
 			code := 500
 			if http, ok := err.(HTTPCodedError); ok {
 				code = http.Code()

@@ -360,7 +360,7 @@ func (c *Command) Help() string {
       is the default bind and port for a local Nomad server.
 
     -rpc-port=<port>
-       The port used for RPC listning.
+       The port used for RPC listening.
 
   Telemetry Options:
 
