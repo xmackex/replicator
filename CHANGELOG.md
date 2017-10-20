@@ -3,6 +3,7 @@
 NEW FEATURES:
 
 * **Scaling Provider**: Replicator now implements a cloud provider model to support cluster scaling operations across multiple cloud providers. [GH-203]
+* **OpsGenie Notifier**: Replicator now supports OpsGenie as a backend notifier. Thank you to @vladshub. [GH-225]
 
 BUG FIXES:
 
@@ -16,6 +17,8 @@ IMPROVEMENTS:
 
 * Remove explicit min/max thresholds for cluster scaling in favor of dynamic threshold discovery in the cloud provider. [GH-211]
 * Remove all internal constants used in favor of exported constants from the Nomad structs package. [GH-213]
+* Job scaling API calls now allow stale reads to reduce load on the Nomad leader. [GH-224]
+* Replicator now implements concurrent scaling limits on both job and cluster scaling operations. [GH-223, GH-221]
 
 ## 1.0.3 (22 September 2017)
 

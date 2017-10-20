@@ -67,6 +67,10 @@ type Config struct {
 	// RPCPort is the RPC port on which Replicator will run and advertise.
 	RPCPort int `mapstructure:"rpc_port"`
 
+	// ScalingConcurrency sets the maximum number of concurrent scaling
+	// operations allowed for both job and worker pool scaling.
+	ScalingConcurrency int `mapstructure:"scaling_concurrency"`
+
 	// Telemetry is the configuration struct that controls the telemetry settings.
 	Telemetry *Telemetry `mapstructure:"telemetry"`
 }
@@ -88,6 +92,9 @@ type Notification struct {
 
 	// PagerDutyServiceKey is the PD integration key for the Events API v1.
 	PagerDutyServiceKey string `mapstructure:"pagerduty_service_key"`
+
+	// OpsGenieAPIKey is the OpsGenie integration key for the Alerts API v2.
+	OpsGenieAPIKey string `mapstructure:"opsgenie_service_key"`
 
 	// Notifiers is where our initialize notification backends are stored so they
 	// can be used on the fly when required.
@@ -142,8 +149,12 @@ func (c *Config) Merge(b *Config) *Config {
 		config.HTTPPort = b.HTTPPort
 	}
 
-	if b.RPCPort != 0 {
+	if b.RPCPort > 0 {
 		config.RPCPort = b.RPCPort
+	}
+
+	if b.ScalingConcurrency > 0 {
+		config.ScalingConcurrency = b.ScalingConcurrency
 	}
 
 	// Apply the Telemetry config
@@ -186,6 +197,10 @@ func (n *Notification) Merge(b *Notification) *Notification {
 
 	if b.PagerDutyServiceKey != "" {
 		config.PagerDutyServiceKey = b.PagerDutyServiceKey
+	}
+
+	if b.OpsGenieAPIKey != "" {
+		config.OpsGenieAPIKey = b.OpsGenieAPIKey
 	}
 
 	return &config

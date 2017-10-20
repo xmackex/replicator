@@ -15,6 +15,9 @@ import (
 
 // Define default local addresses for Consul and Nomad.
 const (
+	DefaultBindAddr    = "127.0.0.1"
+	DefaultRPCPort     = 1314
+	DefaultHTTPPort    = "1313"
 	LocalConsulAddress = "localhost:8500"
 	LocalNomadAddress  = "http://localhost:4646"
 )
@@ -29,15 +32,17 @@ var (
 func DefaultConfig() *structs.Config {
 
 	return &structs.Config{
-		BindAddress:            "127.0.0.1",
+		BindAddress:            DefaultBindAddr,
 		Consul:                 LocalConsulAddress,
 		ConsulKeyRoot:          "replicator/config",
 		Nomad:                  LocalNomadAddress,
 		LogLevel:               "INFO",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
-		HTTPPort:               "1313",
+		HTTPPort:               DefaultHTTPPort,
+		RPCPort:                DefaultRPCPort,
 		RPCAddr:                DefaultRPCAddr,
+		ScalingConcurrency:     10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},
@@ -49,15 +54,17 @@ func DefaultConfig() *structs.Config {
 func DevConfig() *structs.Config {
 
 	return &structs.Config{
-		BindAddress:            "127.0.0.1",
+		BindAddress:            DefaultBindAddr,
 		Consul:                 LocalConsulAddress,
 		ConsulKeyRoot:          "replicator/config",
 		Nomad:                  LocalNomadAddress,
 		LogLevel:               "DEBUG",
 		ClusterScalingInterval: 10,
 		JobScalingInterval:     10,
-		HTTPPort:               "1313",
+		HTTPPort:               DefaultHTTPPort,
+		RPCPort:                DefaultRPCPort,
 		RPCAddr:                DefaultRPCAddr,
+		ScalingConcurrency:     10,
 
 		Telemetry:    &structs.Telemetry{},
 		Notification: &structs.Notification{},

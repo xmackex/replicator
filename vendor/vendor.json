@@ -196,6 +196,36 @@
 			"revisionTime": "2016-10-13T10:26:35Z"
 		},
 		{
+			"checksumSHA1": "1bK29RcAjCAMCYS2HS3O18w4m8k=",
+			"path": "github.com/cihub/seelog",
+			"revision": "f561c5e57575bb1e0a2167028b7339b3a8d16fb4",
+			"revisionTime": "2017-01-30T13:45:32Z"
+		},
+		{
+			"checksumSHA1": "iMU6SM/jawaCOJnyvR5/w8C/C1w=",
+			"path": "github.com/cihub/seelog/archive",
+			"revision": "f561c5e57575bb1e0a2167028b7339b3a8d16fb4",
+			"revisionTime": "2017-01-30T13:45:32Z"
+		},
+		{
+			"checksumSHA1": "oSd7EVei192qS3uYyCAMx9zV3Y8=",
+			"path": "github.com/cihub/seelog/archive/gzip",
+			"revision": "f561c5e57575bb1e0a2167028b7339b3a8d16fb4",
+			"revisionTime": "2017-01-30T13:45:32Z"
+		},
+		{
+			"checksumSHA1": "emesF9mCsIQC59VUE2lvjZYpAHU=",
+			"path": "github.com/cihub/seelog/archive/tar",
+			"revision": "f561c5e57575bb1e0a2167028b7339b3a8d16fb4",
+			"revisionTime": "2017-01-30T13:45:32Z"
+		},
+		{
+			"checksumSHA1": "TXLSkZsRlMifg3mg9+6QgEZJ6m4=",
+			"path": "github.com/cihub/seelog/archive/zip",
+			"revision": "f561c5e57575bb1e0a2167028b7339b3a8d16fb4",
+			"revisionTime": "2017-01-30T13:45:32Z"
+		},
+		{
 			"checksumSHA1": "PiT6aErOEKTly8QgUreblRbCxrY=",
 			"path": "github.com/dariubs/percent",
 			"revision": "6a210960ed74f0c94ad2c45fb5ba2a49b7fd7b1c",
@@ -207,6 +237,12 @@
 			"path": "github.com/fatih/structs",
 			"revision": "1395a2e527f1c240f92c30f5c376f56a50b7bda3",
 			"revisionTime": "2017-03-07T21:44:13Z"
+		},
+		{
+			"checksumSHA1": "/Uu9VEStxBNP071IMqe/VX8SJzg=",
+			"path": "github.com/franela/goreq",
+			"revision": "b5b0f5eb2d16f20345cce0a544a75163579c0b00",
+			"revisionTime": "2017-04-18T06:49:16Z"
 		},
 		{
 			"checksumSHA1": "VvZKmbuBN1QAG699KduTdmSPwA4=",
@@ -507,6 +543,90 @@
 			"path": "github.com/mitchellh/reflectwalk",
 			"revision": "e943b953c19b862e3e4c4ba5fd311d52e9058499",
 			"revisionTime": "2017-03-15T18:30:28Z"
+		},
+		{
+			"checksumSHA1": "0/RftERTKDVmV2jHzq7+vtmAgfk=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/alerts",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "kT8VfqV5hw4zxOsMb6Dji5BFUoA=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/alertsv2",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "PO2pHAKbsbqIAH1zHy/16/dbFdM=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/alertsv2/savedsearches",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "F+435hNK7/cXqZN/102fFqHpLaQ=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/client",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "cf+AaeBGcgK67Q+UnnGd6i3lXak=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/contact",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "/qEw2SLQwcT3dTbBUaHvyRszM3U=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/escalation",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "d7hCRrQvjMQPOBwcCLQSBeNxhBw=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/heartbeat",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "Z4UBwcb/EmhF2dSrxJs9r7pI6w8=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/integration",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "JI6oDq30yyH+Y1C4xfcKWfDMq/A=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/logging",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "ON63VXFhw2kb9XTDRzN9AgPCmIc=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/policy",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "biMHNbi1cqUxcN8r5t6Cny/0Vxw=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/schedule",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "G/q8nSu33wAR3Oj+nJHdVL9tSJM=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/scheduleoverride",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "TGsrNGsuIejIWfSWoFiWBGdYrFs=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/team",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
+		},
+		{
+			"checksumSHA1": "pGqdJ+wami+hiuqu1/QXKCtoDjg=",
+			"path": "github.com/opsgenie/opsgenie-go-sdk/user",
+			"revision": "75d4f6257bfbea787c5c362f5116c328f401b43e",
+			"revisionTime": "2017-07-19T08:48:30Z"
 		},
 		{
 			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",

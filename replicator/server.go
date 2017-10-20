@@ -82,14 +82,13 @@ func NewServer(config *structs.Config) (*Server, error) {
 	}
 
 	if err := s.setupRPC(); err != nil {
-		fmt.Println(err)
 		s.Shutdown()
 		return nil, fmt.Errorf("failed to start RPC layer: %v", err)
 	}
 
 	// Start the RPC listeners
 	go s.listen()
-	logging.Info("core/server: the RPC server has started and is listening at %s", s.config.RPCAddr)
+	logging.Info("core/server: the RPC server has started and is listening at %v", s.config.RPCAddr)
 
 	return s, nil
 }
@@ -134,7 +133,7 @@ func (s *Server) jobScalingTicker(jobPol *structs.JobScalingPolicies) {
 	for {
 		select {
 		case <-ticker.C:
-			if s.candidate.isLeader() {
+			if s.candidate.isLeader() && len(jobPol.Policies) > 0 {
 				s.asyncJobScaling(jobPol)
 			}
 		case <-s.shutdownChan:
@@ -152,10 +151,10 @@ func (s *Server) clusterScalingTicker(nodeReg *structs.NodeRegistry, jobPol *str
 	for {
 		select {
 		case <-ticker.C:
-			if s.candidate.isLeader() {
+			if s.candidate.isLeader() && len(nodeReg.WorkerPools) > 0 {
 				err := s.nodeProtectionCheck(nodeReg)
 				if err != nil {
-					logging.Error("core/server: an error occurred while trying to "+
+					logging.Error("core/runner: an error occurred while trying to "+
 						"protect the node running the Replicator leader: %v", err)
 				}
 
