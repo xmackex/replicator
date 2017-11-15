@@ -120,6 +120,7 @@ func (s *HTTPServer) Shutdown() {
 
 // registerHandlers is used to attach our handlers.
 func (s *HTTPServer) registerHandlers() {
+	s.mux.HandleFunc("/v1/status/leader", s.wrap(s.StatusLeaderRequest))
 }
 
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
