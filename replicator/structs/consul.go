@@ -13,6 +13,10 @@ type ConsulClient interface {
 	// leadership can be maintained.
 	CreateSession(int, chan struct{}) (string, error)
 
+	// GetLeaderInfo is used to inspect the leadership KV and session to provide
+	// details of the Replicator agent currently holding leadership.
+	GetLeaderInfo(*LeaderResponse, *string, string) error
+
 	// PersistState is responsible for persistently storing scaling
 	// state information in the Consul Key/Value Store.
 	PersistState(*ScalingState) error

@@ -35,6 +35,7 @@ type Server struct {
 
 // endpoints represents the Replicator API endpoints.
 type endpoints struct {
+	Status *Status
 }
 
 type inmemCodec struct {
@@ -170,6 +171,9 @@ func (s *Server) clusterScalingTicker(nodeReg *structs.NodeRegistry, jobPol *str
 // setupRPC is used to setup our endpoints and register the handlers as well as
 // setup the RPC listener.
 func (s *Server) setupRPC() error {
+
+	s.endpoints.Status = &Status{s}
+	s.rpcServer.Register(s.endpoints.Status)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {

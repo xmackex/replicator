@@ -39,6 +39,29 @@ func NewConsulClient(addr, token string) (structs.ConsulClient, error) {
 	return &consulClient{consul: c}, nil
 }
 
+// GetLeaderInfo is used to inspect the leadership KV and session to provide
+// details of the Replicator agent currently holding leadership.
+func (c *consulClient) GetLeaderInfo(info *structs.LeaderResponse, key *string, session string) error {
+
+	if session == "" {
+		k, _, err := c.consul.KV().Get(*key, nil)
+		if err != nil {
+			return err
+		}
+		session = k.Session
+	}
+
+	s, _, err := c.consul.Session().Info(session, nil)
+	if err != nil {
+		return err
+	}
+
+	info.NodeID = s.Node
+	info.SessionID = s.ID
+
+	return nil
+}
+
 // CreateSession creates a Consul session for use in the Leadership locking
 // process and will spawn off the renewing of the session in order to ensure
 // leadership can be maintained.
