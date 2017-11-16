@@ -12,11 +12,15 @@ type ConsulClient interface {
 	// process and will spawn off the renewing of the session in order to ensure
 	// leadership can be maintained.
 	CreateSession(int, chan struct{}) (string, error)
+  
+	// GetLeaderInfo is used to inspect the leadership KV and session to provide
+	// details of the Replicator agent currently holding leadership.
+	GetLeaderInfo(*LeaderResponse, *string, string) error
 
-	// LoadPoolConfig is responsible for performing fallback loading of a
+  // LoadPoolConfig is responsible for performing fallback loading of a
 	// worker pool configuration from Consul.
 	LoadPoolConfig(string) (map[string]string, error)
-
+  
 	// PersistState is responsible for persistently storing scaling
 	// state information in the Consul Key/Value Store.
 	PersistState(*ScalingState) error

@@ -63,6 +63,7 @@ func (c *Command) Run(args []string) int {
 	// Create the initial runner with the merged configuration parameters.
 	server, err := replicator.NewServer(conf)
 	if err != nil {
+		logging.Error("command/agent: failed to start Replicator server: %s", err)
 		return 1
 	}
 
