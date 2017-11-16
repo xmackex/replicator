@@ -44,6 +44,16 @@ func Min(values ...float64) float64 {
 	return min
 }
 
+// StringInSlice checks if a given string is in a slice.
+func StringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 // ParseMetaConfig parses meta parameters from a Nomad agent or job
 // configuration and validates required keys are present. If any required
 // keys are found to be missing, these are returned. Otherwise, an empty

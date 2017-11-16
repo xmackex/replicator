@@ -27,6 +27,27 @@ func TestHelper_Max(t *testing.T) {
 	}
 }
 
+func TestHelper_StringInList(t *testing.T) {
+	type stringTest struct {
+		input    string
+		expected bool
+	}
+
+	var stringTests = []stringTest{
+		{"goo", false}, {"foo", true},
+	}
+
+	list := []string{"foo", "bar"}
+
+	for _, test := range stringTests {
+		actual := StringInSlice(test.input, list)
+
+		if actual != test.expected {
+			t.Fatalf("expected %v got %v", test.expected, actual)
+		}
+	}
+}
+
 func TestHelper_Min(t *testing.T) {
 
 	expected := 1.01

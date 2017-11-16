@@ -4,19 +4,22 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/elsevier-core-engineering/replicator/cloud"
-	"github.com/elsevier-core-engineering/replicator/helper"
-	"github.com/elsevier-core-engineering/replicator/logging"
-	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 	nomad "github.com/hashicorp/nomad/api"
 	nomadStructs "github.com/hashicorp/nomad/nomad/structs"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/elsevier-core-engineering/replicator/cloud"
+	"github.com/elsevier-core-engineering/replicator/helper"
+	"github.com/elsevier-core-engineering/replicator/logging"
+	"github.com/elsevier-core-engineering/replicator/replicator/structs"
 )
 
 // NodeWathcher is the method Replicator uses to perform discovery of all
 // worker pool nodes in the Nomad cluster.
-func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
+func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry,
+	config *structs.Config) {
+
 	q := &nomad.QueryOptions{WaitIndex: 1, AllowStale: true}
 
 	for {
@@ -64,7 +67,7 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 				}
 
 				// Retrieve node details and process the scaling configuration.
-				nodeConfig, err := ProcessNodeConfig(nodeRecord)
+				nodeConfig, err := ProcessNodeConfig(nodeRecord, config)
 				if err != nil {
 					logging.Debug("client/node_discovery: an error occurred while "+
 						"attempting to process the node configuration: %v", err)
@@ -129,11 +132,15 @@ func (c *nomadClient) NodeWatcher(nodeRegistry *structs.NodeRegistry) {
 // configuration details. If the meta configuration parameters required for
 // scaling and identification of the associated worker pool are successfully
 // processed, they are returned.
-func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
+func ProcessNodeConfig(node *nomad.Node,
+	config *structs.Config) (pool *structs.WorkerPool, err error) {
 
 	// Create a new worker pool record to hold processed meta
 	// configuration parameters.
 	result := structs.NewWorkerPool()
+
+	// Minimum required key for fallback lookup.
+	poolName := "replicator_worker_pool"
 
 	// Required meta configuration keys.
 	requiredKeys := []string{
@@ -144,9 +151,12 @@ func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
 		"replicator_worker_pool",
 	}
 
+	// Setup universal variable for configuration parameters.
+	configParams := node.Meta
+
 	// Parse meta configuration parameters and determine if any required
 	// configuration keys are missing.
-	missingKeys := helper.ParseMetaConfig(node.Meta, requiredKeys)
+	missingKeys := helper.ParseMetaConfig(configParams, requiredKeys)
 
 	// If none of the required keys are present, the node is not configured
 	// for autoscaling and cannot be registered.
@@ -156,29 +166,54 @@ func ProcessNodeConfig(node *nomad.Node) (pool *structs.WorkerPool, err error) {
 		return nil, err
 	}
 
-	// If some of the required keys are missing, the autoscaling configuration
-	// is considered invalid and the node cannot be registered.
-	if len(missingKeys) > 0 {
+	// If some of the required keys are missing but we have the worker pool
+	// name, we can attempt to lookup the config in Consul.
+	if len(missingKeys) > 0 && !helper.StringInSlice(poolName, missingKeys) {
+		// Generate pool configuration key path.
+		poolKey := config.ConsulKeyRoot + "/nodes/" + configParams[poolName]
+
+		logging.Debug("client/node_discovery: node %v is missing required "+
+			"configuration meta parameters, attempting to find fallback "+
+			"configuration in Consul at path %v", node.ID, poolKey)
+
+		// Attempt to retrieve worker pool configuration from Consul.
+		configParams, err = config.ConsulClient.LoadPoolConfig(poolKey)
+		if err != nil {
+			logging.Error("client/node_discovery: unable to find fallback "+
+				"configuration for worker pool %v: %v", configParams[poolName],
+				err)
+		}
+
+		missingKeys = helper.ParseMetaConfig(configParams, requiredKeys)
+		if len(missingKeys) > 0 {
+			return nil, fmt.Errorf("the autoscaling configuration for node %v is "+
+				"missing required configuration parameters: %v", node.ID, missingKeys)
+		}
+
+		logging.Debug("client/node_discovery: successfully processed worker pool "+
+			"configuration from Consul at path %v", poolKey)
+
+	} else if len(missingKeys) > 0 {
 		err = fmt.Errorf("the autoscaling configuration for node %v is missing "+
 			"required configuration parameters: %v", node.ID, missingKeys)
 		return nil, err
 	}
 
 	// Setup configuration for our structure decoder.
-	config := &mapstructure.DecoderConfig{
+	decoderConfig := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
 		Result:           result,
 	}
 
 	// Create a new structure decoder.
-	decoder, err := mapstructure.NewDecoder(config)
+	decoder, err := mapstructure.NewDecoder(decoderConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	// Decode the meta configuration parameters and build a worker pool
 	// record.
-	if err = decoder.Decode(node.Meta); err != nil {
+	if err = decoder.Decode(configParams); err != nil {
 		return nil, err
 	}
 
@@ -255,7 +290,7 @@ func Register(node *nomad.Node, workerPool *structs.WorkerPool,
 	workerPool.Nodes[node.ID] = node
 
 	// Register the appropriate scaling provider with the worker pool.
-	scalingProvider, err := cloud.NewScalingProvider(node.Meta)
+	scalingProvider, err := cloud.NewScalingProvider(workerPool)
 	if err != nil {
 		return fmt.Errorf("failed to initialize scaling provider for worker pool "+
 			"%v: %v", workerPool.Name, err)

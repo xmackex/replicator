@@ -51,6 +51,7 @@ type WorkerPool struct {
 	Nodes             map[string]*nomad.Node `hash:"ignore"`
 	NotificationUID   string                 `mapstructure:"replicator_notification_uid"`
 	ProtectedNode     string                 `hash:"ignore"`
+	ProviderName      string                 `hash:"ignore" mapstructure:"replicator_provider"`
 	Region            string                 `mapstructure:"replicator_region"`
 	RetryThreshold    int                    `mapstructure:"replicator_retry_threshold"`
 	ScalingEnabled    bool                   `mapstructure:"replicator_enabled"`

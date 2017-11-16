@@ -5,9 +5,11 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/nomad/api"
+
 	"github.com/elsevier-core-engineering/replicator/helper"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
-	"github.com/hashicorp/nomad/api"
+	"github.com/elsevier-core-engineering/replicator/testutil"
 )
 
 // Test the parsing of scaling meta configuration parameters and
@@ -65,8 +67,21 @@ func TestNodeDiscovery_ParseConfig(t *testing.T) {
 // the meta configuration parameters and decodes them into a worker
 // pool object. This object is used during the registration process.
 func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
+	t.Parallel()
+
 	// Get a list of nodes, all in a ready state with drain mode disabled.
 	nodes := mockNodes(false, true, structs.NodeStatusReady)
+
+	// Build a fake config record.
+	// config := &structs.Config{}
+
+	// Create a test Consul server to test configuration fallback.
+	config, server := testutil.MakeClientWithConfig(t)
+	defer server.Stop()
+
+	// Create new Consul client.
+	consul, _ := NewConsulClient(server.HTTPAddr, "")
+	config.ConsulClient = consul
 
 	for _, node := range nodes {
 		// Retrieve mock node details
@@ -74,7 +89,7 @@ func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
 
 		// Confirm node processing completes successfully on a normalized
 		// node record.
-		_, err := ProcessNodeConfig(nodeRecord)
+		_, err := ProcessNodeConfig(nodeRecord, config)
 		if err != nil {
 			t.Fatalf("expected node processing to complete with no error, got %v",
 				err)
@@ -83,7 +98,7 @@ func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
 		// Change meta configuration parameters to an invalid type and
 		// confirm node processing thows an error when attempting to decode
 		nodeRecord.Meta["replicator_cooldown"] = "300.0"
-		_, err = ProcessNodeConfig(nodeRecord)
+		_, err = ProcessNodeConfig(nodeRecord, config)
 		if err == nil {
 			t.Fatalf("expected parse error (strconv.ParseInt) during node " +
 				"processing but no exception was thrown")
@@ -92,7 +107,7 @@ func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
 		// Modify node record to remove required keys and confirm node
 		// processing throws an error.
 		delete(nodeRecord.Meta, "replicator_max")
-		_, err = ProcessNodeConfig(nodeRecord)
+		_, err = ProcessNodeConfig(nodeRecord, config)
 		if err == nil {
 			t.Fatalf("node with missing meta configuration parameters failed to " +
 				"throw an exception where one was expected.")
@@ -101,10 +116,59 @@ func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
 		// Strip all meta configuration parameters and confirm node
 		// processing throws an error.
 		nodeRecord.Meta = make(map[string]string)
-		_, err = ProcessNodeConfig(nodeRecord)
+		_, err = ProcessNodeConfig(nodeRecord, config)
 		if err == nil {
 			t.Fatalf("node with no meta configuration parameters failed to " +
 				"throw an exception where one was expected")
+		}
+
+		// Set partial node meta configuration parameters but not the worker pool
+		// name. Verify node processing fails.
+		nodeRecord.Meta["replicator_enabled"] = "true"
+		_, err = ProcessNodeConfig(nodeRecord, config)
+		if err == nil {
+			t.Fatalf("expected node to fail processing due to a partial node meta " +
+				"configuration and missing information required for fallback " +
+				"configuration lookup but it was processed successfully.")
+		}
+
+		// Set the worker pool name in the node meta configuration parameters.
+		nodeRecord.Meta["replicator_worker_pool"] = "example-group"
+
+		// Test that a node with only a worker pool name in the meta config fails
+		// processing when no fallback configuration is present.
+		_, err = ProcessNodeConfig(nodeRecord, config)
+		if err == nil {
+			t.Fatalf("expected node to fail processing due to a partial node meta " +
+				"configuration and no fallback configuration but it was processed " +
+				"successfully.")
+		}
+
+		// Test that a node with only a worker pool name in the meta config and
+		// a partial fallback configuration fails.
+		data := []byte(`{"replicator_enabled":"true",
+										 "replicator_worker_pool":"example-group"}`)
+		server.SetKV("replicator/config/nodes/example-group", data)
+
+		_, err = ProcessNodeConfig(nodeRecord, config)
+		if err == nil {
+			t.Fatalf("expected node to fail processing due to a partial fallback " +
+				"configuration but it was processed succesfully")
+		}
+
+		// Test that a node with only a worker pool name in the meta config can
+		// successfully find fallback configuration.
+		data = []byte(`{"replicator_enabled":"true",
+										 "replicator_notification_uid":"REP2",
+										 "replicator_provider":"aws",
+										 "replicator_region":"us-east-1",
+										 "replicator_worker_pool":"example-group"}`)
+		server.SetKV("replicator/config/nodes/example-group", data)
+
+		_, err = ProcessNodeConfig(nodeRecord, config)
+		if err != nil {
+			t.Fatalf("expected node to process successfully using fallback "+
+				"configuration retrieval from Consul: %v", err)
 		}
 	}
 
@@ -145,12 +209,15 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 	// and not in drain mode.
 	nodes := mockNodes(false, false, structs.NodeStatusReady)
 
+	// Build a fake config record.
+	config := &structs.Config{}
+
 	// Register the worker pool and nodes so we have something to
 	// run deregistrations against.
 	for _, node := range nodes {
 		nodeRecord := mockNode(node)
 
-		nodeConfig, err := ProcessNodeConfig(nodeRecord)
+		nodeConfig, err := ProcessNodeConfig(nodeRecord, config)
 		if err != nil {
 			t.Fatalf("an unexpected exception occurred while processing node "+
 				"configuration: %v", err)
@@ -167,6 +234,7 @@ func TestNodeDiscovery_Deregister(t *testing.T) {
 		Cooldown:         300,
 		FaultTolerance:   1,
 		NotificationUID:  "Test01",
+		ProviderName:     "aws",
 		Region:           "us-east-1",
 		RetryThreshold:   3,
 		ScalingEnabled:   true,
@@ -232,6 +300,9 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 	// Obtain a new node registry object.
 	nodeRegistry := newNodeRegistry()
 
+	// Build a fake config record.
+	config := &structs.Config{}
+
 	// Setup expected node registry state.
 	expected := newNodeRegistry()
 	expected.RegisteredNodes["ec2026ec-3632-7cb6-a3d2-88b9e254c793"] =
@@ -240,6 +311,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 		Cooldown:         300,
 		FaultTolerance:   1,
 		NotificationUID:  "Test01",
+		ProviderName:     "aws",
 		Region:           "us-east-1",
 		RetryThreshold:   3,
 		ScalingEnabled:   true,
@@ -271,7 +343,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 
 	// Retrieve detailed node configuration for first node.
 	nodeRecord := mockNode(nodes[0])
-	nodeConfig, err := ProcessNodeConfig(nodeRecord)
+	nodeConfig, err := ProcessNodeConfig(nodeRecord, config)
 	if err != nil {
 		t.Fatalf("an unexpected exception occurred while processing node "+
 			"configuration: %v", err)
@@ -297,7 +369,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 
 	// Retrieve detailed node configuration for second node.
 	nodeRecord = mockNode(nodes[1])
-	nodeConfig, err = ProcessNodeConfig(nodeRecord)
+	nodeConfig, err = ProcessNodeConfig(nodeRecord, config)
 	if err != nil {
 		t.Fatalf("an unexpected exception occurred while processing node "+
 			"configuration: %v", err)
@@ -339,7 +411,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 	// Update meta configuration parameters on second node to trigger a
 	// worker pool configuration change.
 	nodeRecord.Meta["replicator_max"] = "5"
-	nodeConfig, err = ProcessNodeConfig(nodeRecord)
+	nodeConfig, err = ProcessNodeConfig(nodeRecord, config)
 	if err != nil {
 		t.Fatalf("an unexpected exception occurred while processing node "+
 			"configuration: %v", err)
@@ -386,7 +458,7 @@ func TestNodeDiscovery_RegisterNode(t *testing.T) {
 	nodes = mockNodes(false, false, structs.NodeStatusReady)
 	nodeRecord = mockNode(nodes[0])
 	nodeRecord.Meta["replicator_provider"] = "foo"
-	nodeConfig, err = ProcessNodeConfig(nodeRecord)
+	nodeConfig, err = ProcessNodeConfig(nodeRecord, config)
 	if err != nil {
 		t.Fatalf("an unexpected exception occured while processing node "+
 			"configuration: %v", err)

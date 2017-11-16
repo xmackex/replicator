@@ -13,6 +13,10 @@ type ConsulClient interface {
 	// leadership can be maintained.
 	CreateSession(int, chan struct{}) (string, error)
 
+	// LoadPoolConfig is responsible for performing fallback loading of a
+	// worker pool configuration from Consul.
+	LoadPoolConfig(string) (map[string]string, error)
+
 	// PersistState is responsible for persistently storing scaling
 	// state information in the Consul Key/Value Store.
 	PersistState(*ScalingState) error
