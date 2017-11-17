@@ -147,7 +147,7 @@ func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
 		// Test that a node with only a worker pool name in the meta config and
 		// a partial fallback configuration fails.
 		data := []byte(`{"replicator_enabled":"true",
-                                 "replicator_worker_pool":"example-group"}`)
+                                "replicator_worker_pool":"example-group"}`)
 		server.SetKV("replicator/config/nodes/example-group", data)
 
 		_, err = ProcessNodeConfig(nodeRecord, config)
@@ -159,10 +159,10 @@ func TestNodeDiscovery_ProcessNodeConfig(t *testing.T) {
 		// Test that a node with only a worker pool name in the meta config can
 		// successfully find fallback configuration.
 		data = []byte(`{"replicator_enabled":"true",
-                                "replicator_notification_uid":"REP2",
-                                "replicator_provider":"aws",
-                                "replicator_region":"us-east-1",
-                                "replicator_worker_pool":"example-group"}`)
+                               "replicator_notification_uid":"REP2",
+                               "replicator_provider":"aws",
+                               "replicator_region":"us-east-1",
+                               "replicator_worker_pool":"example-group"}`)
 		server.SetKV("replicator/config/nodes/example-group", data)
 
 		_, err = ProcessNodeConfig(nodeRecord, config)
