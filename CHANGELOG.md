@@ -13,6 +13,7 @@ BUG FIXES:
 * Pass job scaling verification and processing methods the job ID rather than name to handle jobs where the name differs from the ID. Thank you to @burdandrei. [GH-212]
 * Prevent processing of Nomad system jobs. [GH-220]
 * Prevent panic when Replicator fails to determine the IP address of a node during worker pool scale-in operations. Thank you to @burdandrei. [GH-222]
+* Prevent errors when Replicator attempts a cluster scale-in operation while the prioritized scaling metric is `ScalingMetricDsik`. [GH-240]
 
 IMPROVEMENTS:
 
