@@ -131,13 +131,18 @@ func (c *nomadClient) LeastAllocatedNode(capacity *structs.ClusterCapacity,
 		switch capacity.ScalingMetric.Type {
 		case ScalingMetricProcessor:
 			if (lowest == 0) || (alloc.UsedCapacity.CPUPercent < lowest) {
-				nodeID = alloc.NodeID
 				lowest = alloc.UsedCapacity.CPUPercent
+				nodeID = alloc.NodeID
 			}
 		case ScalingMetricMemory:
 			if (lowest == 0) || (alloc.UsedCapacity.MemoryPercent < lowest) {
-				nodeID = alloc.NodeID
 				lowest = alloc.UsedCapacity.MemoryPercent
+				nodeID = alloc.NodeID
+			}
+		case ScalingMetricDisk:
+			if (lowest == 0) || (alloc.UsedCapacity.DiskPercent < lowest) {
+				lowest = alloc.UsedCapacity.DiskPercent
+				nodeID = alloc.NodeID
 			}
 		case ScalingMetricNone:
 			nodeID = alloc.NodeID
