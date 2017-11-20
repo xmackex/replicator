@@ -169,8 +169,10 @@ func ProcessNodeConfig(node *nomad.Node,
 	// If some of the required keys are missing but we have the worker pool
 	// name, we can attempt to lookup the config in Consul.
 	if len(missingKeys) > 0 && !helper.StringInSlice(poolName, missingKeys) {
+		workerPool := configParams[poolName]
+
 		// Generate pool configuration key path.
-		poolKey := config.ConsulKeyRoot + "/nodes/" + configParams[poolName]
+		poolKey := config.ConsulKeyRoot + "/nodes/" + workerPool
 
 		logging.Debug("client/node_discovery: node %v is missing required "+
 			"configuration meta parameters, attempting to find fallback "+
@@ -179,9 +181,9 @@ func ProcessNodeConfig(node *nomad.Node,
 		// Attempt to retrieve worker pool configuration from Consul.
 		configParams, err = config.ConsulClient.LoadPoolConfig(poolKey)
 		if err != nil {
-			logging.Error("client/node_discovery: unable to find fallback "+
-				"configuration for worker pool %v: %v", configParams[poolName],
-				err)
+			return nil, fmt.Errorf("unable to find fallback configuration for "+
+				"worker pool %v and have insufficient node meta parameters: %v",
+				workerPool, err)
 		}
 
 		missingKeys = helper.ParseMetaConfig(configParams, requiredKeys)
@@ -194,9 +196,8 @@ func ProcessNodeConfig(node *nomad.Node,
 			"configuration from Consul at path %v", poolKey)
 
 	} else if len(missingKeys) > 0 {
-		err = fmt.Errorf("the autoscaling configuration for node %v is missing "+
+		return nil, fmt.Errorf("the autoscaling configuration for node %v is missing "+
 			"required configuration parameters: %v", node.ID, missingKeys)
-		return nil, err
 	}
 
 	// Setup configuration for our structure decoder.
