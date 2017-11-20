@@ -5,6 +5,7 @@ NEW FEATURES:
 * **API Framework**: Replicator now runs as an RPC server and implements an HTTP API framework. [GH-186]
 * **Scaling Provider**: Replicator now implements a cloud provider model to support cluster scaling operations across multiple cloud providers. [GH-203]
 * **OpsGenie Notifier**: Replicator now supports OpsGenie as a backend notifier. Thank you to @vladshub. [GH-225]
+* **Worker Pool Configuration In Consul**: Replicator now supports the ability to store full worker pool configuration in the Consul Key/Value store allowing for minimal configuration to be stored in the node meta configuration parameters. [GH-204]
 
 BUG FIXES:
 
