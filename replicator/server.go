@@ -71,7 +71,7 @@ func NewServer(config *structs.Config) (*Server, error) {
 	if !s.config.ClusterScalingDisable {
 		// Setup the node registry and initiate worker pool and node discovery.
 		nodeRegistry := structs.NewNodeRegistry()
-		go s.config.NomadClient.NodeWatcher(nodeRegistry)
+		go s.config.NomadClient.NodeWatcher(nodeRegistry, s.config)
 
 		// Launch our cluster scaling main ticker function
 		go s.clusterScalingTicker(nodeRegistry, jobScalingPolicy)

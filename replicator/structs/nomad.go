@@ -66,7 +66,7 @@ type NomadClient interface {
 
 	// NodeWatcher provides an automated mechanism to discover worker pools and
 	// nodes and populate the node registry.
-	NodeWatcher(*NodeRegistry)
+	NodeWatcher(*NodeRegistry, *Config)
 
 	// MostUtilizedResource calculates which resource is most-utilized across the
 	// cluster. The worst-case allocation resource is prioritized when making

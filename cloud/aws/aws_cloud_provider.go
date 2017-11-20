@@ -24,15 +24,14 @@ type AwsScalingProvider struct {
 
 // NewAwsScalingProvider is a factory function that generates a new instance
 // of the AwsScalingProvider.
-func NewAwsScalingProvider(conf map[string]string) (structs.ScalingProvider, error) {
-	region, ok := conf["replicator_region"]
-	if !ok {
+func NewAwsScalingProvider(workerPool *structs.WorkerPool) (structs.ScalingProvider, error) {
+	if workerPool.Region == "" {
 		return nil, fmt.Errorf("replicator_region is required for the aws " +
 			"scaling provider")
 	}
 
 	return &AwsScalingProvider{
-		AsgService: newAwsAsgService(region),
+		AsgService: newAwsAsgService(workerPool.Region),
 	}, nil
 }
 

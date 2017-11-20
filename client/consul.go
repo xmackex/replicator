@@ -1,14 +1,16 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
+	consul "github.com/hashicorp/consul/api"
+
 	"github.com/elsevier-core-engineering/replicator/logging"
 	"github.com/elsevier-core-engineering/replicator/replicator/structs"
-	consul "github.com/hashicorp/consul/api"
 )
 
 // The client object is a wrapper to the Consul client provided by the Consul
@@ -83,6 +85,26 @@ func (c *consulClient) CreateSession(ttl int, stopCh chan struct{}) (id string, 
 	c.renewSession(entry.TTL, resp, stopCh)
 
 	return resp, nil
+}
+
+// LoadPoolConfig retrieves fallback worker pool configuration from Consul.
+func (c *consulClient) LoadPoolConfig(key string) (map[string]string, error) {
+	// Attempt to read the pool configuration key, if present.
+	config, _, err := c.consul.KV().Get(key, nil)
+	if err != nil || config == nil {
+		return nil, fmt.Errorf("unable to find or read pool configuration data "+
+			"at path %v: %v", key, err)
+	}
+
+	// Marshal result into map object.
+	result := make(map[string]string)
+	err = json.Unmarshal(config.Value, &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process pool configuration data read "+
+			"from path %v: %v", key, err)
+	}
+
+	return result, nil
 }
 
 // AcquireLeadership attempts to acquire a Consul leadersip lock using the
