@@ -23,22 +23,21 @@ It's recommended to take a look at the agent [configuration options](https://git
 Replicator is fully capable of running as a distributed service; using [Consul sessions](https://www.consul.io/docs/internals/sessions.html) to provide leadership locking and exclusion. State is also written by Replicator to the Consul KV store, allowing Replicator failures to be handled quickly and efficiently.
 
 An example Nomad client configuration that can be used to enable autoscaling on the worker pool:
-```json
-{
-    "bind_addr": "0.0.0.0",
-    "client": {
-        "enabled": true,
-        "meta": {
-            "replicator_cooldown": 300,
-            "replicator_enabled": "true",
-            "replicator_node_fault_tolerance": 1,
-            "replicator_notification_uid": "REP2",
-            "replicator_region": "us-east-1",
-            "replicator_retry_threshold": 3,
-            "replicator_scaling_threshold": 3,
-            "replicator_worker_pool": "container-node-private-nonprod"
-        }
-    }
+```hcl
+bind_addr = "0.0.0.0"
+client {
+  enabled =  true
+  meta {
+    "replicator_cool_down"            = 400
+    "replicator_enabled"              = true
+    "replicator_node_fault_tolerance" = 1
+    "replicator_notification_uid"     = "REP2"
+    "replicator_provider"             = "aws"
+    "replicator_region"               = "us-east-1"
+    "replicator_retry_threshold"      = 3
+    "replicator_scaling_threshold"    = 3
+    "replicator_worker_pool"          = "container-node-public-prod"
+  }
 }
 ```
 
