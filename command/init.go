@@ -122,6 +122,7 @@ meta {
   "replicator_enabled"              = true
   "replicator_node_fault_tolerance" = 1
   "replicator_notification_uid"     = "REP2"
+  "replicator_provider"             = "aws"
   "replicator_region"               = "us-east-1"
   "replicator_retry_threshold"      = 3
   "replicator_scaling_threshold"    = 3
