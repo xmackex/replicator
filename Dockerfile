@@ -10,7 +10,7 @@ LABEL maintainer Eric Westfall<(eawestfall@gmail.com> (@eawestfall)
 LABEL vendor "Elsevier Core Engineering"
 LABEL documentation "https://github.com/elsevier-core-engineering/replicator"
 
-ENV REPLICATOR_VERSION v1.0.3
+ENV REPLICATOR_VERSION v1.1.0-beta1
 
 WORKDIR /usr/local/bin/
 
