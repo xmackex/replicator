@@ -23,6 +23,7 @@ IMPROVEMENTS:
 * Job scaling API calls now allow stale reads to reduce load on the Nomad leader. [GH-224]
 * Replicator now implements concurrent scaling limits on both job and cluster scaling operations. [GH-223, GH-221]
 * Replicator now implements a `status/leader` API endpoint for retrieving Replicator leader information. [GH-242]
+* Logging messages to include date, time and zone [GH-254]
 
 ## 1.0.3 (22 September 2017)
 
