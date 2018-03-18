@@ -178,7 +178,7 @@ func checkClusterScalingResult(activityID *string,
 
 	// Setup our timeout and ticker value.
 	ticker := time.NewTicker(time.Second * time.Duration(10))
-	timeOut := time.Tick(time.Minute * 3)
+	timeOut := time.Tick(time.Minute * 10)
 
 	for {
 		select {
