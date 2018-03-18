@@ -15,6 +15,7 @@ BUG FIXES:
 * Prevent processing of Nomad system jobs. [GH-220]
 * Prevent panic when Replicator fails to determine the IP address of a node during worker pool scale-in operations. Thank you to @burdandrei. [GH-222]
 * Prevent errors when Replicator attempts a cluster scale-in operation while the prioritized scaling metric is `ScalingMetricDsik`. [GH-240]
+* Increase timeout for ASG scaling result. [GH-258]
 
 IMPROVEMENTS:
 
