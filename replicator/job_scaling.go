@@ -125,7 +125,7 @@ func (s *Server) jobScaling(id int, jobs <-chan string,
 			}
 			consulClient.ReadState(state, true)
 
-			if !FailsafeCheck(state, s.config, 1, message) {
+			if !FailsafeCheck(state, s.config, group.RetryThreshold, message) {
 				logging.Error("core/job_scaling: job \"%v\" and group \"%v\" is in "+
 					"failsafe mode", jobName, group.GroupName)
 				continue
