@@ -60,6 +60,7 @@ job "example" {
       "replicator_cooldown"          = 50
       "replicator_enabled"           = true
       "replicator_min"               = 1
+      "replicator_retry_threshold"   = 1
       "replicator_scalein_mem"       = 30
       "replicator_scalein_cpu"       = 30
       "replicator_scaleout_mem"      = 80
