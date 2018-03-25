@@ -26,6 +26,7 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 	metaKeys["replicator_scaleout_mem"] = "90"
 	metaKeys["replicator_scaleout_cpu"] = "90"
 	metaKeys["replicator_notification_uid"] = "ELS2"
+	metaKeys["replicator_retry_threshold"] = "10"
 
 	updateScalingPolicy(jobName1, groupName1, metaKeys, scaling)
 	updateScalingPolicy(jobName2, groupName2, metaKeys, scaling)
@@ -35,40 +36,43 @@ func TestJobScalingPolicies_updateScalingPolicy(t *testing.T) {
 		Policies: make(map[string][]*structs.GroupScalingPolicy),
 	}
 	policy1 := &structs.GroupScalingPolicy{
-		GroupName:   "cache",
-		Cooldown:    60,
-		Enabled:     true,
-		Min:         7500,
-		Max:         10000,
-		ScaleInMem:  40,
-		ScaleInCPU:  40,
-		ScaleOutMem: 90,
-		ScaleOutCPU: 90,
-		UID:         "ELS2",
+		GroupName:      "cache",
+		Cooldown:       60,
+		Enabled:        true,
+		Min:            7500,
+		Max:            10000,
+		ScaleInMem:     40,
+		ScaleInCPU:     40,
+		ScaleOutMem:    90,
+		ScaleOutCPU:    90,
+		RetryThreshold: 10,
+		UID:            "ELS2",
 	}
 	policy2 := &structs.GroupScalingPolicy{
-		GroupName:   "jobs",
-		Cooldown:    60,
-		Enabled:     true,
-		Min:         7500,
-		Max:         10000,
-		ScaleInMem:  40,
-		ScaleInCPU:  40,
-		ScaleOutMem: 90,
-		ScaleOutCPU: 90,
-		UID:         "ELS2",
+		GroupName:      "jobs",
+		Cooldown:       60,
+		Enabled:        true,
+		Min:            7500,
+		Max:            10000,
+		ScaleInMem:     40,
+		ScaleInCPU:     40,
+		ScaleOutMem:    90,
+		ScaleOutCPU:    90,
+		RetryThreshold: 10,
+		UID:            "ELS2",
 	}
 	policy3 := &structs.GroupScalingPolicy{
-		GroupName:   "hertzfeld",
-		Cooldown:    60,
-		Enabled:     true,
-		Min:         7500,
-		Max:         10000,
-		ScaleInMem:  40,
-		ScaleInCPU:  40,
-		ScaleOutMem: 90,
-		ScaleOutCPU: 90,
-		UID:         "ELS2",
+		GroupName:      "hertzfeld",
+		Cooldown:       60,
+		Enabled:        true,
+		Min:            7500,
+		Max:            10000,
+		ScaleInMem:     40,
+		ScaleInCPU:     40,
+		ScaleOutMem:    90,
+		ScaleOutCPU:    90,
+		RetryThreshold: 10,
+		UID:            "ELS2",
 	}
 	expected.Policies["example"] = append(expected.Policies["example"], policy1)
 	expected.Policies["woz"] = append(expected.Policies["woz"], policy2)
