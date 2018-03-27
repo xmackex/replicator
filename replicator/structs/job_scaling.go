@@ -10,7 +10,8 @@ import (
 func NewGroupScalingPolicy() *GroupScalingPolicy {
 	// Return a new group scaling policy object with default values set.
 	return &GroupScalingPolicy{
-		Cooldown: 60,
+		Cooldown:       60,
+		RetryThreshold: 1,
 	}
 }
 
@@ -27,6 +28,7 @@ type JobScalingPolicies struct {
 type GroupScalingPolicy struct {
 	Cooldown       time.Duration `mapstructure:"replicator_cooldown"`
 	Enabled        bool          `mapstructure:"replicator_enabled"`
+	RetryThreshold int           `mapstructure:"replicator_retry_threshold"`
 	GroupName      string
 	Max            int            `mapstructure:"replicator_max"`
 	Min            int            `mapstructure:"replicator_min"`

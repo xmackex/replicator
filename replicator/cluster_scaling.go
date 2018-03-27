@@ -83,11 +83,12 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 		poolCapacity := &structs.ClusterCapacity{}
 
 		// Initialize a new scaling state object and set helper fields.
-		workerPool.State = &structs.ScalingState{}
-		workerPool.State.ResourceType = ClusterType
-		workerPool.State.ResourceName = workerPool.Name
-		workerPool.State.StatePath = s.config.ConsulKeyRoot + "/state/nodes/" +
-			workerPool.Name
+		workerPool.State = &structs.ScalingState{
+			ResourceName: workerPool.Name,
+			ResourceType: ClusterType,
+			StatePath: s.config.ConsulKeyRoot + "/state/nodes/" +
+				workerPool.Name,
+		}
 
 		// Attempt to load state from persistent storage.
 		consulClient.ReadState(workerPool.State, true)
