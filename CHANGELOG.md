@@ -6,6 +6,7 @@ NEW FEATURES:
 * **Scaling Provider**: Replicator now implements a cloud provider model to support cluster scaling operations across multiple cloud providers. [GH-203]
 * **OpsGenie Notifier**: Replicator now supports OpsGenie as a backend notifier. Thank you to @vladshub. [GH-225]
 * **Worker Pool Configuration In Consul**: Replicator now supports the ability to store full worker pool configuration in the Consul Key/Value store allowing for minimal configuration to be stored in the node meta configuration parameters. [GH-204]
+* **replicator_retry_threshold**: A new config flag added to allow configuration for retrying job scaling activites before entering failsafe. Thank you to @djenriquez [GH-261] 
 
 BUG FIXES:
 
