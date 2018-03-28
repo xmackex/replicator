@@ -48,6 +48,7 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 	// launched instance and retry up to a specified timeout.
 	ticker := time.NewTicker(time.Second * 10)
 	timeout := time.NewTicker(time.Minute * 5)
+	defer timeout.Stop()
 
 	// Setup AWS EC2 API Session
 	sess := session.Must(session.NewSession())
@@ -78,7 +79,7 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 
 	for {
 		select {
-		case <-timeout:
+		case <-timeout.C:
 			err = fmt.Errorf("cloud/aws: timeout reached while attempting to "+
 				"determine the most recently launched instance in autoscaling "+
 				"group %v", asg)
