@@ -47,7 +47,7 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 	// Setup a ticker to poll the autoscaling group for a recently
 	// launched instance and retry up to a specified timeout.
 	ticker := time.NewTicker(time.Second * 10)
-	timeout := time.Tick(time.Minute * 5)
+	timeout := time.NewTicker(time.Minute * 5)
 
 	// Setup AWS EC2 API Session
 	sess := session.Must(session.NewSession())
