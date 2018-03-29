@@ -137,31 +137,32 @@ Until Vault integration is added, the instance pool which is capable of running 
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AuthorizeAutoScalingActions",
-      "Action": [
-        "autoscaling:DescribeAutoScalingGroups",
-        "autoscaling:DescribeAutoScalingInstances",
-        "autoscaling:DescribeScalingActivities",
-        "autoscaling:DetachInstances",
-        "autoscaling:UpdateAutoScalingGroup"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
-    },
-    {
-      "Sid": "AuthorizeEC2Actions",
-      "Action": [
-        "ec2:DescribeInstances",
-        "ec2:DescribeRegions",
-        "ec2:TerminateInstances"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AuthorizeAutoScalingActions",
+            "Action": [
+                "autoscaling:DescribeAutoScalingGroups",
+                "autoscaling:DescribeAutoScalingInstances",
+                "autoscaling:DescribeScalingActivities",
+                "autoscaling:DetachInstances",
+                "autoscaling:UpdateAutoScalingGroup"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Sid": "AuthorizeEC2Actions",
+            "Action": [
+                "ec2:DescribeInstances",
+                "ec2:DescribeRegions",
+                "ec2:TerminateInstances",
+                "ec2:DescribeInstanceStatus"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        }
+    ]
 }
 ```
 
