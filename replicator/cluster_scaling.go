@@ -61,7 +61,7 @@ func (s *Server) asyncClusterScaling(nodeRegistry *structs.NodeRegistry,
 func (s *Server) workerPoolScaling(id int, pools <-chan string,
 	nodeRegistry *structs.NodeRegistry, jobs *structs.JobScalingPolicies,
 	wg *sync.WaitGroup) {
-
+	defer wg.Done()
 	// Setup references to clients for Nomad and Consul.
 	nomadClient := s.config.NomadClient
 	consulClient := s.config.ConsulClient
@@ -105,8 +105,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 		if !FailsafeCheck(workerPool.State, s.config, workerPool.RetryThreshold, msg) {
 			logging.Warning("core/cluster_scaling: worker pool %v is in failsafe "+
 				"mode, no scaling evaluations will be performed", workerPool.Name)
-
-			wg.Done()
 			continue
 		}
 
@@ -115,8 +113,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 		if err != nil || !scale {
 			logging.Debug("core/cluster_scaling: scaling operation for worker pool %v "+
 				"is either not required or not permitted: %v", workerPool.Name, err)
-
-			wg.Done()
 			continue
 		}
 
@@ -133,15 +129,12 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 		if scale := workerPool.ScalingProvider.SafetyCheck(workerPool); !scale {
 			logging.Debug("core/cluster_scaling: scaling operation for worker pool %v"+
 				"is not permitted by the scaling provider", workerPool.Name)
-
-			wg.Done()
 			continue
 		}
 
 		// Determine if the scaling cooldown threshold has been met.
 		ok := checkCooldownThreshold(workerPool)
 		if !ok {
-			wg.Done()
 			continue
 		}
 
@@ -149,7 +142,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 		// requests.
 		ok = checkPoolScalingThreshold(workerPool, s.config)
 		if !ok {
-			wg.Done()
 			continue
 		}
 
@@ -171,8 +163,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 				logging.Error("core/cluster_scaling: an error occurred while "+
 					"attempting a scaling operation against worker pool %v: %v",
 					workerPool.Name, err)
-
-				wg.Done()
 				continue
 			}
 
@@ -190,8 +180,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 			if nodeIP == "" || nodeID == "" {
 				logging.Error("core/cluster_scaling: unable to identify the least "+
 					"allocated node in worker pool %v", workerPool.Name)
-
-				wg.Done()
 				continue
 			}
 
@@ -213,8 +201,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 
 				metrics.IncrCounter([]string{"cluster", workerPool.Name, "scale_in",
 					"failure"}, 1)
-
-				wg.Done()
 				continue
 			}
 
@@ -224,8 +210,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 				logging.Error("core/cluster_scaling: an error occurred while "+
 					"attempting a scaling operation against worker pool %v: %v",
 					workerPool.Name, err)
-
-				wg.Done()
 				continue
 			}
 
@@ -240,9 +224,6 @@ func (s *Server) workerPoolScaling(id int, pools <-chan string,
 		// Our metric counter to track successful cluster scaling activities.
 		m := fmt.Sprintf("scale_%s", strings.ToLower(poolCapacity.ScalingDirection))
 		metrics.IncrCounter([]string{"cluster", workerPool.Name, m, "success"}, 1)
-
-		// Signal the wait group.
-		wg.Done()
 	}
 }
 

@@ -56,8 +56,6 @@ func (s *Server) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies)
 		if s.config.NomadClient.IsJobInDeployment(job) {
 			logging.Debug("core/job_scaling: job %s is in deployment, no scaling "+
 				"evaluation will be triggered", job)
-
-			wg.Done()
 			continue
 		}
 
@@ -68,6 +66,7 @@ func (s *Server) asyncJobScaling(jobScalingPolicies *structs.JobScalingPolicies)
 func (s *Server) jobScaling(id int, jobs <-chan string,
 	jobScalingPolicies *structs.JobScalingPolicies, wg *sync.WaitGroup) {
 
+	defer wg.Done()
 	// Setup references to clients for Nomad and Consul.
 	nomadClient := s.config.NomadClient
 	consulClient := s.config.ConsulClient
@@ -92,16 +91,10 @@ func (s *Server) jobScaling(id int, jobs <-chan string,
 		if err != nil && strings.Contains(err.Error(), "404") {
 			client.RemoveJobScalingPolicy(jobName, jobScalingPolicies)
 
-			// Signal the wait group.
-			wg.Done()
-
 			continue
 		} else if err != nil {
 			logging.Error("core/job_scaling: unable to perform job resource "+
 				"evaluation: %v", err)
-
-			// Signal the wait group.
-			wg.Done()
 
 			continue
 		}
@@ -161,8 +154,5 @@ func (s *Server) jobScaling(id int, jobs <-chan string,
 
 		// Release our read-only lock.
 		jobScalingPolicies.Lock.RUnlock()
-
-		// Signal the wait group.
-		wg.Done()
 	}
 }
