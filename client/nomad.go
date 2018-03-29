@@ -181,11 +181,14 @@ func (c *nomadClient) DrainNode(nodeID string) (err error) {
 	// Setup a ticker to poll the node allocations and report when all existing
 	// allocations have been migrated to other worker nodes.
 	ticker := time.NewTicker(time.Millisecond * 500)
-	timeout := time.Tick(time.Minute * 3)
+	defer ticker.Stop()
+
+	timeout := time.NewTicker(time.Minute * 3)
+	defer timeout.Stop()
 
 	for {
 		select {
-		case <-timeout:
+		case <-timeout.C:
 			logging.Error("client/nomad: timeout %v reached while waiting for existing allocations to be migrated from node %v",
 				timeout, nodeID)
 			return nil
@@ -312,14 +315,17 @@ func (c *nomadClient) VerifyNodeHealth(nodeIP string) (healthy bool) {
 	// Setup a ticker to poll the health status of the specified worker node
 	// and retry up to a specified timeout.
 	ticker := time.NewTicker(time.Second * 10)
-	timeout := time.Tick(time.Minute * 5)
+	defer ticker.Stop()
+
+	timeout := time.NewTicker(time.Minute * 5)
+	defer timeout.Stop()
 
 	logging.Info("client/nomad: waiting for node %v to successfully join "+
 		"the worker pool", nodeIP)
 
 	for {
 		select {
-		case <-timeout:
+		case <-timeout.C:
 			logging.Error("client/nomad: timeout reached while verifying the "+
 				"health of worker node %v", nodeIP)
 			return

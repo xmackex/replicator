@@ -47,6 +47,8 @@ func getMostRecentInstance(asg, region string) (node string, err error) {
 	// Setup a ticker to poll the autoscaling group for a recently
 	// launched instance and retry up to a specified timeout.
 	ticker := time.NewTicker(time.Second * 10)
+	defer ticker.Stop()
+
 	timeout := time.NewTicker(time.Minute * 5)
 	defer timeout.Stop()
 
@@ -179,11 +181,14 @@ func checkClusterScalingResult(activityID *string,
 
 	// Setup our timeout and ticker value.
 	ticker := time.NewTicker(time.Second * time.Duration(10))
-	timeOut := time.Tick(time.Minute * 10)
+	defer ticker.Stop()
+
+	timeOut := time.NewTicker(time.Minute * 10)
+	defer timeOut.Stop()
 
 	for {
 		select {
-		case <-timeOut:
+		case <-timeOut.C:
 			return fmt.Errorf("timeout reached while attempting to verify scaling "+
 				"activity %v completed successfully", activityID)
 
@@ -222,7 +227,10 @@ func verifyAsgUpdate(workerPool string, capacity int64,
 	// Setup a ticker to poll the autoscaling group and report when an instance
 	// has been successfully launched.
 	ticker := time.NewTicker(time.Millisecond * 500)
-	timeout := time.Tick(time.Minute * 3)
+	defer ticker.Stop()
+
+	timeout := time.NewTicker(time.Minute * 3)
+	defer timeout.Stop()
 
 	logging.Info("cloud/aws: attempting to verify the autoscaling group "+
 		"scaling operation for worker pool %v has completed successfully",
@@ -231,7 +239,7 @@ func verifyAsgUpdate(workerPool string, capacity int64,
 	for {
 		select {
 
-		case <-timeout:
+		case <-timeout.C:
 			return fmt.Errorf("timeout reached while attempting to verify the "+
 				"autoscaling group scaling operation for worker pool %v completed "+
 				"successfully", workerPool)
