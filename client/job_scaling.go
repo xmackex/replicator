@@ -96,7 +96,9 @@ func (c *nomadClient) scaleConfirmation(evalID string) (success bool) {
 	}
 
 	timeOut := time.After(deploymentTimeOut)
-	tick := time.Tick(500 * time.Millisecond)
+	tick := time.NewTicker(500 * time.Millisecond)
+	defer tick.Stop()
+
 	q := &nomad.QueryOptions{WaitIndex: 1, AllowStale: true}
 
 	for {
@@ -106,7 +108,7 @@ func (c *nomadClient) scaleConfirmation(evalID string) (success bool) {
 				depID, deploymentTimeOut)
 			return
 
-		case <-tick:
+		case <-tick.C:
 			dep, meta, err := c.nomad.Deployments().Info(depID, q)
 			if err != nil {
 				logging.Error("client/job_scaling: unable to list Nomad "+
@@ -141,11 +143,14 @@ func (c *nomadClient) getDeploymentID(evalID string) (depID string, err error) {
 	// Setup our retry ticker to keep polling the Nomad API until we get
 	// a deployment ID.
 	ticker := time.NewTicker(time.Millisecond * 500)
-	timeout := time.Tick(evaluationTimeOut)
+	defer ticker.Stop()
+
+	timeout := time.NewTicker(evaluationTimeOut)
+	defer timeout.Stop()
 
 	for {
 		select {
-		case <-timeout:
+		case <-timeout.C:
 			return depID, fmt.Errorf("timeout reached while trying to retrieve the "+
 				"deployment ID for evaluation %v", evalID)
 

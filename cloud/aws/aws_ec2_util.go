@@ -61,14 +61,17 @@ func terminateInstance(instanceID, region string) error {
 
 	// Setup our timeout and ticker value.
 	ticker := time.NewTicker(time.Second * time.Duration(10))
-	timeOut := time.Tick(time.Minute * 3)
+	defer ticker.Stop()
+
+	timeOut := time.NewTicker(time.Minute * 3)
+	defer timeOut.Stop()
 
 	logging.Info("cloud/aws: confirming successful termination of "+
 		"instance %v", instanceID)
 
 	for {
 		select {
-		case <-timeOut:
+		case <-timeOut.C:
 			return fmt.Errorf("timeout reached while attempting to confirm "+
 				"the termination of instance %v", instanceID)
 
@@ -85,6 +88,8 @@ func terminateInstance(instanceID, region string) error {
 
 			resp, err := svc.DescribeInstanceStatus(params)
 			if err != nil {
+				logging.Error("cloud/aws: failed to desribe status of instance "+
+					"%v: %v", instanceID, err)
 				return err
 			}
 

@@ -101,14 +101,17 @@ func FindNodeByAddress(nodeRegistry *structs.NodeRegistry,
 	// Setup a ticker to poll the node registry for the specified worker node
 	// and retry up to a specified timeout.
 	ticker := time.NewTicker(time.Second * 10)
-	timeout := time.Tick(time.Minute * 5)
+	defer ticker.Stop()
+
+	timeout := time.NewTicker(time.Minute * 5)
+	defer timeout.Stop()
 
 	logging.Info("core/helper: searching for a registered node with address "+
 		"%v in worker pool %v", nodeAddress, workerPoolName)
 
 	for {
 		select {
-		case <-timeout:
+		case <-timeout.C:
 			logging.Error("core/helper: timeout reached while searching the "+
 				"node registry for a node with address %v registered in worker "+
 				"pool %v", nodeAddress, workerPoolName)
@@ -157,7 +160,10 @@ func FindNodeByRegistrationTime(nodeRegistry *structs.NodeRegistry,
 	// Setup a ticker to poll the health status of the specified worker node
 	// and retry up to a specified timeout.
 	ticker := time.NewTicker(time.Second * 10)
-	timeout := time.Tick(time.Minute * 5)
+	defer ticker.Stop()
+
+	timeout := time.NewTicker(time.Minute * 5)
+	defer timeout.Stop()
 
 	logging.Info("core/helper: determining most recently launched " +
 		"worker node")
@@ -165,7 +171,7 @@ func FindNodeByRegistrationTime(nodeRegistry *structs.NodeRegistry,
 	for {
 		select {
 
-		case <-timeout:
+		case <-timeout.C:
 			err = fmt.Errorf("core/cluster_scaling: timeout reached while "+
 				"attempting to determine the most recently launched node in worker "+
 				"pool %v", workerPoolName)
