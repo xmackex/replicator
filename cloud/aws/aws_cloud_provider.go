@@ -148,16 +148,20 @@ func (sp *AwsScalingProvider) scaleIn(workerPool *structs.WorkerPool, config *st
 	}
 
 	// Detach the target node from the worker pool autoscaling group.
+	// If this fails, continue on and terminate the instance
 	resp, err := sp.AsgService.DetachInstances(params)
 	if err != nil {
-		return err
-	}
-
-	// Monitor the scaling activity result.
-	if *resp.Activities[0].StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful {
-		err = checkClusterScalingResult(resp.Activities[0].ActivityId, sp.AsgService)
-		if err != nil {
-			return err
+		// We will continue to terminate the instance even if the detach fails
+		logging.Error("core/cluster_scaling: an error occurred while "+
+			"attempting to detach %v from worker pool %v: %v", instanceID,
+			workerPool.Name, err)
+	} else {
+		// Monitor the scaling activity result.
+		if *resp.Activities[0].StatusCode != autoscaling.ScalingActivityStatusCodeSuccessful {
+			err = checkClusterScalingResult(resp.Activities[0].ActivityId, sp.AsgService)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
