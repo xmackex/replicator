@@ -18,6 +18,7 @@ BUG FIXES:
 * Prevent errors when Replicator attempts a cluster scale-in operation while the prioritized scaling metric is `ScalingMetricDsik`. [GH-240]
 * Increase timeout for ASG scaling result. [GH-258]
 * Use `time.NewTicker` rather than `time.Tick` for garbage collection issues and timeouts. [GH-262]
+* Continue on with node termination even if the ASG detach fails. [GH-269]
 
 IMPROVEMENTS:
 
