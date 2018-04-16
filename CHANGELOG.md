@@ -19,6 +19,8 @@ BUG FIXES:
 * Increase timeout for ASG scaling result. [GH-258]
 * Use `time.NewTicker` rather than `time.Tick` for garbage collection issues and timeouts. [GH-262]
 * Continue on with node termination even if the ASG detach fails. [GH-269]
+* Fix issue caused by changes Nomad 0.8 where deployments can now return null. [GH-270]
+
 
 IMPROVEMENTS:
 
