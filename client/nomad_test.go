@@ -8,8 +8,10 @@ import (
 
 func TestNomad_NewNomadClient(t *testing.T) {
 	addr := "http://nomad.ce.systems:4646"
+	config := "nomad.ce.systems"
+	token := "change_me"
 
-	_, err := NewNomadClient(addr)
+	_, err := NewNomadClient(addr, token, config)
 	if err != nil {
 		t.Fatalf("error creating Nomad client %s", err)
 	}
