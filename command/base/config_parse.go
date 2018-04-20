@@ -70,6 +70,8 @@ func parseConfig(result *structs.Config, list *ast.ObjectList) error {
 	// Check for invalid keys
 	valid := []string{
 		"nomad",
+		"nomad_token",
+		"nomad_tls_server_name",
 		"consul",
 		"consul_key_root",
 		"consul_token",
