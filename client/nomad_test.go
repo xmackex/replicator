@@ -32,6 +32,7 @@ func TestNomad_CalculateUsage(t *testing.T) {
 			MemoryMB: 2048,
 		},
 	}
+
 	nodes := make([]*structs.NodeAllocation, 2)
 	nodes[0] = node1
 	nodes[1] = node2
