@@ -168,6 +168,10 @@ func TestNomad_MaxAllowedClusterUtilization(t *testing.T) {
 			MemoryMB: 2048,
 			CPUMHz:   2400,
 		},
+		UsedCapacity: structs.AllocationResources{
+			MemoryMB: 2048,
+			CPUMHz:   2400,
+		},
 		TotalCapacity: structs.AllocationResources{
 			MemoryMB: 8192,
 			CPUMHz:   9600,
