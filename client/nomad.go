@@ -170,7 +170,6 @@ func (c *nomadClient) LeastAllocatedNode(capacity *structs.ClusterCapacity,
 // will be assigned and existing allocations will be migrated.
 func (c *nomadClient) DrainNode(nodeID string) (err error) {
 	// Initiate allocation draining for specified node.
-	// _, err = c.nomad.Nodes().ToggleDrain(nodeID, true, &nomad.WriteOptions{})
 	drainSpec := &nomad.DrainSpec{}
 	_, err = c.nomad.Nodes().UpdateDrain(nodeID, drainSpec, true, &nomad.WriteOptions{})
 	if err != nil {
