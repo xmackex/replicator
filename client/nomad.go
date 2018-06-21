@@ -392,7 +392,7 @@ func (c *nomadClient) GetAllocationStats(allocation *nomad.Allocation, scalingPo
 // MaxAllowedClusterUtilization calculates the maximum allowed cluster utilization after
 // taking into consideration node fault-tolerance and scaling overhead.
 func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTolerance int, scaleIn bool) (maxAllowedUtilization int) {
-	var allocTotal, capacityTotal int
+	var allocTotal, scaling_reserve, capacityTotal int
 	var internalScalingMetric string
 
 	// Use the cluster scaling metric when determining total cluster capacity
@@ -401,10 +401,12 @@ func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTo
 	case ScalingMetricMemory:
 		internalScalingMetric = ScalingMetricMemory
 		allocTotal = capacity.TaskAllocation.MemoryMB
+		scaling_reserve = capacity.UsedCapacity.MemoryMB
 		capacityTotal = capacity.TotalCapacity.MemoryMB
 	default:
 		internalScalingMetric = ScalingMetricProcessor
 		allocTotal = capacity.TaskAllocation.CPUMHz
+		scaling_reserve = capacity.UsedCapacity.CPUMHz
 		capacityTotal = capacity.TotalCapacity.CPUMHz
 	}
 
@@ -417,10 +419,11 @@ func MaxAllowedClusterUtilization(capacity *structs.ClusterCapacity, nodeFaultTo
 		capacity.TotalCapacity.CPUMHz, capacity.TotalCapacity.MemoryMB)
 	logging.Debug("client/nomad: Cluster Utilization (Scaling Metric: %v, CPU [MHz]: %v, Memory [MB]: %v)",
 		capacity.ScalingMetric, capacity.UsedCapacity.CPUMHz, capacity.UsedCapacity.MemoryMB)
-	logging.Debug("client/nomad: Scaling Metric (Algorithm): %v, Average Node Capacity: %v, Job Scaling Overhead: %v",
-		internalScalingMetric, nodeAvgAlloc, allocTotal)
+	logging.Debug("client/nomad: Scaling Metric (Algorithm): %v, Average Node Capacity: %v, "+
+		"Job Scaling Overhead: %v Reserved Capacity: %v",
+		internalScalingMetric, allocTotal, scaling_reserve)
 
-	maxAllowedUtilization = ((capacityTotal - allocTotal) - (nodeAvgAlloc * nodeFaultTolerance))
+	maxAllowedUtilization = ((capacityTotal - scaling_reserve) - (nodeAvgAlloc * nodeFaultTolerance))
 
 	return
 }
